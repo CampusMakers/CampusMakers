@@ -19,16 +19,21 @@
 
 **Project Assets:**
 
--   **GitHub:** [Link]
+-   **GitHub:** [https://github.com/CampusMakers/CampusMakers](https://github.com/CampusMakers/CampusMakers)
 
 -   **Deployment:** [Link to Live Site]
 
 **Document History:**
 
-Last date changed | Who | What was changed |
-  
+| Last date changed:   | Who:  | What was changed:  |
+|---|---|---|
+| 09/24/2026  | Jarek  | Added product vision and buyer user stories.  |
+| 09/24/2026  | Hunter  | Added project tracker conventions and code style guides to CONTRIBUTING.md  |
+| 09/25/2026  | Deekshitha  | Added user stories for a student maker.  |
+| 09/25/2026  | Hunter  | Added user stories for site administrator  |
+| 09/25/2026  | Deekshitha  | Added user stories for a local community member.  |
 
-**[Project Title]**
+**Campus Makers**
 
 **Software Requirements Specification (SRS)**
 
@@ -86,16 +91,35 @@ Last date changed | Who | What was changed |
 -   <u>**Target Audience:** Who are the stakeholders?</u>
 
 -   <u>**scope:** what is the scope of this project?</u>
+  
+  For college students who want to buy, sell, and discover student-made crafts/products, campus makers is a campus-based online marketplace which connects student creators and buyers within their college. Unlike general online marketplaces, our product focuses on individual campus communities and helps students discover local creators, products, services, and selling events on campus. 
 
 2.  **<u>user stories</u>**
 
 *<u>User stories follow the format: **"As a [Type of User], I want to [Action] so that [Value/Benefit]."**…</u>*
 
--   <u>**US-01:** Authentication</u>
+-   <u>**US-01:** Student Maker</u>
 
--   <u>**US-02:** store Workout_Log.</u>
+-   <u>**US-02:** Buyer</u>
 
--   <u>**US-03:** search history</u>
+-   <u>**US-03:** Site Administrator</u>
+
+-   <u>**US-04:** Local Community Member</u>
+
+| ID | Requirement | Priority |
+|---|---|---|
+| US-01.1  | As a student maker, I want to upload my products, pictures, and pricing and collaborate with other makers so that I can get more users and promote my creations.  | 1  |
+| US-01.2  | As a student maker, I want to manage my store profile and contact information, so that I can ensure my information is protected and that my customer base has the most up-to-date contact information and store details.  | 4  |
+| US-01.3  | As a student maker, I want to set an availability calendar, so my customers know when I am available for services (nails, hair, etc.)    | 4  |
+| US-02.1  | As a buyer, I want to browse products/crafts listed by student sellers so that I can discover unique items available within my campus community.  | 4  |
+| US-02.2  | As a buyer, I want to search and filter marketplace listing by categories, price, and other relevant topics so that I can quickly find products that match what I am looking for.  |   |
+| US-02.3  | As a buyer, I want to purchase an item using an available and secure payment method so that I can conveniently buy products from student sellers through Campus Makers.  |   |
+| US-03.1  | As a site administrator, I want to delete spam/rule-breaking listings to guarantee user safety and integrity.  |   |
+| US-03.2  | As a site administrator, I want to view site and purchase analytics so future tasks can be optimized for user needs.  |   |
+| US-03.3  | As a site administrator, I want to edit user account information so incorrect details can be fixed, ensuring site accuracy.  |   |
+| US-04.1  |   |   |
+| US-04.2  |   |   |
+| US-04.3  |   |   |   
 
 3.  **<u>Functional requirements</u>**
 
@@ -121,15 +145,15 @@ Last date changed | Who | What was changed |
 
 -   <u>**UML:** (Attach a diagram)</u>
 
-5.  **<u>User Interface (UI)</u>**
+6.  **<u>User Interface (UI)</u>**
 
     a.  **<u>5.1 Wireframes / Mockups</u>**
 
-6.  **<u>Data Requirements</u>**
+7.  **<u>Data Requirements</u>**
 
-7.  **<u>Traceability Matrix</u>**
+8.  **<u>Traceability Matrix</u>**
 
-8.  **<u>AI Usage & Disclosure (Mandatory)</u>**
+9.  **<u>AI Usage & Disclosure (Mandatory)</u>**
 
 -   <u>**Model(s) Used:**</u>
 
