@@ -52,3 +52,18 @@ Each contributor should enable Prettier formatting and ESLint
 diagnostics in their editor. Configure the editor to use this
 repository's `.prettierrc` and to show ESLint problems in
 JavaScript and JSX files.
+
+## Project tickets
+
+All tickets should be prefixed by CM{sprint_number}-TE{increment_number | 0}-{task_index}<br><br>
+Example valid prefixes: CM1-TE1-0, CM2-TE0-1, CM4-TE0
+
+## Naming conventions
+
+#### JS
+variables and functions should use camelCase<br>
+classes should use PascalCase<br>
+global/static constants should use UPPER_SNAKE_CASE<br>
+
+## Frontend style guides
+TBD
