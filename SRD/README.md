@@ -32,7 +32,7 @@
 | 09/25/2026  | Deekshitha  | Added user stories for a student maker.  |
 | 09/25/2026  | Hunter  | Added user stories for site administrator  |
 | 09/25/2026  | Deekshitha  | Added user stories for a local community member.  |
-| 09/30/2026  | Deekshitha  | Added the project attributes to project-context.md.  |
+| 09/30/2026  | Deekshitha  | Added the priority design constraints to project-context.md.  |
 
 **Campus Makers**
 
