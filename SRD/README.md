@@ -33,6 +33,7 @@
 | 09/25/2026  | Hunter  | Added user stories for site administrator  |
 | 09/25/2026  | Deekshitha  | Added user stories for a local community member.  |
 | 09/30/2026  | Deekshitha  | Added the priority design constraints to project-context.md.  |
+| 09/30/2026  | Hunter  | Added quality attribute priorities. |
 
 **Campus Makers**
 
@@ -94,6 +95,8 @@
 -   <u>**scope:** what is the scope of this project?</u>
   
   For college students who want to buy, sell, and discover student-made crafts/products, campus makers is a campus-based online marketplace which connects student creators and buyers within their college. Unlike general online marketplaces, our product focuses on individual campus communities and helps students discover local creators, products, services, and selling events on campus. 
+
+- <u>**Quality Attributes:**</u> Usability and Security
 
 2.  **<u>user stories</u>**
 
