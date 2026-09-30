@@ -20,6 +20,13 @@ Makers can:
 - Maker contact information
 - Product pricing information
 
+## Priority Design Constraints
+
+- Security
+- Usability
+- Maintainability
+
+
 ## Open Questions
 
 - Who can create a maker account?
