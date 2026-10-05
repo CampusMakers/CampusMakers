@@ -31,9 +31,9 @@
 | 09/24/2026  | Hunter  | Added project tracker conventions and code style guides to CONTRIBUTING.md  |
 | 09/25/2026  | Deekshitha  | Added user stories for a student maker.  |
 | 09/25/2026  | Hunter  | Added user stories for site administrator  |
-| 09/25/2026  | Deekshitha  | Added user stories for a local community member.  |
 | 09/30/2026  | Deekshitha  | Added the priority design constraints to project-context.md.  |
 | 09/30/2026  | Hunter  | Added quality attribute priorities. |
+|10/05/2026| Celeste | Added user stories for a local community member. |
 
 **Campus Makers**
 
@@ -113,17 +113,17 @@
 | ID | Requirement | Priority |
 |---|---|---|
 | US-01.1  | As a student maker, I want to upload my products, pictures, and pricing and collaborate with other makers so that I can get more users and promote my creations.  | 1  |
-| US-01.2  | As a student maker, I want to manage my store profile and contact information, so that I can ensure my information is protected and that my customer base has the most up-to-date contact information and store details.  | 4  |
-| US-01.3  | As a student maker, I want to set an availability calendar, so my customers know when I am available for services (nails, hair, etc.)    | 4  |
-| US-02.1  | As a buyer, I want to browse products/crafts listed by student sellers so that I can discover unique items available within my campus community.  | 4  |
-| US-02.2  | As a buyer, I want to search and filter marketplace listing by categories, price, and other relevant topics so that I can quickly find products that match what I am looking for.  |   |
-| US-02.3  | As a buyer, I want to purchase an item using an available and secure payment method so that I can conveniently buy products from student sellers through Campus Makers.  |   |
-| US-03.1  | As a site administrator, I want to delete spam/rule-breaking listings to guarantee user safety and integrity.  |   |
-| US-03.2  | As a site administrator, I want to view site and purchase analytics so future tasks can be optimized for user needs.  |   |
-| US-03.3  | As a site administrator, I want to edit user account information so incorrect details can be fixed, ensuring site accuracy.  |   |
-| US-04.1  |   |   |
-| US-04.2  |   |   |
-| US-04.3  |   |   |   
+| US-01.2  | As a student maker, I want to manage my store profile and contact information, so that I can ensure my information is protected and that my customer base has the most up-to-date contact information and store details.  | 2 |
+| US-01.3  | As a student maker, I want to set an availability calendar, so my customers know when I am available for services (nails, hair, etc.)    | 2  |
+| US-02.1  | As a buyer, I want to browse products/crafts listed by student sellers so that I can discover unique items available within my campus community.  | 2  |
+| US-02.2  | As a buyer, I want to search and filter marketplace listing by categories, price, and other relevant topics so that I can quickly find products that match what I am looking for.  | 3 |
+| US-02.3  | As a buyer, I want to purchase an item using an available and secure payment method so that I can conveniently buy products from student sellers through Campus Makers.  |  1 |
+| US-03.1  | As a site administrator, I want to delete spam/rule-breaking listings to guarantee user safety and integrity.  | 1 |
+| US-03.2  | As a site administrator, I want to view site and purchase analytics so future tasks can be optimized for user needs.  |  3 |
+| US-03.3  | As a site administrator, I want to edit user account information so incorrect details can be fixed, ensuring site accuracy.  |  3 |
+| US-04.1  | As a local community member, I want to create a guest profile using a non-student email address, so I can also participate in and support a growing community of student vendors. | 2 |
+| US-04.2  | As a lcoal community member, I want to view the events that are taking place near me, so I can the closest communites that I can support and be able to look for special products or unique services. | 4 |
+| US-04.3  | As a local community member, I want to message makers to arrange an exchange of products or a collaboration, so as a community member with my own business or craft/products. | 1 |   
 
 3.  **<u>Functional requirements</u>**
 
