@@ -1,8 +1,17 @@
 {
-  "devDependencies": {
-    "prettier": "^3.9.7"
-  },
+  "name": "CampusMakers",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "license": "ISC",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.7"
   }
 }
