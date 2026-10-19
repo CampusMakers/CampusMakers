@@ -1,0 +1,616 @@
+/* MAIN PROFILE PAGE */
+
+.profile-page {
+    padding: 24px 20px;
+    color: #3d2c1e;
+}
+
+.profile-page button:focus-visible {
+    outline: 2px solid #cc8000;
+    outline-offset: 3px;
+}
+
+/* BUYER / SELLER MODE */
+
+.profile-mode-switch {
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    margin-bottom: 20px;
+    background: #faf2e3;
+    border: 1px solid #dfcbb0;
+    border-radius: 30px;
+}
+
+.profile-mode-switch button {
+    flex: 1;
+    padding: 12px 10px;
+    border: none;
+    border-radius: 25px;
+    background: transparent;
+    color: #69533d;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profile-mode-switch button[aria-pressed="true"] {
+    background: #cc8000;
+    color: white;
+    font-weight: 700;
+}
+
+/* PROFILE HEADER */
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #ead6ad;
+    border: 2px solid #bd945c;
+    color: #765019;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.profile-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-info h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: #704b18;
+}
+
+.profile-info p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #685b43;
+    line-height: 1.5;
+}
+
+.profile-info .profile-username {
+    color: #cc8000;
+    font-weight: 600;
+}
+
+/* EDIT PROFILE */
+
+.profile-edit-button {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 11px;
+    border: 1px solid #cc8000;
+    border-radius: 25px;
+    background: #faf2e3;
+    color: #765019;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profile-edit-button:hover {
+    background: #ead6ad;
+}
+
+/* DEMO MESSAGE */
+
+.profile-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #dfcbb0;
+    border-radius: 10px;
+    background: #fff8eb;
+    color: #69533d;
+    font-size: 12px;
+}
+
+.profile-notice button {
+    border: 0;
+    background: transparent;
+    color: #704b18;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* PROFILE TABS */
+
+.profile-tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 6px;
+    background: #faf2e3;
+    border: 1px solid #dfcbb0;
+    border-radius: 14px;
+}
+
+.profile-tabs button {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 4px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #69533d;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profile-tabs button[aria-pressed="true"] {
+    background: #cc8000;
+    color: white;
+    font-weight: 700;
+}
+
+/* SHARED SECTION HEADINGS */
+
+.profile-panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #dfcbb0;
+}
+
+.profile-panel-heading h3 {
+    margin: 0;
+    color: #3d2c1e;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.profile-count {
+    flex-shrink: 0;
+    padding: 5px 8px;
+    border-radius: 20px;
+    background: #fff8eb;
+    border: 1px solid #dfcbb0;
+    color: #a36500;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+/* SELLER LISTINGS */
+
+.profile-listings,
+.profile-panel {
+    margin-top: 20px;
+    padding: 16px;
+    background: #ebddc5;
+    border: 1px solid #dfcbb0;
+    border-radius: 16px;
+}
+
+.profile-listings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.profile-listing-card {
+    overflow: hidden;
+    padding-bottom: 12px;
+    background: #fff8eb;
+    border: 1px solid #e8d0aa;
+    border-radius: 12px;
+}
+
+.profile-listing-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    background: #e9dfc9;
+    color: #69533d;
+    font-size: 12px;
+}
+
+.profile-listing-card > h4 {
+    margin: 10px 10px 4px;
+    color: #3d2c1e;
+    font-size: 12px;
+}
+
+.profile-listing-card > p {
+    margin: 0 10px 6px;
+    color: #cc8000;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.profile-listing-card > span {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 4px 8px;
+    background: #e5edda;
+    color: #42613b;
+    border-radius: 8px;
+    font-size: 10px;
+}
+
+/* REUSABLE IMAGE GALLERY */
+
+.profile-listing-gallery {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #e9dfc9;
+}
+
+.profile-listing-gallery .profile-listing-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-gallery-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #dfcbb0;
+    border-radius: 50%;
+    background: rgba(255, 248, 235, 0.95);
+    color: #704b18;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.profile-gallery-prev {
+    left: 6px;
+}
+
+.profile-gallery-next {
+    right: 6px;
+}
+
+.profile-gallery-arrow:hover {
+    background: #ead6ad;
+}
+
+.profile-gallery-count {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: rgba(61, 44, 30, 0.75);
+    color: white;
+    font-size: 10px;
+}
+
+/* APPOINTMENTS */
+
+.profile-content-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.profile-content-stack .profile-panel {
+    margin-top: 0;
+}
+
+.profile-card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-appointment-card,
+.profile-event-card {
+    padding: 12px;
+    background: #fff8eb;
+    border: 1px solid #e8d0aa;
+    border-radius: 12px;
+}
+
+.profile-appointment-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.profile-appointment-photo {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid #e8d0aa;
+}
+
+.profile-photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ead6ad;
+    color: #765019;
+    font-weight: 700;
+}
+
+.profile-appointment-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-appointment-details h4,
+.profile-event-details h4 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: #3d2c1e;
+    line-height: 1.4;
+}
+
+.profile-appointment-details p,
+.profile-event-details p {
+    margin: 4px 0;
+    font-size: 11px;
+    color: #69533d;
+    line-height: 1.5;
+}
+
+.profile-appointment-meta {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #faf2e3;
+}
+
+.profile-appointment-meta p {
+    margin: 4px 0;
+    font-size: 11px;
+    color: #69533d;
+    line-height: 1.5;
+}
+
+.profile-appointment-payment {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 0;
+    font-size: 11px;
+    color: #69533d;
+}
+
+.profile-appointment-payment strong {
+    color: #3d2c1e;
+    white-space: nowrap;
+}
+
+.profile-status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.profile-status-confirmed {
+    background: #e5edda;
+    color: #42613b;
+}
+
+.profile-status-pending {
+    background: #fff0cf;
+    color: #906000;
+}
+
+/* APPOINTMENT ACTION BUTTONS */
+
+.profile-appointment-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.profile-action-button {
+    min-height: 38px;
+    padding: 9px 8px;
+    border: 1px solid #cc8000;
+    border-radius: 9px;
+    background: #faf2e3;
+    color: #a36500;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profile-action-button:hover {
+    background: #ead6ad;
+}
+
+.profile-action-primary {
+    background: #cc8000;
+    color: white;
+}
+
+.profile-action-primary:hover {
+    background: #a36500;
+}
+
+/* UPCOMING EVENTS */
+
+.profile-event-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.profile-event-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 62px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #faf2e3;
+    color: #cc8000;
+}
+
+.profile-event-date span {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.profile-event-date strong {
+    font-size: 24px;
+    line-height: 1.2;
+    color: #3d2c1e;
+}
+
+.profile-event-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-event-footer {
+    margin: 12px 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: #faf2e3;
+}
+
+.profile-event-role {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 20px;
+    background: #e5edda;
+    color: #42613b;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.profile-event-footer p {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: #69533d;
+}
+
+.profile-event-button {
+    width: 100%;
+}
+
+/* HAND-OFF TIP */
+
+.profile-tip {
+    padding: 14px;
+    border: 1px solid #dfcbb0;
+    border-radius: 12px;
+    background: #faf2e3;
+}
+
+.profile-tip strong {
+    color: #704b18;
+    font-size: 12px;
+}
+
+.profile-tip p {
+    margin: 6px 0 0;
+    color: #69533d;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+/* TABS NOT YET IMPLEMENTED */
+
+.profile-empty-tab {
+    margin-top: 20px;
+    padding: 24px 16px;
+    background: #faf2e3;
+    border: 1px solid #dfcbb0;
+    border-radius: 14px;
+    text-align: center;
+}
+
+.profile-empty-tab h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    color: #704b18;
+}
+
+.profile-empty-tab p {
+    margin: 0;
+    font-size: 12px;
+    color: #69533d;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 360px) {
+    .profile-page {
+        padding-inline: 16px;
+    }
+
+    .profile-header {
+        gap: 12px;
+    }
+
+    .profile-avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 22px;
+    }
+
+    .profile-info h2 {
+        font-size: 19px;
+    }
+
+    .profile-listings-grid {
+        gap: 8px;
+    }
+
+    .profile-panel,
+    .profile-listings {
+        padding: 12px;
+    }
+}
+
+/* Placeholder pictures for demo listings */
+
+.profile-listing-gallery .profile-gallery-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9dfc9;
+    color: #69533d;
+    font-size: 16px;
+    font-weight: 700;
+}

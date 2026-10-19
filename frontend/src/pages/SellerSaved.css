@@ -1,0 +1,246 @@
+/* SELLER SAVED PAGE */
+
+.seller-saved-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.seller-saved-section {
+    padding: 16px;
+    background: #ebddc5;
+    border: 1px solid #dfcbb0;
+    border-radius: 16px;
+}
+
+/* HEADING */
+
+.seller-saved-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dfcbb0;
+}
+
+.seller-saved-heading h3 {
+    margin: 0;
+    color: #3d2c1e;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.seller-saved-count {
+    padding: 5px 9px;
+    border: 1px solid #dfcbb0;
+    border-radius: 20px;
+    background: #fff8eb;
+    color: #a36500;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.seller-saved-description {
+    margin: 12px 0 16px;
+    color: #69533d;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* PRODUCT GRID */
+
+.seller-saved-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.seller-saved-item {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e8d0aa;
+    border-radius: 12px;
+    background: #fff8eb;
+}
+
+.seller-saved-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #e9dfc9;
+}
+
+.seller-saved-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* PRICE AND BOOKMARK */
+
+.seller-saved-price {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    padding: 5px 7px;
+    border-radius: 6px;
+    background: rgba(255, 248, 235, 0.95);
+    color: #3d2c1e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.seller-saved-bookmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e8d0aa;
+    border-radius: 50%;
+    background: rgba(255, 248, 235, 0.95);
+    color: #cc8000;
+    cursor: pointer;
+}
+
+.seller-saved-bookmark[aria-pressed="false"] {
+    color: #69533d;
+}
+
+.seller-saved-bookmark:hover {
+    background: #ead6ad;
+}
+
+/* PRODUCT NAME OVERLAY */
+
+.seller-saved-overlay {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 30px 9px 10px;
+    background: linear-gradient(
+        transparent,
+        rgba(43, 29, 14, 0.9)
+    );
+    color: white;
+    pointer-events: none;
+}
+
+.seller-saved-overlay h4 {
+    overflow: hidden;
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.seller-saved-overlay p {
+    overflow: hidden;
+    margin: 0;
+    color: #f5e7ca;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* REMOVED BOOKMARK STATE */
+
+.seller-saved-item--removed .seller-saved-image {
+    opacity: 0.5;
+}
+
+.seller-saved-removed-label {
+    padding: 8px;
+    color: #69533d;
+    font-size: 10px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* ARTISAN MOODBOARD */
+
+.seller-saved-moodboard {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #dfcbb0;
+    border-radius: 14px;
+    background: #ebddc5;
+}
+
+.seller-saved-moodboard-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid #e8d0aa;
+    border-radius: 10px;
+    background: #fff8eb;
+    color: #cc8000;
+    font-size: 24px;
+}
+
+.seller-saved-moodboard-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.seller-saved-moodboard-text h4 {
+    margin: 0 0 4px;
+    color: #3d2c1e;
+    font-size: 12px;
+}
+
+.seller-saved-moodboard-text p {
+    margin: 0;
+    color: #69533d;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.seller-saved-moodboard button {
+    flex-shrink: 0;
+    padding: 9px 10px;
+    border: 1px solid #cc8000;
+    border-radius: 9px;
+    background: #faf2e3;
+    color: #a36500;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.seller-saved-moodboard button:hover {
+    background: #ead6ad;
+}
+
+@media (max-width: 360px) {
+    .seller-saved-section {
+        padding: 12px;
+    }
+
+    .seller-saved-grid {
+        gap: 8px;
+    }
+
+    .seller-saved-moodboard {
+        flex-wrap: wrap;
+    }
+}
