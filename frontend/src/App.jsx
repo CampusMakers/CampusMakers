@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import Profile from "./pages/Profile";
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 
@@ -165,6 +166,8 @@ function App() {
                         />
                     </>
                 )}
+
+                {page === "Profile" && <Profile />}
             </main>
             <nav
                 className="bottom-nav"

@@ -1,0 +1,217 @@
+/* BUYER SAVED PAGE */
+
+.buyer-saved-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+/* MAIN PANEL */
+
+.buyer-saved-panel {
+    padding: 16px;
+    background: #ebddc5;
+    border: 1px solid #dfcbb0;
+    border-radius: 16px;
+}
+
+/* HEADING */
+
+.buyer-saved-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dfcbb0;
+}
+
+.buyer-saved-heading h3 {
+    margin: 0;
+    color: #3d2c1e;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.buyer-saved-count {
+    flex-shrink: 0;
+    padding: 5px 8px;
+    border: 1px solid #dfcbb0;
+    border-radius: 20px;
+    background: #fff8eb;
+    color: #a36500;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.buyer-saved-description {
+    margin: 12px 0 16px;
+    color: #69533d;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+/* SAVED PRODUCTS GRID */
+
+.buyer-saved-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.buyer-saved-product {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e8d0aa;
+    border-radius: 12px;
+    background: #fff8eb;
+}
+
+/* PRODUCT IMAGES */
+
+.buyer-saved-product-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #e9dfc9;
+}
+
+.buyer-saved-product-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.buyer-saved-product-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #69533d;
+    font-size: 11px;
+}
+
+/* BOOKMARK BUTTON */
+
+.buyer-saved-bookmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e8d0aa;
+    border-radius: 50%;
+    background: rgba(255, 248, 235, 0.95);
+    color: #cc8000;
+    cursor: pointer;
+}
+
+.buyer-saved-bookmark[aria-pressed="false"] {
+    color: #69533d;
+}
+
+.buyer-saved-bookmark:hover {
+    background: #ead6ad;
+}
+
+/* PRODUCT DETAILS */
+
+.buyer-saved-product-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 10px;
+}
+
+.buyer-saved-product-info h4 {
+    margin: 0;
+    color: #3d2c1e;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.buyer-saved-product-info p {
+    margin: 0;
+    color: #69533d;
+    font-size: 10px;
+}
+
+.buyer-saved-product-info strong {
+    color: #cc8000;
+    font-size: 13px;
+}
+
+/* UNSAVED STATE */
+
+.buyer-saved-product-removed .buyer-saved-product-image {
+    opacity: 0.5;
+}
+
+.buyer-saved-unsaved {
+    color: #85745e;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+/* EXPLORE BUTTON */
+
+.buyer-saved-discover {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid #cc8000;
+    border-radius: 10px;
+    background: #faf2e3;
+    color: #a36500;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.buyer-saved-discover:hover {
+    background: #ead6ad;
+}
+
+/* BOTTOM MESSAGE */
+
+.buyer-saved-tip {
+    padding: 14px;
+    border: 1px solid #dfcbb0;
+    border-radius: 12px;
+    background: #faf2e3;
+}
+
+.buyer-saved-tip strong {
+    color: #704b18;
+    font-size: 12px;
+}
+
+.buyer-saved-tip p {
+    margin: 6px 0 0;
+    color: #69533d;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 360px) {
+    .buyer-saved-panel {
+        padding: 12px;
+    }
+
+    .buyer-saved-products-grid {
+        gap: 8px;
+    }
+}
