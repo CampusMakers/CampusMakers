@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Profile from "./pages/Profile";
+import MapPage from "./pages/Map";
+import CalendarPage from "./pages/Calendar";
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 
@@ -410,7 +412,8 @@ function App() {
                         <ExplorePage onOpenPost={openPost} />
                     )
                 )}
-
+                {page === "Map" && <MapPage />}
+                {page === "Calendar" && <CalendarPage />}
                 {page === "Profile" && <Profile />}
             </main>
             <nav
