@@ -8,6 +8,8 @@ import "./App.css";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import MapPage from "./pages/Map";
+import CalendarPage from "./pages/Calendar";
 import {
     ExplorePage,
     PostDetail,
@@ -191,6 +193,8 @@ function App() {
                         }}
                     />
                 )}
+                {page === "Map" && <MapPage />}
+                {page === "Calendar" && <CalendarPage />}
                 {page === "Profile" && <Profile />}
                 {page === "Login" && <Login />}
             </main>
