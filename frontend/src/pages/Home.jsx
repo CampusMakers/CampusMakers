@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { sellerSavedItems } from "./mockProfileData";
+import { PostCard } from "../Explore Page/Explore";
 import "./Home.css";
 
 function ProductCard({ product }) {
@@ -27,8 +28,11 @@ function ProductCard({ product }) {
     );
 }
 
-export default function Home({ posts }) {
-    const [feed, setFeed] = useState("For you");
+export default function Home({
+    posts,
+    onOpenPost,
+    onOpenSeller
+}) {
     const [showAllProducts, setShowAllProducts] =
         useState(false);
     const [showAllPosts, setShowAllPosts] = useState(false);
@@ -37,122 +41,89 @@ export default function Home({ posts }) {
         : sellerSavedItems.slice(0, 2);
     const visiblePosts = showAllPosts
         ? posts
-        : posts.slice(0, 2);
-
+        : posts.slice(0, 4);
     return (
         <div className="home-page">
             <section
                 className="home-intro"
                 aria-labelledby="home-title">
-                <p className="home-eyebrow">
-                    Your campus community
-                </p>
-                <h2 id="home-title">Made here. Found here.</h2>
+                <h2 id="home-title">
+                    Welcome back, <span>@username</span>
+                </h2>
                 <p>
-                    Discover little things made with a lot of
-                    heart.
+                    Find your next favorite creation and the
+                    makers behind it.
                 </p>
             </section>
-
-            <div
-                className="home-feed-switch"
-                aria-label="Choose home feed">
-                {["For you", "Creator updates"].map((item) => (
-                    <button
-                        key={item}
-                        type="button"
-                        aria-pressed={feed === item}
-                        onClick={() => setFeed(item)}>
-                        {item}
-                    </button>
-                ))}
-            </div>
-
-            {feed === "For you" && (
-                <section
-                    className="home-panel"
-                    aria-labelledby="home-products-heading">
-                    <div className="home-panel-heading">
-                        <h2 id="home-products-heading">
-                            Discover handmade
-                        </h2>
-                        <span className="home-count">
-                            {sellerSavedItems.length} finds
-                        </span>
-                    </div>
-                    <div
-                        className="home-product-grid"
-                        id="home-products">
-                        {visibleProducts.map((product) => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                            />
-                        ))}
-                    </div>
-                    <button
-                        className="home-more"
-                        type="button"
-                        aria-expanded={showAllProducts}
-                        aria-controls="home-products"
-                        onClick={() =>
-                            setShowAllProducts(!showAllProducts)
-                        }>
-                        {showAllProducts
-                            ? "Show fewer finds"
-                            : "See all finds"}
-                        <span aria-hidden="true">
-                            {showAllProducts ? "−" : "+"}
-                        </span>
-                    </button>
-                </section>
-            )}
-
+            <section
+                className="home-panel"
+                aria-labelledby="home-products-heading">
+                <div className="home-panel-heading">
+                    <h2 id="home-products-heading">
+                        Product listings
+                    </h2>
+                    <span className="home-count">
+                        {sellerSavedItems.length} items
+                    </span>
+                </div>
+                <div
+                    className="home-product-grid"
+                    id="home-products">
+                    {visibleProducts.map((product) => (
+                        <ProductCard
+                            key={product.id}
+                            product={product}
+                        />
+                    ))}
+                </div>
+                <button
+                    className="home-more"
+                    type="button"
+                    aria-expanded={showAllProducts}
+                    aria-controls="home-products"
+                    onClick={() =>
+                        setShowAllProducts(!showAllProducts)
+                    }>
+                    {showAllProducts
+                        ? "Show fewer listings"
+                        : "See all listings"}
+                    <span aria-hidden="true">
+                        {showAllProducts ? "−" : "+"}
+                    </span>
+                </button>
+            </section>
             <section
                 className="home-panel"
                 aria-labelledby="home-creators-heading">
                 <div className="home-panel-heading">
                     <h2 id="home-creators-heading">
-                        From your creators
+                        Suggested creators
                     </h2>
                     <span className="home-count">
-                        {posts.length} updates
+                        {
+                            new Set(
+                                posts.map(
+                                    (post) => post.creator
+                                )
+                            ).size
+                        }{" "}
+                        makers
                     </span>
                 </div>
+                <p className="home-section-note">
+                    A peek at what your campus is making. Open a
+                    post to see more.
+                </p>
                 <div
-                    className="home-post-stack"
+                    className="home-suggestions"
                     id="home-posts">
                     {visiblePosts.map((post) => (
-                        <a
-                            className="home-post-card"
+                        <PostCard
                             key={post.id}
-                            href={`#explore/${post.id}`}>
-                            <div className="home-post-author">
-                                <span
-                                    className="home-creator-avatar"
-                                    aria-hidden="true">
-                                    {post.creator
-                                        .slice(1, 3)
-                                        .toUpperCase()}
-                                </span>
-                                <span>
-                                    {post.creator}
-                                    <small>{post.tag}</small>
-                                </span>
-                                <span
-                                    className="home-post-arrow"
-                                    aria-hidden="true">
-                                    ↗
-                                </span>
-                            </div>
-                            <p>{post.caption}</p>
-                            <span className="home-post-link">
-                                View post{" "}
-                                <span aria-hidden="true">
-                                    →
-                                </span>
-                            </span>
-                        </a>
+                            post={post}
+                            onOpenPost={onOpenPost}
+                            onOpenSeller={onOpenSeller}
+                        />
                     ))}
                 </div>
                 <button
@@ -164,44 +135,31 @@ export default function Home({ posts }) {
                         setShowAllPosts(!showAllPosts)
                     }>
                     {showAllPosts
-                        ? "Show fewer updates"
-                        : "See all updates"}
+                        ? "Show fewer creators"
+                        : "See all creators"}
                     <span aria-hidden="true">
                         {showAllPosts ? "−" : "+"}
                     </span>
                 </button>
             </section>
-
-            {feed === "For you" && (
-                <section
-                    className="home-community"
-                    aria-labelledby="home-community-heading">
-                    <div
-                        className="home-avatar-stack"
-                        aria-hidden="true">
-                        {sellerSavedItems
-                            .slice(0, 3)
-                            .map((item) => (
-                                <span key={item.id}>
-                                    {item.creator
-                                        .slice(1, 3)
-                                        .toUpperCase()}
-                                </span>
-                            ))}
-                    </div>
-                    <h2 id="home-community-heading">
-                        Meet your next favorite maker
+            <section
+                className="home-panel home-login-prompt"
+                aria-labelledby="home-updates-heading">
+                <div className="home-panel-heading">
+                    <h2 id="home-updates-heading">
+                        Your creator updates
                     </h2>
-                    <p>
-                        A campus full of creativity, just around
-                        the corner.
-                    </p>
-                    <a href="#explore">
-                        Explore the community{" "}
-                        <span aria-hidden="true">→</span>
-                    </a>
-                </section>
-            )}
+                </div>
+                <p>
+                    Log in or create a buyer profile to follow
+                    your favorite creators and see their updates
+                    here.
+                </p>
+                <a className="home-login-link" href="#login">
+                    Log in / Create a buyer profile{" "}
+                    <span aria-hidden="true">→</span>
+                </a>
+            </section>
         </div>
     );
 }
