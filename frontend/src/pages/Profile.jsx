@@ -7,6 +7,7 @@ import BuyerPickups from "./BuyerPickups";
 import BuyerPurchases from "./BuyerPurchases";
 import BuyerSaved from "./BuyerSaved";
 import BecomeSeller from "./BecomeSeller";
+import Settings from "./Settings";
 
 import {
     sellerListings,
@@ -23,6 +24,9 @@ function Profile({ sellerVerified = false }) {
     const [mode, setMode] = useState("buyer");
     const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
+
+    // Controls whether the Settings page is displayed.
+    const [showSettings, setShowSettings] = useState(false);
 
     const [showSellerSignup, setShowSellerSignup] =
         useState(false);
@@ -92,6 +96,17 @@ function Profile({ sellerVerified = false }) {
         );
     };
 
+    // Display Settings without leaving the Profile page.
+    if (showSettings) {
+        return (
+            <div className="profile-page">
+                <Settings
+                    onBack={() => setShowSettings(false)}
+                />
+            </div>
+        );
+    }
+
     if (showSellerSignup) {
         return (
             <div className="profile-page">
@@ -142,6 +157,17 @@ function Profile({ sellerVerified = false }) {
                 className="profile-edit-button"
                 onClick={() => showDemoNotice("Edit Profile")}>
                 Edit Profile
+            </button>
+
+            {/* SETTINGS BUTTON */}
+            <button
+                type="button"
+                className="profile-edit-button"
+                onClick={() => {
+                    setNotice("");
+                    setShowSettings(true);
+                }}>
+                ⚙ Settings
             </button>
 
             {/* BECOME A SELLER CALL TO ACTION */}
