@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 import {
     buyerPickups,
     buyerUpcomingEvents
@@ -6,29 +8,103 @@ import {
 import "./BuyerPickups.css";
 
 function BuyerPickups({ onDemoAction }) {
+    const [expandedPickup, setExpandedPickup] = useState(null);
+    const [pinPickup, setPinPickup] = useState(null);
+    const closeButtonRef = useRef(null);
+
+    // Only active orders belong in Pickups.
+    const activePickups = buyerPickups.filter(
+        (pickup) =>
+            pickup.status !== "Completed" &&
+            pickup.status !== "Cancelled"
+    );
+
+    const toggleDetails = (id) => {
+        setExpandedPickup((current) =>
+            current === id ? null : id
+        );
+    };
+
+    // Handle keyboard access for the PIN popup.
+    useEffect(() => {
+        if (!pinPickup) return;
+
+        const previousFocus = document.activeElement;
+
+        closeButtonRef.current?.focus();
+
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                setPinPickup(null);
+            }
+
+            if (event.key === "Tab") {
+                const modal = closeButtonRef.current?.closest(
+                    ".buyer-pickup-pin-modal"
+                );
+
+                const controls = Array.from(
+                    modal?.querySelectorAll(
+                        "button:not([disabled])"
+                    ) || []
+                );
+
+                if (controls.length === 0) return;
+
+                const first = controls[0];
+                const last = controls[controls.length - 1];
+
+                if (
+                    event.shiftKey &&
+                    document.activeElement === first
+                ) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (
+                    !event.shiftKey &&
+                    document.activeElement === last
+                ) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener(
+                "keydown",
+                handleKeyDown
+            );
+
+            previousFocus?.focus?.();
+        };
+    }, [pinPickup]);
+
     return (
         <div className="buyer-pickups-page">
-            {/* UPCOMING PICKUPS */}
+            {/* ACTIVE PICKUPS */}
             <section className="buyer-pickups-panel">
                 <div className="buyer-pickups-heading">
-                    <h3>Upcoming Pickups</h3>
+                    <h3>Active Pickups</h3>
 
                     <span className="buyer-pickups-count">
-                        {buyerPickups.length} scheduled
+                        {activePickups.length} active
                     </span>
                 </div>
 
                 <p className="buyer-pickups-intro">
-                    Your handmade orders are waiting for you!
-                    Check your pickup details below.
+                    Track orders that are being prepared,
+                    scheduled, or ready to collect.
                 </p>
 
                 <div className="buyer-pickups-list">
-                    {buyerPickups.map((pickup) => (
+                    {activePickups.map((pickup) => (
                         <article
                             className="buyer-pickup-card"
                             key={pickup.id}>
-                            {/* PRODUCT INFORMATION */}
+                            {/* PRODUCT */}
                             <div className="buyer-pickup-product">
                                 {pickup.image ? (
                                     <img
@@ -49,6 +125,7 @@ function BuyerPickups({ onDemoAction }) {
                                     <p>
                                         Sold by {pickup.seller}
                                     </p>
+
                                     <strong>
                                         $
                                         {pickup.price.toFixed(
@@ -58,7 +135,7 @@ function BuyerPickups({ onDemoAction }) {
                                 </div>
                             </div>
 
-                            {/* ORDER STATUS */}
+                            {/* STATUS */}
                             <div className="buyer-pickup-status-row">
                                 <span
                                     className={`buyer-pickup-status ${
@@ -75,7 +152,7 @@ function BuyerPickups({ onDemoAction }) {
                                 </span>
                             </div>
 
-                            {/* PICKUP DETAILS */}
+                            {/* DATE, TIME, LOCATION */}
                             <div className="buyer-pickup-details">
                                 <div className="buyer-pickup-detail">
                                     <span className="buyer-pickup-detail-icon">
@@ -155,25 +232,22 @@ function BuyerPickups({ onDemoAction }) {
                                 </div>
                             </div>
 
-                            {/* PAYMENT */}
-                            <div className="buyer-pickup-payment">
-                                <span>Payment Method</span>
-                                <strong>
-                                    {pickup.payment}
-                                </strong>
-                            </div>
-
-                            {/* ACTION BUTTONS */}
+                            {/* ACTIONS */}
                             <div className="buyer-pickup-actions">
                                 <button
                                     type="button"
                                     className="buyer-pickup-primary"
+                                    aria-expanded={
+                                        expandedPickup ===
+                                        pickup.id
+                                    }
                                     onClick={() =>
-                                        onDemoAction(
-                                            `View pickup details for ${pickup.productName}`
-                                        )
+                                        toggleDetails(pickup.id)
                                     }>
-                                    View Details
+                                    {expandedPickup ===
+                                    pickup.id
+                                        ? "Hide Details"
+                                        : "View Details"}
                                 </button>
 
                                 <button
@@ -187,12 +261,68 @@ function BuyerPickups({ onDemoAction }) {
                                     Message Seller
                                 </button>
                             </div>
+
+                            {/* EXPANDABLE ORDER DETAILS */}
+                            {expandedPickup === pickup.id && (
+                                <div className="buyer-pickup-expanded">
+                                    <h5>Order Details</h5>
+
+                                    <div>
+                                        <span>
+                                            Order Number
+                                        </span>
+                                        <strong>
+                                            {pickup.orderNumber}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Seller</span>
+                                        <strong>
+                                            {pickup.seller}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>
+                                            Payment Method
+                                        </span>
+                                        <strong>
+                                            {pickup.payment}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Order Total</span>
+                                        <strong>
+                                            $
+                                            {pickup.price.toFixed(
+                                                2
+                                            )}
+                                        </strong>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PIN ONLY FOR READY PICKUPS */}
+                            {pickup.status ===
+                                "Ready for Pickup" &&
+                                pickup.samplePin && (
+                                    <button
+                                        type="button"
+                                        className="buyer-pickup-pin-trigger"
+                                        onClick={() =>
+                                            setPinPickup(pickup)
+                                        }>
+                                        View Pickup PIN
+                                    </button>
+                                )}
                         </article>
                     ))}
                 </div>
             </section>
 
-            {/* UPCOMING CAMPUS EVENTS */}
+            {/* UPCOMING EVENTS */}
             <section className="buyer-pickups-panel">
                 <div className="buyer-pickups-heading">
                     <h3>Upcoming Campus Events</h3>
@@ -245,15 +375,79 @@ function BuyerPickups({ onDemoAction }) {
                 </div>
             </section>
 
-            {/* CAMPUS SAFETY TIP */}
+            {/* CAMPUS PICKUP TIP */}
             <div className="buyer-pickup-tip">
                 <strong>Campus Pickup Tip</strong>
+
                 <p>
-                    Always meet sellers in public campus spaces
-                    and confirm the correct item before
-                    completing your pickup.
+                    Meet sellers in public campus spaces and
+                    confirm the correct item before completing
+                    your pickup.
                 </p>
             </div>
+
+            {/* PICKUP PIN POPUP */}
+            {pinPickup && (
+                <div
+                    className="buyer-pickup-pin-backdrop"
+                    onClick={(event) => {
+                        if (
+                            event.target === event.currentTarget
+                        ) {
+                            setPinPickup(null);
+                        }
+                    }}>
+                    <div
+                        className="buyer-pickup-pin-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="pickup-pin-heading">
+                        <button
+                            type="button"
+                            ref={closeButtonRef}
+                            className="buyer-pickup-pin-close"
+                            aria-label="Close pickup PIN"
+                            onClick={() => setPinPickup(null)}>
+                            ×
+                        </button>
+
+                        <div className="buyer-pickup-pin-icon">
+                            ✓
+                        </div>
+
+                        <h3 id="pickup-pin-heading">
+                            Your Pickup PIN
+                        </h3>
+
+                        <p>{pinPickup.productName}</p>
+
+                        <div className="buyer-pickup-pin-code">
+                            {pinPickup.samplePin}
+                        </div>
+
+                        <p className="buyer-pickup-pin-order">
+                            Order #{pinPickup.orderNumber}
+                        </p>
+
+                        <div className="buyer-pickup-pin-note">
+                            <strong>Demo Only</strong>
+                            <p>
+                                This sample code cannot verify
+                                or complete a real pickup.
+                                Secure verification will be
+                                handled by the backend.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="buyer-pickup-pin-done"
+                            onClick={() => setPinPickup(null)}>
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

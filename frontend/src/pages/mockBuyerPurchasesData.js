@@ -1,46 +1,29 @@
-
 export const buyerPurchases = [
-    {
-        id: "CM-2401",
-        productName: "San Luis Obispo Mug",
-        seller: "@maya_makes",
-        price: 26.00,
-        image: null,
-        orderDate: "October 15, 2026",
-        status: "Ready for Pickup",
-        payment: "Paid Online",
-        delivery: "Campus Pickup",
-        pickupLocation: "Kennedy Library Entrance",
-        pickupTime: "October 20, 2:30 PM",
-        samplePin: "4826"
-    },
-    {
-        id: "CM-2402",
-        productName: "Handmade Ceramic Planter",
-        seller: "@slo_clay",
-        price: 34.00,
-        image: null,
-        orderDate: "October 16, 2026",
-        status: "Pickup Scheduled",
-        payment: "Pay at Pickup",
-        delivery: "Campus Pickup",
-        pickupLocation: "Dexter Lawn",
-        pickupTime: "October 22, 12:15 PM",
-        samplePin: null
-    },
     {
         id: "CM-2398",
         productName: "Handcrafted Canvas Tote",
         seller: "@campus_creations",
-        price: 22.00,
+        price: 22.0,
         image: null,
         orderDate: "October 3, 2026",
         status: "Completed",
         payment: "Paid Online",
         delivery: "Campus Pickup",
         pickupLocation: "University Union",
-        pickupTime: "October 5, 1:00 PM",
-        samplePin: null
+        pickupTime: "October 5, 1:00 PM"
+    },
+    {
+        id: "CM-2387",
+        productName: "Handmade Silver Bracelet",
+        seller: "@studio_arun",
+        price: 32.0,
+        image: null,
+        orderDate: "September 22, 2026",
+        status: "Completed",
+        payment: "Paid Online",
+        delivery: "Campus Pickup",
+        pickupLocation: "Dexter Lawn",
+        pickupTime: "September 24, 12:00 PM"
     }
 ];
 

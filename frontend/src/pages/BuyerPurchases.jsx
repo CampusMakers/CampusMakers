@@ -1,5 +1,4 @@
-
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import {
     buyerPurchases,
@@ -10,30 +9,11 @@ import "./BuyerPurchases.css";
 
 function BuyerPurchases({ onDemoAction }) {
     const [expandedOrder, setExpandedOrder] = useState(null);
-    const [pinPurchase, setPinPurchase] = useState(null);
 
-    const closeButtonRef = useRef(null);
-
-    useEffect(() => {
-        if (!pinPurchase) return;
-
-        closeButtonRef.current?.focus();
-
-        const handleKeyDown = (event) => {
-            if (event.key === "Escape") {
-                setPinPurchase(null);
-            }
-        };
-
-        document.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            document.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
-        };
-    }, [pinPurchase]);
+    // Only completed orders belong in purchase history.
+    const completedPurchases = buyerPurchases.filter(
+        (purchase) => purchase.status === "Completed"
+    );
 
     const toggleDetails = (id) => {
         setExpandedOrder((current) =>
@@ -43,40 +23,45 @@ function BuyerPurchases({ onDemoAction }) {
 
     return (
         <div className="buyer-purchases-page">
-
-            {/* PURCHASE HISTORY */}
+            {/* COMPLETED PURCHASES */}
             <section className="buyer-purchases-panel">
                 <div className="buyer-purchases-heading">
                     <h3>Purchase History</h3>
 
                     <span className="buyer-purchases-count">
-                        {buyerPurchases.length} orders
+                        {completedPurchases.length} completed
                     </span>
                 </div>
 
                 <p className="buyer-purchases-description">
-                    Track your purchases from campus makers
-                    and view your order details.
+                    Review your completed orders and support the
+                    campus makers you purchased from.
                 </p>
 
                 <div className="buyer-purchases-list">
-                    {buyerPurchases.map((purchase) => (
+                    {completedPurchases.map((purchase) => (
                         <article
                             className="buyer-purchase-card"
-                            key={purchase.id}
-                        >
+                            key={purchase.id}>
                             {/* ORDER HEADER */}
                             <div className="buyer-purchase-order-header">
-                                <span>Order #{purchase.id}</span>
-                                <span>{purchase.orderDate}</span>
+                                <span>
+                                    Order #{purchase.id}
+                                </span>
+
+                                <span>
+                                    {purchase.orderDate}
+                                </span>
                             </div>
 
-                            {/* PRODUCT */}
+                            {/* PRODUCT INFORMATION */}
                             <div className="buyer-purchase-product">
                                 {purchase.image ? (
                                     <img
                                         src={purchase.image}
-                                        alt={purchase.productName}
+                                        alt={
+                                            purchase.productName
+                                        }
                                         className="buyer-purchase-image"
                                     />
                                 ) : (
@@ -86,27 +71,25 @@ function BuyerPurchases({ onDemoAction }) {
                                 )}
 
                                 <div className="buyer-purchase-product-info">
-                                    <h4>{purchase.productName}</h4>
+                                    <h4>
+                                        {purchase.productName}
+                                    </h4>
+
                                     <p>By {purchase.seller}</p>
 
                                     <strong>
-                                        ${purchase.price.toFixed(2)}
+                                        $
+                                        {purchase.price.toFixed(
+                                            2
+                                        )}
                                     </strong>
                                 </div>
                             </div>
 
-                            {/* STATUS */}
+                            {/* COMPLETED STATUS */}
                             <div className="buyer-purchase-status-row">
-                                <span
-                                    className={`buyer-purchase-status ${
-                                        purchase.status === "Completed"
-                                            ? "buyer-purchase-status-complete"
-                                            : purchase.status === "Ready for Pickup"
-                                            ? "buyer-purchase-status-ready"
-                                            : "buyer-purchase-status-scheduled"
-                                    }`}
-                                >
-                                    {purchase.status}
+                                <span className="buyer-purchase-status buyer-purchase-status-complete">
+                                    ✓ Completed
                                 </span>
 
                                 <span className="buyer-purchase-delivery">
@@ -114,89 +97,102 @@ function BuyerPurchases({ onDemoAction }) {
                                 </span>
                             </div>
 
-                            {/* ACTIONS */}
+                            {/* VIEW DETAILS & LEAVE REVIEW */}
                             <div className="buyer-purchase-actions">
                                 <button
                                     type="button"
                                     className="buyer-purchase-primary"
                                     aria-expanded={
-                                        expandedOrder === purchase.id
+                                        expandedOrder ===
+                                        purchase.id
                                     }
                                     onClick={() =>
-                                        toggleDetails(purchase.id)
-                                    }
-                                >
-                                    {expandedOrder === purchase.id
+                                        toggleDetails(
+                                            purchase.id
+                                        )
+                                    }>
+                                    {expandedOrder ===
+                                    purchase.id
                                         ? "Hide Details"
                                         : "View Details"}
                                 </button>
 
-                                {purchase.status === "Ready for Pickup" ? (
-                                    <button
-                                        type="button"
-                                        className="buyer-purchase-secondary"
-                                        onClick={() =>
-                                            setPinPurchase(purchase)
-                                        }
-                                    >
-                                        View Pickup PIN
-                                    </button>
-                                ) : purchase.status === "Completed" ? (
-                                    <button
-                                        type="button"
-                                        className="buyer-purchase-secondary"
-                                        onClick={() =>
-                                            onDemoAction(
-                                                `Leave a review for ${purchase.productName}`
-                                            )
-                                        }
-                                    >
-                                        Leave Review
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="buyer-purchase-secondary"
-                                        onClick={() =>
-                                            onDemoAction(
-                                                `Message seller ${purchase.seller}`
-                                            )
-                                        }
-                                    >
-                                        Contact Seller
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    className="buyer-purchase-secondary"
+                                    onClick={() =>
+                                        onDemoAction(
+                                            `Leave a review for ${purchase.productName}`
+                                        )
+                                    }>
+                                    Leave Review
+                                </button>
                             </div>
 
-                            {/* EXPANDABLE ORDER DETAILS */}
+                            {/* EXPANDABLE ORDER INFORMATION */}
                             {expandedOrder === purchase.id && (
-                                <div
-                                    className="buyer-purchase-expanded"
-                                    id={`purchase-details-${purchase.id}`}
-                                >
+                                <div className="buyer-purchase-expanded">
                                     <h5>Order Information</h5>
 
                                     <div>
-                                        <span>Payment</span>
-                                        <strong>{purchase.payment}</strong>
-                                    </div>
-
-                                    <div>
-                                        <span>Fulfillment</span>
-                                        <strong>{purchase.delivery}</strong>
-                                    </div>
-
-                                    <div>
-                                        <span>Pickup Location</span>
+                                        <span>
+                                            Order Number
+                                        </span>
                                         <strong>
-                                            {purchase.pickupLocation}
+                                            {purchase.id}
                                         </strong>
                                     </div>
 
                                     <div>
-                                        <span>Pickup Date & Time</span>
+                                        <span>Seller</span>
                                         <strong>
-                                            {purchase.pickupTime}
+                                            {purchase.seller}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Payment</span>
+                                        <strong>
+                                            {purchase.payment}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Fulfillment</span>
+                                        <strong>
+                                            {purchase.delivery}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>
+                                            Pickup Location
+                                        </span>
+                                        <strong>
+                                            {
+                                                purchase.pickupLocation
+                                            }
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>
+                                            Completed Pickup
+                                        </span>
+                                        <strong>
+                                            {
+                                                purchase.pickupTime
+                                            }
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <span>Total Paid</span>
+                                        <strong>
+                                            $
+                                            {purchase.price.toFixed(
+                                                2
+                                            )}
                                         </strong>
                                     </div>
 
@@ -206,8 +202,7 @@ function BuyerPurchases({ onDemoAction }) {
                                             onDemoAction(
                                                 `View receipt for order ${purchase.id}`
                                             )
-                                        }
-                                    >
+                                        }>
                                         View Receipt
                                     </button>
                                 </div>
@@ -217,13 +212,13 @@ function BuyerPurchases({ onDemoAction }) {
                 </div>
             </section>
 
-            {/* PAST EVENTS */}
+            {/* PAST EVENT ATTENDANCE */}
             <section className="buyer-purchases-panel">
                 <div className="buyer-purchases-heading">
-                    <h3>Event Attendance</h3>
+                    <h3>Past Events</h3>
 
                     <span className="buyer-purchases-count">
-                        {buyerAttendedEvents.length} events
+                        {buyerAttendedEvents.length} attended
                     </span>
                 </div>
 
@@ -231,8 +226,7 @@ function BuyerPurchases({ onDemoAction }) {
                     {buyerAttendedEvents.map((event) => (
                         <article
                             className="buyer-purchase-event"
-                            key={event.id}
-                        >
+                            key={event.id}>
                             <div className="buyer-purchase-event-icon">
                                 ✓
                             </div>
@@ -250,80 +244,6 @@ function BuyerPurchases({ onDemoAction }) {
                     ))}
                 </div>
             </section>
-
-            {/* PICKUP PIN MODAL */}
-            {pinPurchase && (
-                <div
-                    className="buyer-pin-backdrop"
-                    onClick={(event) => {
-                        if (event.target === event.currentTarget) {
-                            setPinPurchase(null);
-                        }
-                    }}
-                >
-                    <div
-                        className="buyer-pin-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="buyer-pin-title"
-                    >
-                        <button
-                            type="button"
-                            ref={closeButtonRef}
-                            className="buyer-pin-close"
-                            aria-label="Close pickup PIN"
-                            onClick={() =>
-                                setPinPurchase(null)
-                            }
-                        >
-                            ×
-                        </button>
-
-                        <div className="buyer-pin-icon">
-                            ✓
-                        </div>
-
-                        <h3 id="buyer-pin-title">
-                            Your Pickup PIN
-                        </h3>
-
-                        <p className="buyer-pin-description">
-                            Sample pickup code for
-                            your {pinPurchase.productName}.
-                        </p>
-
-                        <div className="buyer-pin-code">
-                            {pinPurchase.samplePin}
-                        </div>
-
-                        <p className="buyer-pin-order">
-                            Order #{pinPurchase.id}
-                        </p>
-
-                        <div className="buyer-pin-instructions">
-                            <strong>Demo Only</strong>
-
-                            <p>
-                                This is a sample PIN for the
-                                frontend design. It cannot verify
-                                or complete a real pickup.
-                                Secure PIN verification must
-                                happen on the backend.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="buyer-pin-done"
-                            onClick={() =>
-                                setPinPurchase(null)
-                            }
-                        >
-                            Got It
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
