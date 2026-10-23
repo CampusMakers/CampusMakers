@@ -1,9 +1,4 @@
-import {
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Profile from "./pages/Profile";
 import {
@@ -223,7 +218,6 @@ function App() {
                     />
                 )}
                 {page === "Profile" && <Profile />}
-                {page === "Login" && <Login />}
             </main>
             <nav
                 className="bottom-nav"

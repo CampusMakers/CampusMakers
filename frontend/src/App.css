@@ -7,29 +7,21 @@
     background: var(--paper);
     box-shadow: 0 0 64px #644b1410;
 }
-/* Full-width wordmark, kept shallow so the feed stays in view. */
 .brand {
-    padding: 18px 20px 20px;
-    background: #faf2e3;
-    border-bottom: 1px solid #dfcbb0;
-}
-.brand-home {
-    display: block;
-    position: relative;
-    width: 100%;
-    text-decoration: none;
-    border-radius: 8px;
-}
-.brand-title {
     display: flex;
-    justify-content: center;
-    gap: 0.28em;
+    align-items: center;
+    gap: 18px;
+    min-height: 104px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    background: #f8ecd1;
+}
+.brand h1 {
     margin: 0;
+    color: var(--gold);
     font-family: "Buttons & Patches", cursive;
-    color: #a36500;
-    font-size: clamp(32px, 10.8vw, 52px);
+    font-size: clamp(25px, 7vw, 34px);
     font-weight: 400;
-    line-height: 1.2;
     white-space: nowrap;
 }
 .brand-mark {
@@ -78,7 +70,6 @@
     gap: 8px;
     margin-bottom: 10px;
 }
-/* Retain the shared heading baseline for existing pages. */
 h2 {
     margin: 0;
     font-size: clamp(16px, 4vw, 20px);
@@ -181,6 +172,21 @@ figcaption {
     min-height: calc(100svh - 200px);
 }
 @media (max-width: 360px) {
+    .brand {
+        gap: 12px;
+        padding-inline: 16px;
+    }
+    .brand-mark {
+        width: 48px;
+        height: 56px;
+        font-size: 28px;
+    }
+    .brand h1 {
+        font-size: 25px;
+    }
+    .home {
+        padding-inline: 16px;
+    }
     .bottom-nav {
         gap: 4px;
         padding-inline: 10px;
