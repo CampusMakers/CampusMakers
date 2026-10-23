@@ -614,3 +614,52 @@
     font-size: 16px;
     font-weight: 700;
 }
+
+/* BECOME A SELLER SECTION */
+
+.profile-seller-invite {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid #dfcbb0;
+    border-radius: 16px;
+    background: #ebddc5;
+}
+
+.profile-seller-invite h3 {
+    margin: 0 0 7px;
+    color: #704b18;
+    font-size: 16px;
+}
+
+.profile-seller-invite p {
+    margin: 0;
+    color: #69533d;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.profile-become-seller-button {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: #cc8000;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(112, 75, 24, 0.14);
+}
+
+.profile-become-seller-button:hover {
+    background: #a36500;
+}
+
+.profile-become-seller-button:focus-visible {
+    outline: 2px solid #704b18;
+    outline-offset: 3px;
+}

@@ -10,7 +10,8 @@ export const buyerPickups = [
         date: "Tuesday, October 20",
         time: "2:30 PM",
         location: "Kennedy Library Entrance",
-        payment: "Paid Online"
+        payment: "Paid Online",
+        samplePin: "4826"
     },
     {
         id: 2,
@@ -23,7 +24,8 @@ export const buyerPickups = [
         date: "Thursday, October 22",
         time: "12:15 PM",
         location: "Dexter Lawn",
-        payment: "Pay at Pickup"
+        payment: "Pay at Pickup",
+        samplePin: null
     }
 ];
 

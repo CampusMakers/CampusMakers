@@ -389,3 +389,175 @@
         gap: 8px;
     }
 }
+
+/* EXPANDABLE PICKUP DETAILS */
+
+.buyer-pickup-expanded {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #dfcbb0;
+    border-radius: 10px;
+    background: #faf2e3;
+}
+
+.buyer-pickup-expanded h5 {
+    margin: 0;
+    color: #704b18;
+    font-size: 12px;
+}
+
+.buyer-pickup-expanded > div {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.buyer-pickup-expanded > div span {
+    color: #85745e;
+}
+
+.buyer-pickup-expanded > div strong {
+    max-width: 60%;
+    color: #3d2c1e;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+/* VIEW PICKUP PIN BUTTON */
+
+.buyer-pickup-pin-trigger {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 12px;
+    padding: 11px;
+    border: 1px solid #cc8000;
+    border-radius: 9px;
+    background: #faf2e3;
+    color: #a36500;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.buyer-pickup-pin-trigger:hover {
+    background: #ead6ad;
+}
+
+/* PICKUP PIN MODAL */
+
+.buyer-pickup-pin-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(30, 22, 12, 0.65);
+}
+
+.buyer-pickup-pin-modal {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px 22px 22px;
+    border: 1px solid #dfcbb0;
+    border-radius: 20px;
+    background: #fff8eb;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.buyer-pickup-pin-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    border: none;
+    background: transparent;
+    color: #69533d;
+    font-size: 26px;
+    cursor: pointer;
+}
+
+.buyer-pickup-pin-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: #e5edda;
+    color: #42613b;
+    font-size: 27px;
+    font-weight: bold;
+}
+
+.buyer-pickup-pin-modal h3 {
+    margin: 0 0 8px;
+    color: #704b18;
+    font-size: 21px;
+}
+
+.buyer-pickup-pin-modal > p {
+    margin: 8px 0;
+    color: #69533d;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.buyer-pickup-pin-code {
+    margin: 22px 0 10px;
+    padding: 18px;
+    border: 2px dashed #cc8000;
+    border-radius: 12px;
+    background: #faf2e3;
+    color: #704b18;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: 9px;
+}
+
+.buyer-pickup-pin-note {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #faf2e3;
+    text-align: left;
+}
+
+.buyer-pickup-pin-note strong {
+    color: #a36500;
+    font-size: 12px;
+}
+
+.buyer-pickup-pin-note p {
+    margin: 6px 0 0;
+    color: #69533d;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.buyer-pickup-pin-done {
+    width: 100%;
+    margin-top: 18px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #cc8000;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.buyer-pickup-pin-done:hover {
+    background: #a36500;
+}
