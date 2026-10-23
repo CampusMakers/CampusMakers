@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import Profile from "./pages/Profile";
+import Home from "./pages/Home";
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 
@@ -57,93 +58,6 @@ function currentPage() {
 function currentExplorePostId() {
     const match = window.location.hash.match(/^#explore\/(\d+)$/i);
     return match ? Number(match[1]) : null;
-}
-
-function Shelf({ title, creators = false }) {
-    const rail = useRef(null);
-    const [expanded, setExpanded] = useState(false);
-    return (
-        <section className="shelf" aria-label={title}>
-            <div className="section-heading">
-                <h2>{title}</h2>
-                <button
-                    className="see-more"
-                    onClick={() => setExpanded(!expanded)}
-                    aria-expanded={expanded}>
-                    {expanded ? "See less" : "See more"}
-                </button>
-            </div>
-            <div className="shelf-body">
-                <div
-                    className={`card-rail${expanded ? " expanded" : ""}`}
-                    ref={rail}>
-                    {Array.from({ length: 6 }, (_, index) => (
-                        <figure className="card" key={index}>
-                            <div
-                                className="image-placeholder"
-                                role="img"
-                                aria-label={`${creators ? "Creator" : "Listing"} image placeholder ${index + 1}`}>
-                                {!creators && (
-                                    <span>@creator</span>
-                                )}
-                            </div>
-                            <figcaption>
-                                {creators
-                                    ? "@creator"
-                                    : "Title"}
-                            </figcaption>
-                        </figure>
-                    ))}
-                </div>
-                {!expanded && (
-                    <button
-                        className="next"
-                        aria-label={`Show more ${title.toLowerCase()}`}
-                        onClick={() =>
-                            rail.current.scrollBy({
-                                left: rail.current.clientWidth,
-                                behavior: "smooth"
-                            })
-                        }>
-                        ▸
-                    </button>
-                )}
-            </div>
-        </section>
-    );
-}
-
-function HomePage() {
-    const [filterOpen, setFilterOpen] = useState(false);
-
-    return (
-        <>
-                        <div className="filter-row">
-                            <button
-                                className="filter-button"
-                                aria-expanded={filterOpen}
-                                onClick={() =>
-                                    setFilterOpen(!filterOpen)
-                                }>
-                                filter
-                            </button>
-                        </div>
-                        {filterOpen && (
-                            <div
-                                className="filter-panel"
-                                role="status">
-                                Filters will be available when
-                                listings are added.
-                            </div>
-                        )}
-                        <Shelf title="Product listings" />
-                        <Shelf title="From your creators" />
-                        <Shelf
-                            title="Suggested creators"
-                            creators
-                        />
-                    </>
-    );
 }
 
 const explorePosts = [
@@ -385,11 +299,34 @@ function App() {
     return (
         <div className="app-shell">
             <header className="brand">
-                {/* Temporary mark until the original logo export is supplied. */}
-                <span className="brand-mark" aria-hidden="true">
-                    CM
-                </span>
-                <h1>Campus Makers</h1>
+                <div className="brand-main">
+                    <a
+                        className="brand-home"
+                        href="#home"
+                        aria-label="Campus Makers home">
+                        <h1 className="brand-title">
+                            <span className="brand-campus">
+                                Campus
+                            </span>
+                            <span className="brand-makers">
+                                Makers
+                                <span
+                                    className="brand-spark"
+                                    aria-hidden="true">
+                                    ✳
+                                </span>
+                            </span>
+                        </h1>
+                    </a>
+                </div>
+                <p className="brand-welcome">
+                    <span>
+                        Welcome back,{" "}
+                        <span className="brand-username">
+                            @username
+                        </span>
+                    </span>
+                </p>
             </header>
             <main
                 aria-label={`${page} page`}
@@ -399,7 +336,7 @@ function App() {
                             ? "explore"
                             : "blank-page"
                 }>
-                {page === "Home" && <HomePage />}
+                {page === "Home" && <Home posts={explorePosts} />}
                 {page === "Explore" && (
                     selectedPost ? (
                         <ExplorePostPage
