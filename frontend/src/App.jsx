@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Profile from "./pages/Profile";
+import MapPage from "./pages/Map";
+import CalendarPage from "./pages/Calendar";
 import {
     ExplorePage,
     PostDetail,
@@ -217,6 +219,8 @@ function App() {
                         }}
                     />
                 )}
+                {page === "Map" && <MapPage />}
+                {page === "Calendar" && <CalendarPage />}
                 {page === "Profile" && <Profile />}
             </main>
             <nav
