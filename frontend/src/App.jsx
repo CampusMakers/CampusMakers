@@ -1,27 +1,17 @@
-import {
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Profile from "./pages/Profile";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import {
     ExplorePage,
     PostDetail,
-    SellerProfilePage
-} from "./Explore Page/Explore";
-import {
+    SellerProfilePage,
     createExploreFeed,
     currentExplorePostId,
-    currentPostSource,
     currentSellerUsername,
     explorePosts
-} from "./Explore Page/exploreData";
+} from "./Explore Page/Explore";
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 const currentPage = () => {
@@ -29,7 +19,6 @@ const currentPage = () => {
         .slice(1)
         .toLowerCase()
         .split("/")[0];
-    if (slug === "login") return "Login";
     return slug === "seller"
         ? "Seller"
         : pages.find((page) => page.toLowerCase() === slug) ||
@@ -74,13 +63,82 @@ function Icon({ name }) {
     );
 }
 
+function Shelf({ title, creators = false }) {
+    const rail = useRef(null),
+        [expanded, setExpanded] = useState(false);
+    return (
+        <section className="shelf">
+            <div className="section-heading">
+                <h2>{title}</h2>
+                <button
+                    className="see-more"
+                    onClick={() => setExpanded(!expanded)}>
+                    {expanded ? "See less" : "See more"}
+                </button>
+            </div>
+            <div className="shelf-body">
+                <div
+                    className={`card-rail${expanded ? " expanded" : ""}`}
+                    ref={rail}>
+                    {Array.from({ length: 6 }, (_, index) => (
+                        <figure className="card" key={index}>
+                            <div className="image-placeholder">
+                                {!creators && (
+                                    <span>@creator</span>
+                                )}
+                            </div>
+                            <figcaption>
+                                {creators
+                                    ? "@creator"
+                                    : "Title"}
+                            </figcaption>
+                        </figure>
+                    ))}
+                </div>
+                {!expanded && (
+                    <button
+                        className="next"
+                        onClick={() =>
+                            rail.current.scrollBy({
+                                left: rail.current.clientWidth,
+                                behavior: "smooth"
+                            })
+                        }>
+                        ›
+                    </button>
+                )}
+            </div>
+        </section>
+    );
+}
+function HomePage() {
+    const [filterOpen, setFilterOpen] = useState(false);
+    return (
+        <>
+            <div className="filter-row">
+                <button
+                    className="filter-button"
+                    onClick={() => setFilterOpen(!filterOpen)}>
+                    Filter
+                </button>
+            </div>
+            {filterOpen && (
+                <div className="filter-panel">
+                    Filters will be available when listings are
+                    added.
+                </div>
+            )}
+            <Shelf title="Product listings" />
+            <Shelf title="From your creators" />
+            <Shelf title="Suggested creators" creators />
+        </>
+    );
+}
+
 function App() {
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
-        ),
-        [postSource, setPostSource] = useState(
-            currentPostSource
         ),
         [selectedSeller, setSelectedSeller] = useState(
             currentSellerUsername
@@ -100,7 +158,6 @@ function App() {
             lastPage.current = nextPage;
             setPage(nextPage);
             setSelectedPostId(currentExplorePostId());
-            setPostSource(currentPostSource());
             setSelectedSeller(currentSellerUsername());
         };
         window.addEventListener("hashchange", onNavigation);
@@ -110,20 +167,11 @@ function App() {
                 onNavigation
             );
     }, []);
-    useLayoutEffect(() => {
-        window.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "instant"
-        });
-    }, [page, selectedPostId, selectedSeller]);
-
-    const openPost = (id, source = "explore") => {
-            window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
+    const openPost = (id) => {
+            window.location.hash = `explore/${id}`;
         },
         openSeller = (creator) => {
-            const source = page === "Home" ? "home" : postSource;
-            window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
+            window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}`;
         },
         selectedPost = explorePosts.find(
             (post) => post.id === selectedPostId
@@ -131,14 +179,8 @@ function App() {
     return (
         <div className="app-shell">
             <header className="brand">
-                <a
-                    className="brand-home"
-                    href="#home"
-                    aria-label="Campus Makers home">
-                    <h1 className="brand-title">
-                        <span>Campus</span> <span>Makers</span>
-                    </h1>
-                </a>
+                <span className="brand-mark">CM</span>
+                <h1>Campus Makers</h1>
             </header>
             <main
                 aria-label={`${page} page`}
@@ -149,32 +191,17 @@ function App() {
                           ? "explore"
                           : "blank-page"
                 }>
-                {page === "Home" && (
-                    <Home
-                        posts={explorePosts}
-                        onOpenPost={(id) =>
-                            openPost(id, "home")
-                        }
-                        onOpenSeller={openSeller}
-                    />
-                )}
+                {page === "Home" && <HomePage />}
                 {page === "Explore" &&
                     (selectedPost ? (
                         <PostDetail
                             key={selectedPost.id}
                             post={selectedPost}
-                            backLabel={
-                                postSource === "home"
-                                    ? "Back to Home"
-                                    : "Back to Explore"
-                            }
                             onBack={() => {
                                 window.location.hash =
-                                    postSource;
+                                    "explore";
                             }}
-                            onOpenPost={(id) =>
-                                openPost(id, postSource)
-                            }
+                            onOpenPost={openPost}
                             onOpenSeller={openSeller}
                         />
                     ) : (
@@ -187,16 +214,14 @@ function App() {
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
                         seller={selectedSeller}
-                        backLabel={postSource === "home" ? "Back to Home" : "Back to Explore"}
                         onBack={() => {
-                            window.location.hash = postSource;
+                            window.location.hash = "explore";
                         }}
                     />
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && <CalendarPage />}
                 {page === "Profile" && <Profile />}
-                {page === "Login" && <Login />}
             </main>
             <nav
                 className="bottom-nav"
@@ -209,7 +234,6 @@ function App() {
                             setPage(item);
                             setSelectedPostId(null);
                         }}
-                        aria-label={item}
                         aria-current={
                             page === item ? "page" : undefined
                         }>
