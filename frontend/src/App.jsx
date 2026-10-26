@@ -5,11 +5,9 @@ import {
     useState
 } from "react";
 import "./App.css";
-import { supabase } from "./services/supabase";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import { useAuth } from "./auth/useAuth";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import {
@@ -25,8 +23,6 @@ import {
     explorePosts
 } from "./Explore Page/exploreData";
 
-const asExplorePost = post => ({ ...post, id: `post-${post.id}`, type: post.image ? "image" : "text", tags: ["Campus makers"], layout: "standard", tone: "peach" });
-
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 const currentPage = () => {
     const slug = window.location.hash
@@ -38,20 +34,6 @@ const currentPage = () => {
         ? "Seller"
         : pages.find((page) => page.toLowerCase() === slug) ||
               "Home";
-};
-
-const currentMessageRecipient = () => {
-    const match = window.location.hash.match(
-        /^#profile\/messages\/([^/?#]+)/i
-    );
-
-    if (!match) return null;
-
-    try {
-        return decodeURIComponent(match[1]);
-    } catch {
-        return null;
-    }
 };
 
 function Icon({ name }) {
@@ -93,7 +75,6 @@ function Icon({ name }) {
 }
 
 function App() {
-    const { user, loading } = useAuth();
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
@@ -107,24 +88,7 @@ function App() {
         [exploreFeed, setExploreFeed] = useState(
             createExploreFeed
         );
-    const [publishedPosts, setPublishedPosts] = useState([]);
-    const [postsError, setPostsError] = useState("");
-    useEffect(() => {
-        if (!supabase) return;
-        let active = true;
-        supabase.from("maker_posts").select("*").order("created_at", { ascending: false }).then(({ data, error }) => {
-            if (!active) return;
-            if (error) setPostsError("Posts could not be loaded. Please try again later.");
-            else { setPublishedPosts(data.map(asExplorePost)); setPostsError(""); }
-        });
-        return () => { active = false; };
-    }, []);
-    const allPosts = [...publishedPosts, ...explorePosts];
     const lastPage = useRef(currentPage());
-
-    const [messageRecipient, setMessageRecipient] = useState(
-        currentMessageRecipient
-    );
     useEffect(() => {
         const onNavigation = () => {
             const nextPage = currentPage();
@@ -138,7 +102,6 @@ function App() {
             setSelectedPostId(currentExplorePostId());
             setPostSource(currentPostSource());
             setSelectedSeller(currentSellerUsername());
-            setMessageRecipient(currentMessageRecipient());
         };
         window.addEventListener("hashchange", onNavigation);
         return () =>
@@ -159,11 +122,10 @@ function App() {
             window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
         },
         openSeller = (creator) => {
-            const source =
-                page === "Home" ? "home" : postSource;
+            const source = page === "Home" ? "home" : postSource;
             window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
         },
-        selectedPost = allPosts.find(
+        selectedPost = explorePosts.find(
             (post) => post.id === selectedPostId
         );
     return (
@@ -189,7 +151,7 @@ function App() {
                 }>
                 {page === "Home" && (
                     <Home
-                        posts={allPosts}
+                        posts={explorePosts}
                         onOpenPost={(id) =>
                             openPost(id, "home")
                         }
@@ -217,7 +179,7 @@ function App() {
                         />
                     ) : (
                         <ExplorePage
-                            posts={[...publishedPosts, ...exploreFeed]}
+                            posts={exploreFeed}
                             onOpenPost={openPost}
                             onOpenSeller={openSeller}
                         />
@@ -225,48 +187,16 @@ function App() {
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
                         seller={selectedSeller}
-                        backLabel={
-                            postSource === "home"
-                                ? "Back to Home"
-                                : "Back to Explore"
-                        }
+                        backLabel={postSource === "home" ? "Back to Home" : "Back to Explore"}
                         onBack={() => {
                             window.location.hash = postSource;
-                        }}
-                        onMessageSeller={() => {
-                            const username =
-                                selectedSeller.replace(
-                                    /^@/,
-                                    ""
-                                );
-                            const source =
-                                postSource === "home"
-                                    ? "home"
-                                    : "explore";
-
-                            window.location.hash = `profile/messages/${encodeURIComponent(username)}?from=seller&source=${source}`;
                         }}
                     />
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && <CalendarPage />}
-                {page === "Profile" && !loading && (
-                    <Profile
-                        key={`${user?.id ?? "guest"}:${messageRecipient ?? "profile"}`}
-                        user={user}
-                        posts={publishedPosts}
-                        postsError={postsError}
-                        onPublished={post => {
-                            setPublishedPosts(current => [asExplorePost(post), ...current]);
-                            setPostsError("");
-                        }}
-                        sellerVerified={user?.sellerVerified}
-                        initialConversation={user ? messageRecipient : null}
-                    />
-                )}
-                {page === "Profile" && loading && <p role="status">Checking your session…</p>}
-                {page === "Login" &&
-                    (loading ? <p role="status">Checking your session…</p> : <Login />)}
+                {page === "Profile" && <Profile />}
+                {page === "Login" && <Login />}
             </main>
             <nav
                 className="bottom-nav"

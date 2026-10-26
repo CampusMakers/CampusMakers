@@ -47,11 +47,9 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                         <span
                             className={`explore-visual ${post.tone}`}
                             role="img"
-                            aria-label={post.image ? post.caption : `${post.type} placeholder`}>
-                            {post.image ? <img className="seller-post-photo" src={post.image} alt={post.caption} /> : post.type === "video" ? (
-                                <span
-                                    className="explore-play"
-                                    aria-label="Play video">
+                            aria-label={`${post.type} placeholder`}>
+                            {post.type === "video" ? (
+                                <span className="explore-play" aria-label="Play video">
                                     {"\u25b6"}
                                 </span>
                             ) : (
@@ -161,7 +159,7 @@ export function PostDetail({
     onOpenSeller
 }) {
     const [liked, setLiked] = useState(false),
-        [likeCount, setLikeCount] = useState(post.seller_id ? 0 : 18 + post.id * 3),
+        [likeCount, setLikeCount] = useState(18 + post.id * 3),
         [comments, setComments] = useState([
             {
                 id: 1,
@@ -233,10 +231,8 @@ export function PostDetail({
                     <div
                         className={`explore-visual ${post.tone}`}
                         role="img">
-                        {post.image ? <img className="seller-post-photo" src={post.image} alt={post.caption} /> : post.type === "video" ? (
-                            <span
-                                className="explore-play"
-                                aria-label="Play video">
+                        {post.type === "video" ? (
+                            <span className="explore-play" aria-label="Play video">
                                 {"\u25b6"}
                             </span>
                         ) : (
@@ -357,12 +353,7 @@ export function PostDetail({
     );
 }
 
-export function SellerProfilePage({
-    seller,
-    onBack,
-    backLabel = "Back to Explore",
-    onMessageSeller
-}) {
+export function SellerProfilePage({ seller, onBack, backLabel = "Back to Explore" }) {
     return (
         <section className="seller-profile-page">
             <button
@@ -371,35 +362,18 @@ export function SellerProfilePage({
                 onClick={onBack}>
                 ← {backLabel}
             </button>
-
             <div className="seller-profile-card">
                 <div className="seller-profile-avatar">
                     {seller.slice(1, 3).toUpperCase()}
                 </div>
-
                 <p>Campus Makers seller</p>
-
                 <h2>{seller}</h2>
-
                 <p>
                     Verified student creator sharing original
                     work with the campus community.
                 </p>
-
-                {/* Existing functionality */}
-                <button
-                    type="button"
-                    className="seller-profile-action">
+                <button className="seller-profile-action">
                     View listings
-                </button>
-
-                {/* R02: Open a conversation with this seller */}
-                <button
-                    type="button"
-                    className="seller-profile-action"
-                    onClick={onMessageSeller}
-                    style={{ marginLeft: "12px" }}>
-                    Message Seller
                 </button>
             </div>
         </section>

@@ -9,8 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
-    "dev": "node scripts/dev.mjs"
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "devDependencies": {
     "prettier": "^3.9.7"

@@ -253,24 +253,11 @@ function BuyerPickups({ onDemoAction }) {
                                 <button
                                     type="button"
                                     className="buyer-pickup-secondary"
-                                    onClick={() => {
-                                        const username =
-                                            pickup.seller
-                                                ?.trim()
-                                                .replace(
-                                                    /^@/,
-                                                    ""
-                                                );
-
-                                        if (!username) {
-                                            onDemoAction(
-                                                "This pickup does not have a seller username."
-                                            );
-                                            return;
-                                        }
-
-                                        window.location.hash = `profile/messages/${encodeURIComponent(username)}?from=pickups`;
-                                    }}>
+                                    onClick={() =>
+                                        onDemoAction(
+                                            `Message seller ${pickup.seller}`
+                                        )
+                                    }>
                                     Message Seller
                                 </button>
                             </div>
