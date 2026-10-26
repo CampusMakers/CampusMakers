@@ -1,26 +1,50 @@
 import { useState } from "react";
 
 import ListingGallery from "./ListingGallery";
+import SellerAppointments from "./SellerAppointments";
 import SellerSaved from "./SellerSaved";
 import BuyerPickups from "./BuyerPickups";
 import BuyerPurchases from "./BuyerPurchases";
 import BuyerSaved from "./BuyerSaved";
+import BecomeSeller from "./BecomeSeller";
+import Settings from "./Settings";
 
 import {
     sellerListings,
-    sellerAppointments,
-    sellerEvents,
     sellerSavedItems
 } from "./mockProfileData";
 
 import "./Profile.css";
 
-function Profile() {
-    const [mode, setMode] = useState("seller");
-    const [activeTab, setActiveTab] = useState("Listings");
+// Temporary browser storage for the seller demo.
+// Remove this when real seller verification is connected.
+const DEMO_SELLER_KEY = "campusMakersDemoSeller";
+
+function Profile({ sellerVerified = false }) {
+    const [mode, setMode] = useState("buyer");
+    const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
 
-    // Saved items are shared between buyer and seller modes.
+    // Controls whether the Settings page is displayed.
+    const [showSettings, setShowSettings] = useState(false);
+
+    const [showSellerSignup, setShowSellerSignup] =
+        useState(false);
+
+    // Remember whether this browser completed demo signup.
+    const [demoSellerRegistered, setDemoSellerRegistered] =
+        useState(() => {
+            return (
+                typeof window !== "undefined" &&
+                window.localStorage.getItem(DEMO_SELLER_KEY) ===
+                    "true"
+            );
+        });
+
+    // Real verification OR temporary demo registration.
+    const hasSellerAccess =
+        sellerVerified || demoSellerRegistered;
+
     const [savedIds, setSavedIds] = useState(() =>
         sellerSavedItems.map((item) => item.id)
     );
@@ -31,13 +55,31 @@ function Profile() {
             : ["Pickups", "Purchases", "Saved"];
 
     const changeMode = (newMode) => {
-        setMode(newMode);
+        if (newMode === "seller" && !hasSellerAccess) {
+            return;
+        }
 
+        setMode(newMode);
         setActiveTab(
             newMode === "seller" ? "Listings" : "Pickups"
         );
-
         setNotice("");
+    };
+
+    // Called when the demo seller form is submitted.
+    const completeDemoSellerSignup = () => {
+        setDemoSellerRegistered(true);
+
+        window.localStorage.setItem(DEMO_SELLER_KEY, "true");
+
+        setShowSellerSignup(false);
+        setMode("seller");
+        setActiveTab("Listings");
+
+        setNotice(
+            "Seller preview enabled! Student verification " +
+                "will be added when the backend is connected."
+        );
     };
 
     const showDemoNotice = (action) => {
@@ -54,24 +96,48 @@ function Profile() {
         );
     };
 
+    // Display Settings without leaving the Profile page.
+    if (showSettings) {
+        return (
+            <div className="profile-page">
+                <Settings
+                    onBack={() => setShowSettings(false)}
+                />
+            </div>
+        );
+    }
+
+    if (showSellerSignup) {
+        return (
+            <div className="profile-page">
+                <BecomeSeller
+                    onBack={() => setShowSellerSignup(false)}
+                    onRegistered={completeDemoSellerSignup}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="profile-page">
-            {/* BUYER / SELLER MODE SWITCH */}
-            <div className="profile-mode-switch">
-                <button
-                    type="button"
-                    aria-pressed={mode === "seller"}
-                    onClick={() => changeMode("seller")}>
-                    Seller Mode
-                </button>
+            {/* MODE SWITCH FOR REAL OR DEMO SELLERS */}
+            {hasSellerAccess && (
+                <div className="profile-mode-switch">
+                    <button
+                        type="button"
+                        aria-pressed={mode === "buyer"}
+                        onClick={() => changeMode("buyer")}>
+                        Buyer Mode
+                    </button>
 
-                <button
-                    type="button"
-                    aria-pressed={mode === "buyer"}
-                    onClick={() => changeMode("buyer")}>
-                    Buyer Mode
-                </button>
-            </div>
+                    <button
+                        type="button"
+                        aria-pressed={mode === "seller"}
+                        onClick={() => changeMode("seller")}>
+                        Seller Mode
+                    </button>
+                </div>
+            )}
 
             {/* PROFILE HEADER */}
             <div className="profile-header">
@@ -79,11 +145,9 @@ function Profile() {
 
                 <div className="profile-info">
                     <h2>Your Name</h2>
-
                     <p className="profile-username">
                         @username
                     </p>
-
                     <p>Student creator at Campus Makers</p>
                 </div>
             </div>
@@ -95,7 +159,43 @@ function Profile() {
                 Edit Profile
             </button>
 
-            {/* DEMO ACTION MESSAGE */}
+            {/* SETTINGS BUTTON */}
+            <button
+                type="button"
+                className="profile-edit-button"
+                onClick={() => {
+                    setNotice("");
+                    setShowSettings(true);
+                }}>
+                ⚙ Settings
+            </button>
+
+            {/* BECOME A SELLER CALL TO ACTION */}
+            {!hasSellerAccess && (
+                <section className="profile-seller-invite">
+                    <div>
+                        <h3>
+                            Have something to create or sell?
+                        </h3>
+                        <p>
+                            Become a Campus Maker and share your
+                            work with students on campus.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="profile-become-seller-button"
+                        onClick={() => {
+                            setNotice("");
+                            setShowSellerSignup(true);
+                        }}>
+                        Become a Seller →
+                    </button>
+                </section>
+            )}
+
+            {/* DEMO NOTICES */}
             {notice && (
                 <div className="profile-notice" role="status">
                     <span>{notice}</span>
@@ -109,7 +209,7 @@ function Profile() {
                 </div>
             )}
 
-            {/* PROFILE NAVIGATION */}
+            {/* PROFILE TABS */}
             <div className="profile-tabs">
                 {tabs.map((tab) => (
                     <button
@@ -126,272 +226,68 @@ function Profile() {
             </div>
 
             {/* SELLER: LISTINGS */}
-            {mode === "seller" && activeTab === "Listings" && (
-                <section className="profile-listings">
-                    <div className="profile-panel-heading">
-                        <h3>Your Active Listings</h3>
+            {mode === "seller" &&
+                hasSellerAccess &&
+                activeTab === "Listings" && (
+                    <section className="profile-listings">
+                        <div className="profile-panel-heading">
+                            <h3>Your Active Listings</h3>
 
-                        <span className="profile-count">
-                            {sellerListings.length} items
-                        </span>
-                    </div>
+                            <span className="profile-count">
+                                {sellerListings.length} items
+                            </span>
+                        </div>
 
-                    <div className="profile-listings-grid">
-                        {sellerListings.map((listing) => (
-                            <article
-                                className="profile-listing-card"
-                                key={listing.id}>
-                                <ListingGallery
-                                    images={listing.images}
-                                    productName={listing.name}
-                                />
+                        <div className="profile-listings-grid">
+                            {sellerListings.map((listing) => (
+                                <article
+                                    className="profile-listing-card"
+                                    key={listing.id}>
+                                    <ListingGallery
+                                        images={listing.images}
+                                        productName={
+                                            listing.name
+                                        }
+                                    />
 
-                                <h4>{listing.name}</h4>
+                                    <h4>{listing.name}</h4>
 
-                                <p>
-                                    ${listing.price.toFixed(2)}
-                                </p>
+                                    <p>
+                                        $
+                                        {listing.price.toFixed(
+                                            2
+                                        )}
+                                    </p>
 
-                                <span>{listing.status}</span>
-                            </article>
-                        ))}
-                    </div>
-                </section>
-            )}
+                                    <span>
+                                        {listing.status}
+                                    </span>
+                                </article>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
             {/* SELLER: APPOINTMENTS */}
             {mode === "seller" &&
+                hasSellerAccess &&
                 activeTab === "Appointments" && (
-                    <div className="profile-content-stack">
-                        <section className="profile-panel">
-                            <div className="profile-panel-heading">
-                                <h3>Your Appointments</h3>
-
-                                <span className="profile-count">
-                                    {sellerAppointments.length}{" "}
-                                    active
-                                </span>
-                            </div>
-
-                            <div className="profile-card-stack">
-                                {sellerAppointments.map(
-                                    (appointment) => (
-                                        <article
-                                            className="profile-appointment-card"
-                                            key={
-                                                appointment.id
-                                            }>
-                                            <div className="profile-appointment-top">
-                                                {appointment.image ? (
-                                                    <img
-                                                        className="profile-appointment-photo"
-                                                        src={
-                                                            appointment.image
-                                                        }
-                                                        alt={
-                                                            appointment.title
-                                                        }
-                                                    />
-                                                ) : (
-                                                    <div className="profile-appointment-photo profile-photo-placeholder">
-                                                        CM
-                                                    </div>
-                                                )}
-
-                                                <div className="profile-appointment-details">
-                                                    <h4>
-                                                        {
-                                                            appointment.title
-                                                        }
-                                                    </h4>
-
-                                                    <p>
-                                                        Buyer:{" "}
-                                                        <strong>
-                                                            {
-                                                                appointment.buyer
-                                                            }
-                                                        </strong>
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="profile-appointment-meta">
-                                                <p>
-                                                    <strong>
-                                                        When:
-                                                    </strong>{" "}
-                                                    {
-                                                        appointment.date
-                                                    }
-                                                </p>
-
-                                                <p>
-                                                    <strong>
-                                                        Where:
-                                                    </strong>{" "}
-                                                    {
-                                                        appointment.location
-                                                    }
-                                                </p>
-                                            </div>
-
-                                            <div className="profile-appointment-payment">
-                                                <span>
-                                                    {
-                                                        appointment.payment
-                                                    }
-                                                </span>
-
-                                                <strong>
-                                                    $
-                                                    {appointment.price.toFixed(
-                                                        2
-                                                    )}
-                                                </strong>
-                                            </div>
-
-                                            <span
-                                                className={`profile-status ${
-                                                    appointment.status ===
-                                                    "Confirmed"
-                                                        ? "profile-status-confirmed"
-                                                        : "profile-status-pending"
-                                                }`}>
-                                                {
-                                                    appointment.status
-                                                }
-                                            </span>
-
-                                            <div className="profile-appointment-actions">
-                                                <button
-                                                    type="button"
-                                                    className="profile-action-button profile-action-primary"
-                                                    onClick={() =>
-                                                        showDemoNotice(
-                                                            appointment.primaryAction
-                                                        )
-                                                    }>
-                                                    {
-                                                        appointment.primaryAction
-                                                    }
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="profile-action-button"
-                                                    onClick={() =>
-                                                        showDemoNotice(
-                                                            appointment.secondaryAction
-                                                        )
-                                                    }>
-                                                    {
-                                                        appointment.secondaryAction
-                                                    }
-                                                </button>
-                                            </div>
-                                        </article>
-                                    )
-                                )}
-                            </div>
-                        </section>
-
-                        {/* UPCOMING SELLER EVENTS */}
-                        <section className="profile-panel">
-                            <div className="profile-panel-heading">
-                                <h3>
-                                    Upcoming Events & Pop-ups
-                                </h3>
-
-                                <span className="profile-count">
-                                    {sellerEvents.length} events
-                                </span>
-                            </div>
-
-                            <div className="profile-card-stack">
-                                {sellerEvents.map((event) => (
-                                    <article
-                                        className="profile-event-card"
-                                        key={event.id}>
-                                        <div className="profile-event-main">
-                                            <div className="profile-event-date">
-                                                <span>
-                                                    {
-                                                        event.month
-                                                    }
-                                                </span>
-                                                <strong>
-                                                    {event.day}
-                                                </strong>
-                                            </div>
-
-                                            <div className="profile-event-details">
-                                                <h4>
-                                                    {
-                                                        event.title
-                                                    }
-                                                </h4>
-
-                                                <p>
-                                                    {event.date}
-                                                </p>
-                                                <p>
-                                                    {
-                                                        event.location
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="profile-event-footer">
-                                            <span className="profile-event-role">
-                                                {event.role}
-                                            </span>
-
-                                            <p>
-                                                {
-                                                    event.description
-                                                }
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            className="profile-action-button profile-event-button"
-                                            onClick={() =>
-                                                showDemoNotice(
-                                                    event.action
-                                                )
-                                            }>
-                                            {event.action}
-                                        </button>
-                                    </article>
-                                ))}
-                            </div>
-                        </section>
-
-                        <div className="profile-tip">
-                            <strong>Campus Hand-off Tip</strong>
-
-                            <p>
-                                Meet buyers at recognizable
-                                campus locations and confirm the
-                                hand-off before marking an order
-                                complete.
-                            </p>
-                        </div>
-                    </div>
+                    <SellerAppointments
+                        onDemoAction={showDemoNotice}
+                    />
                 )}
 
             {/* SELLER: SAVED */}
-            {mode === "seller" && activeTab === "Saved" && (
-                <SellerSaved
-                    savedItems={sellerSavedItems}
-                    savedIds={savedIds}
-                    onToggleSaved={toggleSaved}
-                    onDemoAction={showDemoNotice}
-                />
-            )}
+            {mode === "seller" &&
+                hasSellerAccess &&
+                activeTab === "Saved" && (
+                    <SellerSaved
+                        savedItems={sellerSavedItems}
+                        savedIds={savedIds}
+                        onToggleSaved={toggleSaved}
+                        onDemoAction={showDemoNotice}
+                    />
+                )}
 
             {/* BUYER: PICKUPS */}
             {mode === "buyer" && activeTab === "Pickups" && (
