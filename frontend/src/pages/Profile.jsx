@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ListingGallery from "./ListingGallery";
 import SellerAppointments from "./SellerAppointments";
@@ -8,6 +8,7 @@ import BuyerPurchases from "./BuyerPurchases";
 import BuyerSaved from "./BuyerSaved";
 import BecomeSeller from "./BecomeSeller";
 import Settings from "./Settings";
+import EditProfile from "./EditProfile";
 
 import {
     sellerListings,
@@ -20,16 +21,96 @@ import "./Profile.css";
 // Remove this when real seller verification is connected.
 const DEMO_SELLER_KEY = "campusMakersDemoSeller";
 
+const PROFILE_KEY = "campusMakersDemoProfile";
+
+const DEFAULT_PROFILE = {
+    name: "Your Name",
+    username: "username",
+    bio: "Student creator at Campus Makers ✨",
+    image: ""
+};
+
 function Profile({ sellerVerified = false }) {
     const [mode, setMode] = useState("buyer");
     const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
 
-    // Controls whether the Settings page is displayed.
+    const [showEditProfile, setShowEditProfile] =
+        useState(false);
+
+    const [profile, setProfile] = useState(() => {
+        try {
+            const saved =
+                window.localStorage.getItem(PROFILE_KEY);
+            return saved
+                ? { ...DEFAULT_PROFILE, ...JSON.parse(saved) }
+                : { ...DEFAULT_PROFILE };
+        } catch {
+            return { ...DEFAULT_PROFILE };
+        }
+    });
+
+    const saveProfile = (updatedProfile) => {
+        try {
+            window.localStorage.setItem(
+                PROFILE_KEY,
+                JSON.stringify(updatedProfile)
+            );
+        } catch {
+            return false;
+        }
+
+        setProfile(updatedProfile);
+        setShowEditProfile(false);
+        setNotice(
+            "Profile changes saved in this browser (demo)."
+        );
+        return true;
+    };
+
+    // Settings page
     const [showSettings, setShowSettings] = useState(false);
 
+    // Seller registration page
     const [showSellerSignup, setShowSellerSignup] =
         useState(false);
+
+    // Enlarged profile picture preview
+    const [showAvatarPreview, setShowAvatarPreview] =
+        useState(false);
+
+    const avatarCloseButtonRef = useRef(null);
+
+    // Close profile picture using Escape.
+    // Keep keyboard focus inside the preview while it's open.
+    useEffect(() => {
+        if (!showAvatarPreview) return;
+
+        const previouslyFocused = document.activeElement;
+
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                setShowAvatarPreview(false);
+            }
+
+            if (event.key === "Tab") {
+                event.preventDefault();
+                avatarCloseButtonRef.current?.focus();
+            }
+        };
+
+        avatarCloseButtonRef.current?.focus();
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener(
+                "keydown",
+                handleKeyDown
+            );
+            previouslyFocused?.focus();
+        };
+    }, [showAvatarPreview]);
 
     // Remember whether this browser completed demo signup.
     const [demoSellerRegistered, setDemoSellerRegistered] =
@@ -54,6 +135,7 @@ function Profile({ sellerVerified = false }) {
             ? ["Listings", "Appointments", "Saved"]
             : ["Pickups", "Purchases", "Saved"];
 
+    // Switch between Buyer and Seller profiles.
     const changeMode = (newMode) => {
         if (newMode === "seller" && !hasSellerAccess) {
             return;
@@ -96,17 +178,32 @@ function Profile({ sellerVerified = false }) {
         );
     };
 
+    // Display the Edit Profile page.
+    if (showEditProfile) {
+        return (
+            <div className="profile-page">
+                <EditProfile
+                    profile={profile}
+                    onBack={() => setShowEditProfile(false)}
+                    onSave={saveProfile}
+                />
+            </div>
+        );
+    }
+
     // Display Settings without leaving the Profile page.
     if (showSettings) {
         return (
             <div className="profile-page">
                 <Settings
+                    profile ={profile}
                     onBack={() => setShowSettings(false)}
                 />
             </div>
         );
     }
 
+    // Display seller registration.
     if (showSellerSignup) {
         return (
             <div className="profile-page">
@@ -120,7 +217,7 @@ function Profile({ sellerVerified = false }) {
 
     return (
         <div className="profile-page">
-            {/* MODE SWITCH FOR REAL OR DEMO SELLERS */}
+            {/* BUYER / SELLER MODE SWITCH */}
             {hasSellerAccess && (
                 <div className="profile-mode-switch">
                     <button
@@ -139,38 +236,109 @@ function Profile({ sellerVerified = false }) {
                 </div>
             )}
 
-            {/* PROFILE HEADER */}
-            <div className="profile-header">
-                <div className="profile-avatar">CM</div>
+            {/* PROFILE HEADER ACTIONS */}
+            <div className="profile-toolbar">
+                <div>
+                    <span className="profile-eyebrow">
+                        CAMPUS MAKERS
+                    </span>
+                    <h2>My Profile</h2>
+                </div>
 
-                <div className="profile-info">
-                    <h2>Your Name</h2>
-                    <p className="profile-username">
-                        @username
-                    </p>
-                    <p>Student creator at Campus Makers</p>
+                <div className="profile-toolbar-actions">
+                    <button
+                        type="button"
+                        className="profile-icon-button"
+                        aria-label="Messages"
+                        title="Messages"
+                        onClick={() =>
+                            showDemoNotice("Messages")
+                        }>
+                        ✉
+                    </button>
+
+                    <button
+                        type="button"
+                        className="profile-icon-button"
+                        aria-label="Settings"
+                        title="Settings"
+                        onClick={() => {
+                            setNotice("");
+                            setShowSettings(true);
+                        }}>
+                        ⚙
+                    </button>
                 </div>
             </div>
 
-            <button
-                type="button"
-                className="profile-edit-button"
-                onClick={() => showDemoNotice("Edit Profile")}>
-                Edit Profile
-            </button>
+            {/* INSTAGRAM-STYLE PROFILE HEADER */}
+            <div className="profile-header">
+                {/* CLICKABLE PROFILE PICTURE */}
+                <button
+                    type="button"
+                    className="profile-avatar"
+                    aria-label="View profile picture"
+                    aria-haspopup="dialog"
+                    onClick={() => setShowAvatarPreview(true)}>
+                    {profile.image ? (
+                        <img
+                            src={profile.image}
+                            alt=""
+                            className="profile-avatar-image"
+                        />
+                    ) : (
+                        profile.name?.charAt(0).toUpperCase() ||
+                        "C"
+                    )}
+                </button>
 
-            {/* SETTINGS BUTTON */}
+                {/* PROFILE STATISTICS */}
+                <div
+                    className="profile-social-stats"
+                    aria-label="Profile statistics">
+                    <div>
+                        <strong>—</strong>
+                        <span>Posts</span>
+                    </div>
+
+                    <div>
+                        <strong>—</strong>
+                        <span>Followers</span>
+                    </div>
+
+                    <div>
+                        <strong>—</strong>
+                        <span>Following</span>
+                    </div>
+                </div>
+            </div>
+
+
+            {/* NAME, USERNAME AND BIO */}
+            <div className="profile-bio">
+                <h3>{profile.name}</h3>
+
+                <p className="profile-username">
+                    @{profile.username}
+                </p>
+
+                <p className="profile-description">
+                    {profile.bio}
+                </p>
+            </div>
+
+            {/* EDIT PROFILE - ONLY MAIN PROFILE ACTION */}
             <button
                 type="button"
                 className="profile-edit-button"
                 onClick={() => {
                     setNotice("");
-                    setShowSettings(true);
+                    setShowEditProfile(true);
                 }}>
-                ⚙ Settings
+                Edit Profile
             </button>
 
-            {/* BECOME A SELLER CALL TO ACTION */}
+            {/* BECOME A SELLER */}
             {!hasSellerAccess && (
                 <section className="profile-seller-invite">
                     <div>
@@ -307,6 +475,52 @@ function Profile({ sellerVerified = false }) {
                     onToggleSaved={toggleSaved}
                     onDemoAction={showDemoNotice}
                 />
+            )}
+
+            {/* ENLARGED PROFILE PICTURE PREVIEW */}
+            {showAvatarPreview && (
+                <div
+                    className="profile-avatar-overlay"
+                    role="presentation"
+                    onClick={(event) => {
+                        if (
+                            event.target === event.currentTarget
+                        ) {
+                            setShowAvatarPreview(false);
+                        }
+                    }}>
+                    <div
+                        className="profile-avatar-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Profile picture preview">
+                        <button
+                            ref={avatarCloseButtonRef}
+                            type="button"
+                            className="profile-avatar-close"
+                            aria-label="Close profile picture"
+                            onClick={() =>
+                                setShowAvatarPreview(false)
+                            }>
+                            ×
+                        </button>
+
+                        <div className="profile-avatar-large">
+                            {profile.image ? (
+                                <img
+                                    src={profile.image}
+                                    alt="Your profile"
+                                />
+                            ) : (
+                                profile.name
+                                    ?.charAt(0)
+                                    .toUpperCase() || "C"
+                            )}
+                        </div>
+
+                        <p>Profile Picture</p>
+                    </div>
+                </div>
             )}
         </div>
     );
