@@ -1094,3 +1094,29 @@
 .profile-add-listing-button:hover {
     background: #80501a;
 }
+
+.seller-tool-form {
+    display: grid;
+    gap: 14px;
+    margin: 18px 0;
+}
+.seller-tool-form label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+.seller-tool-form input, .seller-tool-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #dfcbb0;
+    border-radius: 10px;
+    background: #fff8eb;
+    color: #3d2c1e;
+    font: inherit;
+}
+.seller-tool-form textarea { min-height: 130px; resize: vertical; }
+.seller-post-photo { display: block; width: 100%; max-height: 440px; object-fit: cover; border-radius: 10px; }
+.seller-tool-form button:disabled { opacity: .6; cursor: wait; }

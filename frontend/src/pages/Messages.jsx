@@ -137,7 +137,7 @@ export default function Messages({
                 setSuggestedUsers([]);
 
                 setUserSearchError(
-                    "User suggestions aren't connected yet. " +
+                    "Unable to load suggestions. " +
                         "You can still enter an exact username."
                 );
             } finally {
@@ -193,7 +193,7 @@ export default function Messages({
         if (!user?.username) return;
 
         setRecipientError("");
-        onOpenConversation(user.username);
+        onOpenConversation(user.id);
     };
 
     // Count unread messages.
@@ -266,7 +266,7 @@ export default function Messages({
                     className="messages-new-form"
                     onSubmit={startConversation}>
                     <label htmlFor="messages-recipient">
-                        Who would you like to message?
+                        Who would you like to message? Buyers can message sellers; sellers can message anyone.
                     </label>
 
                     <div className="messages-user-search">
@@ -519,7 +519,7 @@ export default function Messages({
                                         }
                                         onClick={() =>
                                             onOpenConversation(
-                                                partner.username
+                                                partner.id
                                             )
                                         }
                                         aria-label={`Open conversation with ${displayName}`}>

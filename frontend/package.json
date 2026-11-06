@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../scripts/dev.mjs",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:frontend": "vite"
   },
   "dependencies": {
     "@maplibre/maplibre-gl-leaflet": "^0.1.4",
