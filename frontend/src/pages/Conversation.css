@@ -1,0 +1,302 @@
+/* ==========================================
+   CAMPUS MAKERS - CONVERSATION PAGE
+   R02: BUYER & SELLER MESSAGING
+   ========================================== */
+
+.conversation-page {
+    width: 100%;
+    min-width: 0;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px 16px 110px;
+    box-sizing: border-box;
+    color: #3d2c1e;
+}
+
+/* HEADER */
+
+.conversation-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #dfcbb0;
+}
+
+.conversation-back,
+.conversation-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: #ead6ad;
+    color: #704b18;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.conversation-back:hover,
+.conversation-refresh:hover {
+    background: #dfc59a;
+}
+
+.conversation-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #ead6ad;
+    color: #704b18;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.conversation-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.conversation-user {
+    flex: 1;
+    min-width: 0;
+}
+
+.conversation-user h2 {
+    overflow: hidden;
+    margin: 0 0 4px;
+    color: #3d2c1e;
+    font-size: 16px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conversation-user p {
+    margin: 0;
+    color: #a36500;
+    font-size: 11px;
+}
+
+/* MESSAGE HISTORY */
+
+.conversation-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 300px;
+    max-height: 55vh;
+    padding: 15px 6px;
+    overflow-y: auto;
+}
+
+.conversation-message {
+    display: flex;
+    flex-direction: column;
+    max-width: 82%;
+    gap: 5px;
+}
+
+.conversation-message-theirs {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.conversation-message-mine {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.conversation-bubble {
+    padding: 12px 15px;
+    border-radius: 17px;
+    background: #ead6ad;
+}
+
+.conversation-message-mine .conversation-bubble {
+    border-bottom-right-radius: 5px;
+    background: #a36500;
+    color: white;
+}
+
+.conversation-message-theirs .conversation-bubble {
+    border-bottom-left-radius: 5px;
+    background: #fff8eb;
+    border: 1px solid #dfcbb0;
+    color: #3d2c1e;
+}
+
+.conversation-bubble p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.conversation-message-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px;
+}
+
+.conversation-message-meta time {
+    color: #85745e;
+    font-size: 10px;
+}
+
+.conversation-delete {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #a36500;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.conversation-delete:hover {
+    text-decoration: underline;
+}
+
+/* COMPOSER */
+
+.conversation-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #dfcbb0;
+    border-radius: 16px;
+    background: #fff8eb;
+}
+
+.conversation-composer textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    max-height: 150px;
+    padding: 10px 4px;
+    border: none;
+    outline: none;
+    resize: vertical;
+    background: transparent;
+    color: #3d2c1e;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.conversation-composer button {
+    min-width: 76px;
+    padding: 12px 10px;
+    border: none;
+    border-radius: 12px;
+    background: #a36500;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.conversation-composer button:hover:not(:disabled) {
+    background: #80501a;
+}
+
+.conversation-composer button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* FEEDBACK */
+
+.conversation-feedback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    padding: 40px 15px;
+    text-align: center;
+    color: #85745e;
+    font-size: 12px;
+}
+
+.conversation-feedback h3 {
+    margin: 0;
+    color: #704b18;
+    font-size: 16px;
+}
+
+.conversation-feedback p {
+    max-width: 280px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.conversation-feedback button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #a36500;
+    color: white;
+    cursor: pointer;
+}
+
+.conversation-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: #ead6ad;
+    color: #704b18;
+    font-size: 30px;
+}
+
+.conversation-action-error {
+    padding: 12px;
+    border: 1px solid #efc2b9;
+    border-radius: 10px;
+    background: #fff1ee;
+    color: #a63c30;
+    font-size: 12px;
+}
+
+.conversation-back:focus-visible,
+.conversation-refresh:focus-visible,
+.conversation-composer button:focus-visible,
+.conversation-delete:focus-visible {
+    outline: 2px solid #cc8000;
+    outline-offset: 3px;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 380px) {
+    .conversation-page {
+        padding: 16px 12px 100px;
+    }
+
+    .conversation-message {
+        max-width: 88%;
+    }
+
+    .conversation-composer {
+        gap: 6px;
+        padding: 9px;
+    }
+}
