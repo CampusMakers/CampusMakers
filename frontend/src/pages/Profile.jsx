@@ -22,9 +22,9 @@ import "./Profile.css";
 
 // Temporary browser storage for the seller demo.
 // Remove this when real seller verification is connected.
-const DEMO_SELLER_KEY = "campusMakersDemoSeller";
 
-const PROFILE_KEY = "campusMakersDemoProfile";
+
+
 
 const DEFAULT_PROFILE = {
     name: "Your Name",
@@ -34,9 +34,12 @@ const DEFAULT_PROFILE = {
 };
 
 function Profile({
+    user,
     sellerVerified = false,
     initialConversation = null
 }) {
+    const PROFILE_KEY = `campusMakersProfile:${user.id}`;
+    const initialProfile = { ...DEFAULT_PROFILE, name: user.name || user.email, username: user.email.split("@")[0] };
     const [mode, setMode] = useState("buyer");
     const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
@@ -124,10 +127,10 @@ function Profile({
             const saved =
                 window.localStorage.getItem(PROFILE_KEY);
             return saved
-                ? { ...DEFAULT_PROFILE, ...JSON.parse(saved) }
-                : { ...DEFAULT_PROFILE };
+                ? { ...initialProfile, ...JSON.parse(saved) }
+                : { ...initialProfile };
         } catch {
-            return { ...DEFAULT_PROFILE };
+            return { ...initialProfile };
         }
     });
 
@@ -200,19 +203,7 @@ function Profile({
         };
     }, [showAvatarPreview]);
 
-    // Remember whether this browser completed demo signup.
-    const [demoSellerRegistered, setDemoSellerRegistered] =
-        useState(() => {
-            return (
-                typeof window !== "undefined" &&
-                window.localStorage.getItem(DEMO_SELLER_KEY) ===
-                    "true"
-            );
-        });
-
-    // Real verification OR temporary demo registration.
-    const hasSellerAccess =
-        sellerVerified || demoSellerRegistered;
+    const hasSellerAccess = sellerVerified;
 
     const [savedIds, setSavedIds] = useState(() =>
         sellerSavedItems.map((item) => item.id)
@@ -236,20 +227,9 @@ function Profile({
         setNotice("");
     };
 
-    // Called when the demo seller form is submitted.
     const completeDemoSellerSignup = () => {
-        setDemoSellerRegistered(true);
-
-        window.localStorage.setItem(DEMO_SELLER_KEY, "true");
-
         setShowSellerSignup(false);
-        setMode("seller");
-        setActiveTab("Listings");
-
-        setNotice(
-            "Seller preview enabled! Student verification " +
-                "will be added when the backend is connected."
-        );
+        setNotice('Seller access requires a confirmed .edu email on your signed-in account.');
     };
 
     const showDemoNotice = (action) => {
@@ -339,6 +319,7 @@ function Profile({
         return (
             <div className="profile-page">
                 <Settings
+                    email={user.email}
                     profile={profile}
                     onBack={() => setShowSettings(false)}
                 />

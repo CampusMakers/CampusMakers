@@ -3,3 +3,5 @@ dist/
 .env
 .DS_Store
 .npp-md-preview.html
+.env.*
+!.env.example

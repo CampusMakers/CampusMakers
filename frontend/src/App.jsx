@@ -8,6 +8,7 @@ import "./App.css";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import { useAuth } from "./auth/useAuth";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import {
@@ -89,6 +90,7 @@ function Icon({ name }) {
 }
 
 function App() {
+    const { user, loading } = useAuth();
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
@@ -232,13 +234,16 @@ function App() {
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && <CalendarPage />}
-                {page === "Profile" && (
+                {page === "Profile" && user && (
                     <Profile
-                        key={messageRecipient ?? "profile"}
+                        key={`${user.id}:${messageRecipient ?? "profile"}`}
+                        user={user}
+                        sellerVerified={user.sellerVerified}
                         initialConversation={messageRecipient}
                     />
                 )}
-                {page === "Login" && <Login />}
+                {(page === "Login" || (page === "Profile" && !user)) &&
+                    (loading ? <p role="status">Checking your session…</p> : <Login />)}
             </main>
             <nav
                 className="bottom-nav"
