@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { withAvailableUsername } from "../services/usernames";
 
 import { AppointmentManager, PostComposer } from "./SellerTools";
 import ListingGallery from "./ListingGallery";
@@ -117,10 +118,10 @@ function Profile({
     const photoInputRef = useRef(null);
 
     const saveProfile = async (updatedProfile) => {
-        const { error } = await supabase.auth.updateUser({ data: {
+        const { error } = await withAvailableUsername(supabase, updatedProfile.username, () => supabase.auth.updateUser({ data: {
             full_name: updatedProfile.name, username: updatedProfile.username,
             bio: updatedProfile.bio, avatar_url: updatedProfile.image
-        } });
+        } }));
         if (error) throw error;
         setProfile(updatedProfile);
         setShowEditProfile(false);

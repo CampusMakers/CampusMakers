@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./Login.css";
+import { withAvailableUsername } from "../services/usernames";
 import { supabase } from '../services/supabase';
 import { useAuth } from '../auth/useAuth';
 
@@ -80,7 +81,7 @@ export default function Login() {
         try {
             if (!supabase) throw new Error('Supabase is not configured.');
             const { data: result, error } = isSignup
-                ? await supabase.auth.signUp({ email, password, options: { data: { full_name: data.get('name').trim(), username: data.get('username').trim().toLowerCase() } } })
+                ? await withAvailableUsername(supabase, data.get('username').trim().toLowerCase(), () => supabase.auth.signUp({ email, password, options: { data: { full_name: data.get('name').trim(), username: data.get('username').trim().toLowerCase() } } }))
                 : await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             form.reset();
