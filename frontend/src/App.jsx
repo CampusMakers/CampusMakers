@@ -36,6 +36,20 @@ const currentPage = () => {
               "Home";
 };
 
+const currentMessageRecipient = () => {
+    const match = window.location.hash.match(
+        /^#profile\/messages\/([^/?#]+)/i
+    );
+
+    if (!match) return null;
+
+    try {
+        return decodeURIComponent(match[1]);
+    } catch {
+        return null;
+    }
+};
+
 function Icon({ name }) {
     const shapes = {
         Home: <path d="M4 12 16 2l12 10v18H4Z" />,
@@ -89,6 +103,10 @@ function App() {
             createExploreFeed
         );
     const lastPage = useRef(currentPage());
+
+    const [messageRecipient, setMessageRecipient] = useState(
+        currentMessageRecipient
+    );
     useEffect(() => {
         const onNavigation = () => {
             const nextPage = currentPage();
@@ -102,6 +120,7 @@ function App() {
             setSelectedPostId(currentExplorePostId());
             setPostSource(currentPostSource());
             setSelectedSeller(currentSellerUsername());
+            setMessageRecipient(currentMessageRecipient());
         };
         window.addEventListener("hashchange", onNavigation);
         return () =>
@@ -122,7 +141,8 @@ function App() {
             window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
         },
         openSeller = (creator) => {
-            const source = page === "Home" ? "home" : postSource;
+            const source =
+                page === "Home" ? "home" : postSource;
             window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
         },
         selectedPost = explorePosts.find(
@@ -187,15 +207,37 @@ function App() {
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
                         seller={selectedSeller}
-                        backLabel={postSource === "home" ? "Back to Home" : "Back to Explore"}
+                        backLabel={
+                            postSource === "home"
+                                ? "Back to Home"
+                                : "Back to Explore"
+                        }
                         onBack={() => {
                             window.location.hash = postSource;
+                        }}
+                        onMessageSeller={() => {
+                            const username =
+                                selectedSeller.replace(
+                                    /^@/,
+                                    ""
+                                );
+                            const source =
+                                postSource === "home"
+                                    ? "home"
+                                    : "explore";
+
+                            window.location.hash = `profile/messages/${encodeURIComponent(username)}?from=seller&source=${source}`;
                         }}
                     />
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && <CalendarPage />}
-                {page === "Profile" && <Profile />}
+                {page === "Profile" && (
+                    <Profile
+                        key={messageRecipient ?? "profile"}
+                        initialConversation={messageRecipient}
+                    />
+                )}
                 {page === "Login" && <Login />}
             </main>
             <nav
