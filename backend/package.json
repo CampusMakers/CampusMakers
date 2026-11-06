@@ -17,5 +17,11 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.10.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.922.0"
+  },
+  "overrides": {
+    "fast-xml-parser": "^5.7.0"
+  }
 }

@@ -15,7 +15,7 @@ export default function AuthProvider({ children }) {
                 setAuth({ user: null, loading: false, error: '' });
                 return;
             }
-            setAuth({ user: null, loading: true, error: '' });
+            setAuth(previous => ({ ...previous, loading: !previous.user, error: '' }));
             // Run outside the Auth callback to avoid holding the SDK's session lock.
             setTimeout(async () => {
                 try {

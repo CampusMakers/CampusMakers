@@ -12,6 +12,8 @@ export default function Login() {
     const [role, setRole] = useState("buyer");
     const [mode, setMode] = useState("login");
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [step, setStep] = useState(1);
     const [errors, setErrors] = useState({});
     const [complete, setComplete] = useState(false);
     const formRef = useRef(null);
@@ -25,6 +27,8 @@ export default function Login() {
 
     const changeMode = (nextMode) => {
         setMode(nextMode);
+        setStep(1);
+        setShowConfirmPassword(false);
         setShowPassword(false);
         formRef.current?.reset();
         resetFeedback();
@@ -56,6 +60,9 @@ export default function Login() {
             nextErrors.confirmPassword = "Your passwords do not match.";
         }
 
+        if (isSignup && step === 2 && !/^[a-z0-9._]{3,30}$/.test(data.get("username").trim().toLowerCase())) {
+            nextErrors.username = "Use 3–30 letters, numbers, periods, or underscores.";
+        }
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length) {
             setComplete(false);
@@ -63,15 +70,22 @@ export default function Login() {
             return;
         }
 
+        if (isSignup && step === 1) {
+            setShowPassword(false);
+            setShowConfirmPassword(false);
+            setStep(2);
+            return;
+        }
         setBusy(true);
         try {
             if (!supabase) throw new Error('Supabase is not configured.');
             const { data: result, error } = isSignup
-                ? await supabase.auth.signUp({ email, password, options: { data: { full_name: data.get('name').trim() } } })
+                ? await supabase.auth.signUp({ email, password, options: { data: { full_name: data.get('name').trim(), username: data.get('username').trim().toLowerCase() } } })
                 : await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             form.reset();
             setShowPassword(false);
+            setShowConfirmPassword(false);
             setComplete(isSignup && !result.session);
         } catch (error) {
             setErrors({ form: error.message });
@@ -152,6 +166,7 @@ export default function Login() {
                     </div>
                 ) : (
                     <form ref={formRef} className="login-form" onSubmit={handleSubmit} noValidate onChange={resetFeedback}>
+                        <div hidden={isSignup && step === 2}>
                         {isSignup && (
                             <div className="login-field">
                                 <label htmlFor="login-name">Full name</label>
@@ -176,12 +191,23 @@ export default function Login() {
                         {isSignup && (
                             <div className="login-field">
                                 <label htmlFor="login-confirm-password">Confirm password</label>
-                                <input id="login-confirm-password" name="confirmPassword" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Re-enter your password" required {...fieldFeedback("confirmPassword")} />
+                                <div className="login-password-input">
+                                <input id="login-confirm-password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder="Re-enter your password" required {...fieldFeedback("confirmPassword")} />
+                                <button type="button" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? "Hide" : "Show"}</button>
+                                </div>
                                 {errors.confirmPassword && <p className="login-error" id="confirmPassword-error">{errors.confirmPassword}</p>}
                             </div>
                         )}
+                        </div>
+                        {isSignup && step === 2 && <div className="login-field">
+                            <p className="login-hint">Step 2 of 2 — Choose your username</p>
+                            <label htmlFor="login-username">Username</label>
+                            <input id="login-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={30} placeholder="Your username" autoFocus {...fieldFeedback("username")} />
+                            {errors.username && <p className="login-error" id="username-error">{errors.username}</p>}
+                            <button type="button" className="login-text-button" disabled={busy} onClick={() => { setStep(1); resetFeedback(); }}>← Back</button>
+                        </div>}
                         <button className="login-submit" type="submit" disabled={busy}>
-                            {busy ? "Please wait…" : isSignup ? "Create" : "Log in to"} {isSeller ? "seller" : "buyer"} account <span aria-hidden="true">→</span>
+                            {busy ? "Please wait…" : isSignup && step === 1 ? "Continue" : `${isSignup ? "Create" : "Log in to"} ${isSeller ? "seller" : "buyer"} account`} <span aria-hidden="true">→</span>
                         </button>
                         <p className="login-demo-note">Secure authentication with Supabase. Verify your email before signing in.</p>
                     </form>
