@@ -1075,3 +1075,22 @@
 .edit-profile-avatar {
     border: none;
 }
+
+/* R03 - ADD LISTING */
+
+.profile-add-listing-button {
+    display: block;
+    margin: 14px 0 18px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #a36500;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profile-add-listing-button:hover {
+    background: #80501a;
+}

@@ -11,6 +11,7 @@ import Settings from "./Settings";
 import EditProfile from "./EditProfile";
 import Messages from "./Messages";
 import Conversation from "./Conversation";
+import SellerListingForm from "./SellerListingForm";
 
 import {
     sellerListings,
@@ -39,6 +40,81 @@ function Profile({
     const [mode, setMode] = useState("buyer");
     const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
+
+    // R03: Seller listings managed by the frontend.
+    // The backend team can replace the initial mock data
+    // with listings from the API later.
+    const [myListings, setMyListings] = useState(() =>
+        sellerListings.map((listing) => ({
+            ...listing,
+            images: [...(listing.images || [])]
+        }))
+    );
+    // R03: Dedicated create/edit screen for the seller's listings.
+    const [showListingForm, setShowListingForm] =
+        useState(false);
+    const [editingListing, setEditingListing] = useState(null);
+
+    const openCreateListing = () => {
+        setEditingListing(null);
+        setNotice("");
+        setShowListingForm(true);
+    };
+
+    const openEditListing = (listing) => {
+        setEditingListing(listing);
+        setNotice("");
+        setShowListingForm(true);
+    };
+
+    const closeListingForm = () => {
+        setShowListingForm(false);
+        setEditingListing(null);
+    };
+
+    const saveListing = (listingData) => {
+        if (editingListing) {
+            setMyListings((current) =>
+                current.map((item) =>
+                    item.id === editingListing.id
+                        ? {
+                              ...item,
+                              ...listingData,
+                              id: item.id
+                          }
+                        : item
+                )
+            );
+            setNotice("Listing updated for this preview.");
+        } else {
+            setMyListings((current) => [
+                { ...listingData, id: crypto.randomUUID() },
+                ...current
+            ]);
+            setNotice(
+                listingData.status === "Draft"
+                    ? "Draft saved for this preview."
+                    : "Listing created for this preview."
+            );
+        }
+
+        closeListingForm();
+    };
+
+    const deleteListing = (listing) => {
+        if (
+            !window.confirm(
+                `Delete "${listing.name}"? This cannot be undone in this preview.`
+            )
+        ) {
+            return;
+        }
+
+        setMyListings((current) =>
+            current.filter((item) => item.id !== listing.id)
+        );
+        setNotice("Listing deleted from this preview.");
+    };
 
     const [showEditProfile, setShowEditProfile] =
         useState(false);
@@ -282,6 +358,20 @@ function Profile({
         );
     }
 
+    // R03: Create and edit listings on a separate screen.
+    if (showListingForm) {
+        return (
+            <div className="profile-page">
+                <SellerListingForm
+                    key={editingListing?.id ?? "create-listing"}
+                    initialListing={editingListing}
+                    onSave={saveListing}
+                    onCancel={closeListingForm}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="profile-page">
             {/* BUYER / SELLER MODE SWITCH */}
@@ -467,15 +557,22 @@ function Profile({
                 activeTab === "Listings" && (
                     <section className="profile-listings">
                         <div className="profile-panel-heading">
-                            <h3>Your Active Listings</h3>
+                            <h3>Your Listings</h3>
 
                             <span className="profile-count">
-                                {sellerListings.length} items
+                                {myListings.length} items
                             </span>
                         </div>
 
+                        <button
+                            type="button"
+                            className="profile-add-listing-button"
+                            onClick={openCreateListing}>
+                            + Add Listing
+                        </button>
+
                         <div className="profile-listings-grid">
-                            {sellerListings.map((listing) => (
+                            {myListings.map((listing) => (
                                 <article
                                     className="profile-listing-card"
                                     key={listing.id}>
@@ -498,9 +595,40 @@ function Profile({
                                     <span>
                                         {listing.status}
                                     </span>
+
+                                    {/* Seller management actions: no Save icon on owned listings. */}
+                                    <div className="profile-listing-management">
+                                        <button
+                                            type="button"
+                                            className="profile-listing-edit"
+                                            onClick={() =>
+                                                openEditListing(
+                                                    listing
+                                                )
+                                            }>
+                                            Edit
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="profile-listing-delete"
+                                            onClick={() =>
+                                                deleteListing(
+                                                    listing
+                                                )
+                                            }>
+                                            Delete
+                                        </button>
+                                    </div>
                                 </article>
                             ))}
                         </div>
+
+                        {myListings.length === 0 && (
+                            <p className="profile-listings-empty">
+                                No listings yet. Click + Add
+                                Listing to get started.
+                            </p>
+                        )}
                     </section>
                 )}
 

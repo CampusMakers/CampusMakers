@@ -1,0 +1,368 @@
+.seller-listing-page {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 20px 0 40px;
+    box-sizing: border-box;
+    color: #3d2c1e;
+}
+
+.seller-listing-page-header {
+    margin-bottom: 25px;
+}
+.seller-listing-back {
+    padding: 8px 0;
+    margin-bottom: 20px;
+    border: 0;
+    background: transparent;
+    color: #704b18;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.seller-listing-back:hover {
+    text-decoration: underline;
+}
+.seller-listing-title > span {
+    color: #a36500;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+.seller-listing-title h2 {
+    margin: 8px 0;
+    color: #3d2c1e;
+    font-size: 30px;
+    font-weight: 800;
+}
+.seller-listing-title p {
+    margin: 0;
+    color: #85745e;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seller-listing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin-bottom: 20px;
+    padding: 24px;
+    border: 1px solid #e5d4b8;
+    border-radius: 15px;
+    background: #fff8eb;
+}
+.seller-listing-section h3 {
+    margin: 0 0 3px;
+    color: #3d2c1e;
+    font-size: 18px;
+    font-weight: 800;
+}
+.seller-listing-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.seller-listing-section-header span {
+    color: #a36500;
+    font-size: 12px;
+    font-weight: 700;
+}
+.seller-listing-section label {
+    color: #3d2c1e;
+    font-size: 12px;
+    font-weight: 700;
+}
+.seller-listing-helper {
+    margin: 0;
+    color: #85745e;
+    font-size: 11px;
+    line-height: 1.6;
+}
+.seller-listing-section input:not([type="file"]),
+.seller-listing-section textarea,
+.seller-listing-section select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    border: 1px solid #d9c6a8;
+    border-radius: 9px;
+    background: #fffdf7;
+    color: #3d2c1e;
+    font: inherit;
+    font-size: 13px;
+}
+.seller-listing-section textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+.seller-listing-section input:focus-visible,
+.seller-listing-section textarea:focus-visible,
+.seller-listing-section select:focus-visible,
+.seller-listing-page button:focus-visible,
+.profile-listing-management button:focus-visible {
+    outline: 2px solid #a36500;
+    outline-offset: 3px;
+}
+.seller-listing-character-count {
+    text-align: right;
+    color: #85745e;
+    font-size: 10px;
+}
+
+/* Photos: square previews, change cover, remove individual photo. */
+.seller-listing-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.seller-listing-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+.seller-listing-photo-card,
+.seller-listing-add-photo,
+.seller-listing-empty-photo {
+    position: relative;
+    aspect-ratio: 1;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-radius: 10px;
+}
+.seller-listing-photo-card {
+    border: 1px solid #d9c6a8;
+    background: #ead6ad;
+}
+.seller-listing-photo-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.seller-listing-add-photo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 10px;
+    border: 2px dashed #ba9f79;
+    background: #f4e7d0;
+    color: #704b18;
+    cursor: pointer;
+}
+.seller-listing-add-photo:hover {
+    background: #ead6ad;
+}
+.seller-listing-add-photo > span:last-child {
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+.seller-listing-camera {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    font-size: 23px;
+    font-weight: 600;
+}
+.seller-listing-empty-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #e0d2bd;
+    background: #fffdf7;
+    color: #b0a08d;
+    font-size: 11px;
+}
+.seller-listing-cover-label {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: #a36500;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+}
+.seller-listing-photo-actions {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    padding: 6px;
+    background: rgba(39, 28, 18, 0.78);
+}
+.seller-listing-photo-actions button {
+    padding: 5px 7px;
+    border: none;
+    border-radius: 5px;
+    background: #fff8eb;
+    color: #704b18;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.seller-listing-photo-actions button:last-child {
+    margin-left: auto;
+    padding: 3px 7px;
+    font-size: 15px;
+}
+
+.seller-listing-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+.seller-listing-field-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 0;
+}
+.seller-listing-price-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid #d9c6a8;
+    border-radius: 9px;
+    background: #fffdf7;
+}
+.seller-listing-price-input span {
+    padding-left: 15px;
+    color: #704b18;
+    font-size: 18px;
+    font-weight: 700;
+}
+.seller-listing-price-input input {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+}
+.seller-listing-error {
+    margin-bottom: 15px;
+    padding: 14px;
+    border: 1px solid #e9b8ac;
+    border-radius: 10px;
+    background: #fff1ee;
+    color: #a63c30;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.seller-listing-bottom-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 24px;
+}
+.seller-listing-bottom-actions button {
+    flex: 1;
+    padding: 15px 18px;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.seller-listing-draft-button {
+    border: 1px solid #a36500;
+    background: #fff8eb;
+    color: #704b18;
+}
+.seller-listing-draft-button:hover {
+    background: #ead6ad;
+}
+.seller-listing-publish-button {
+    border: 1px solid #a36500;
+    background: #a36500;
+    color: white;
+}
+.seller-listing-publish-button:hover {
+    background: #80501a;
+}
+.seller-listing-bottom-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.seller-listing-demo-note {
+    margin: 16px 0 0;
+    text-align: center;
+    color: #85745e;
+    font-size: 11px;
+}
+
+/* R03: Own listings get management buttons, not buyer Save buttons. */
+.profile-listing-management {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #e5d4b8;
+}
+.profile-listing-management button {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #b99c75;
+    border-radius: 9px;
+    background: #fff8eb;
+    color: #704b18;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.profile-listing-management .profile-listing-edit {
+    background: #a36500;
+    border-color: #a36500;
+    color: #fff;
+}
+.profile-listing-management .profile-listing-edit:hover {
+    background: #80501a;
+}
+.profile-listing-management .profile-listing-delete:hover {
+    background: #f1e0d6;
+}
+.profile-listings-empty {
+    padding: 20px;
+    color: #85745e;
+    text-align: center;
+    font-size: 13px;
+}
+
+@media (max-width: 480px) {
+    .seller-listing-page {
+        padding: 12px 0 30px;
+    }
+    .seller-listing-section {
+        padding: 16px;
+    }
+    .seller-listing-photo-grid {
+        gap: 7px;
+    }
+    .seller-listing-field-grid {
+        grid-template-columns: 1fr;
+    }
+    .seller-listing-title h2 {
+        font-size: 25px;
+    }
+    .seller-listing-bottom-actions {
+        gap: 9px;
+    }
+    .seller-listing-bottom-actions button {
+        padding: 13px 9px;
+        font-size: 12px;
+    }
+}
