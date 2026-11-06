@@ -1,7 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./Login.css";
+import { supabase } from '../services/supabase';
+import { useAuth } from '../auth/useAuth';
 
 export default function Login() {
+    const { user, error: authError } = useAuth();
+    const [busy, setBusy] = useState(false);
+    useEffect(() => {
+        if (user) window.location.hash = 'profile';
+    }, [user]);
     const [role, setRole] = useState("buyer");
     const [mode, setMode] = useState("login");
     const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +30,8 @@ export default function Login() {
         resetFeedback();
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
+        if (busy) { event.preventDefault(); return; }
         event.preventDefault();
         const form = event.currentTarget;
         const data = new FormData(form);
@@ -55,12 +63,21 @@ export default function Login() {
             return;
         }
 
-        // Frontend preview only. Never persist or log passwords.
-        // A future auth service must enforce the role/email rule
-        // server-side and verify email ownership before granting access.
-        form.reset();
-        setShowPassword(false);
-        setComplete(true);
+        setBusy(true);
+        try {
+            if (!supabase) throw new Error('Supabase is not configured.');
+            const { data: result, error } = isSignup
+                ? await supabase.auth.signUp({ email, password, options: { data: { full_name: data.get('name').trim() } } })
+                : await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            form.reset();
+            setShowPassword(false);
+            setComplete(isSignup && !result.session);
+        } catch (error) {
+            setErrors({ form: error.message });
+        } finally {
+            setBusy(false);
+        }
     };
 
     const fieldFeedback = (name, hint) => ({
@@ -72,7 +89,7 @@ export default function Login() {
 
     return (
         <section className="login-page" aria-labelledby="login-heading">
-            <fieldset className="login-role-picker">
+            <fieldset className="login-role-picker" disabled={busy}>
                 <legend>I’m here as a</legend>
                 <div className="login-role-options">
                     {["buyer", "seller"].map((option) => (
@@ -98,10 +115,10 @@ export default function Login() {
 
             <div className="login-card">
                 <div className="login-mode-switch" role="group" aria-label="Account action">
-                    <button type="button" aria-pressed={!isSignup} onClick={() => changeMode("login")}>
+                    <button type="button" disabled={busy} aria-pressed={!isSignup} onClick={() => changeMode("login")}>
                         Log in
                     </button>
-                    <button type="button" aria-pressed={isSignup} onClick={() => changeMode("signup")}>
+                    <button type="button" disabled={busy} aria-pressed={isSignup} onClick={() => changeMode("signup")}>
                         Create account
                     </button>
                 </div>
@@ -120,13 +137,13 @@ export default function Login() {
                         : "Everyone is welcome. Use any valid email address."}
                 </p>
 
+                {(errors.form || authError) && <p className="login-error" role="alert">{errors.form || authError}</p>}
                 {complete ? (
                     <div className="login-success" role="status">
                         <span className="login-success-mark" aria-hidden="true">✓</span>
-                        <h3>{isSignup ? "Your signup form looks good!" : "Your login form looks good!"}</h3>
+                        <h3>Check your email</h3>
                         <p>
-                            {isSeller ? "Your email meets the .edu requirement. " : "Your buyer details passed validation. "}
-                            This is a preview; no account has been created or signed in.
+                            If signup is available for this address, Supabase will send a confirmation link. Confirm your email, then return here to log in.
                         </p>
                         <a className="login-submit" href="#explore">Explore Campus Makers →</a>
                         <button type="button" className="login-text-button" onClick={resetFeedback}>
@@ -163,10 +180,10 @@ export default function Login() {
                                 {errors.confirmPassword && <p className="login-error" id="confirmPassword-error">{errors.confirmPassword}</p>}
                             </div>
                         )}
-                        <button className="login-submit" type="submit">
-                            {isSignup ? "Create" : "Log in to"} {isSeller ? "seller" : "buyer"} account <span aria-hidden="true">→</span>
+                        <button className="login-submit" type="submit" disabled={busy}>
+                            {busy ? "Please wait…" : isSignup ? "Create" : "Log in to"} {isSeller ? "seller" : "buyer"} account <span aria-hidden="true">→</span>
                         </button>
-                        <p className="login-demo-note">Demo preview. Accounts and email verification aren’t connected yet. Use sample details.</p>
+                        <p className="login-demo-note">Secure authentication with Supabase. Verify your email before signing in.</p>
                     </form>
                 )}
             </div>

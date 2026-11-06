@@ -5,39 +5,7 @@
  * All messaging endpoints require authentication.
  */
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(
-    /\/$/,
-    ""
-);
-
-// Shared helper for backend requests.
-async function apiRequest(path, options = {}) {
-    const response = await fetch(`${API_ORIGIN}/api${path}`, {
-        credentials: "include",
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...options.headers
-        }
-    });
-
-    // Some endpoints return 204 with no response body.
-    if (response.status === 204) {
-        return null;
-    }
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok) {
-        throw new Error(
-            result?.error?.message ||
-                result?.message ||
-                `Request failed (${response.status})`
-        );
-    }
-
-    return result;
-}
+import { apiRequest } from './api';
 
 // Get all conversations for the signed-in user.
 export async function getConversations() {
