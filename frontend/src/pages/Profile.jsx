@@ -9,6 +9,8 @@ import BuyerSaved from "./BuyerSaved";
 import BecomeSeller from "./BecomeSeller";
 import Settings from "./Settings";
 import EditProfile from "./EditProfile";
+import Messages from "./Messages";
+import Conversation from "./Conversation";
 
 import {
     sellerListings,
@@ -30,7 +32,10 @@ const DEFAULT_PROFILE = {
     image: ""
 };
 
-function Profile({ sellerVerified = false }) {
+function Profile({
+    sellerVerified = false,
+    initialConversation = null
+}) {
     const [mode, setMode] = useState("buyer");
     const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
@@ -71,6 +76,13 @@ function Profile({ sellerVerified = false }) {
     // Settings page
     const [showSettings, setShowSettings] = useState(false);
 
+    // Messaging navigation
+    const [showMessages, setShowMessages] = useState(
+        Boolean(initialConversation)
+    );
+
+    const [selectedConversation, setSelectedConversation] =
+        useState(initialConversation);
     // Seller registration page
     const [showSellerSignup, setShowSellerSignup] =
         useState(false);
@@ -178,6 +190,61 @@ function Profile({ sellerVerified = false }) {
         );
     };
 
+    // Display an individual conversation.
+
+    if (selectedConversation) {
+        const params = new URLSearchParams(
+            window.location.hash.split("?")[1] || ""
+        );
+
+        const fromPickups = params.get("from") === "pickups";
+        const fromSeller = params.get("from") === "seller";
+        const sellerSource =
+            params.get("source") === "home"
+                ? "home"
+                : "explore";
+
+        return (
+            <Conversation
+                username={selectedConversation}
+                onBack={() => {
+                    if (fromPickups) {
+                        // Return to Buyer Pickups.
+                        window.location.hash = "profile";
+                    } else if (fromSeller) {
+                        // Return to the seller profile.
+                        const username =
+                            selectedConversation.replace(
+                                /^@/,
+                                ""
+                            );
+
+                        window.location.hash =
+                            `seller/${encodeURIComponent(username)}` +
+                            (sellerSource === "home"
+                                ? "?from=home"
+                                : "");
+                    } else {
+                        // Return to the Messages Inbox.
+                        setSelectedConversation(null);
+                    }
+                }}
+            />
+        );
+    }
+
+    // Display the Messages Inbox.
+    if (showMessages) {
+        return (
+            <Messages
+                onBack={() => setShowMessages(false)}
+                onOpenConversation={(username) =>
+                    setSelectedConversation(username)
+                }
+            />
+        );
+    }
+
     // Display the Edit Profile page.
     if (showEditProfile) {
         return (
@@ -196,7 +263,7 @@ function Profile({ sellerVerified = false }) {
         return (
             <div className="profile-page">
                 <Settings
-                    profile ={profile}
+                    profile={profile}
                     onBack={() => setShowSettings(false)}
                 />
             </div>
@@ -251,9 +318,11 @@ function Profile({ sellerVerified = false }) {
                         className="profile-icon-button"
                         aria-label="Messages"
                         title="Messages"
-                        onClick={() =>
-                            showDemoNotice("Messages")
-                        }>
+                        onClick={() => {
+                            setNotice("");
+                            setSelectedConversation(null);
+                            setShowMessages(true);
+                        }}>
                         ✉
                     </button>
 
@@ -312,7 +381,6 @@ function Profile({ sellerVerified = false }) {
                     </div>
                 </div>
             </div>
-
 
             {/* NAME, USERNAME AND BIO */}
             <div className="profile-bio">
