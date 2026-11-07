@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Settings.css";
 
-function Settings({ onBack }) {
+function Settings({ onBack, profile }) {
     const [activeSection, setActiveSection] =
         useState("account");
 
@@ -118,12 +118,19 @@ function Settings({ onBack }) {
 
                             <div className="settings-info-row">
                                 <span>Display Name</span>
-                                <strong>Your Name</strong>
+                                <strong>
+                                    {profile?.name ||
+                                        "Your Name"}
+                                </strong>{" "}
                             </div>
 
                             <div className="settings-info-row">
                                 <span>Username</span>
-                                <strong>@username</strong>
+                                <strong>
+                                    @
+                                    {profile?.username ||
+                                        "username"}
+                                </strong>{" "}
                             </div>
 
                             <div className="settings-info-row">
