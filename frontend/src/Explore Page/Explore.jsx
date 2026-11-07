@@ -47,8 +47,8 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                         <span
                             className={`explore-visual ${post.tone}`}
                             role="img"
-                            aria-label={`${post.type} placeholder`}>
-                            {post.type === "video" ? (
+                            aria-label={post.image ? post.caption : `${post.type} placeholder`}>
+                            {post.image ? <img className="seller-post-photo" src={post.image} alt={post.caption} /> : post.type === "video" ? (
                                 <span
                                     className="explore-play"
                                     aria-label="Play video">
@@ -161,7 +161,7 @@ export function PostDetail({
     onOpenSeller
 }) {
     const [liked, setLiked] = useState(false),
-        [likeCount, setLikeCount] = useState(18 + post.id * 3),
+        [likeCount, setLikeCount] = useState(post.seller_id ? 0 : 18 + post.id * 3),
         [comments, setComments] = useState([
             {
                 id: 1,
@@ -233,7 +233,7 @@ export function PostDetail({
                     <div
                         className={`explore-visual ${post.tone}`}
                         role="img">
-                        {post.type === "video" ? (
+                        {post.image ? <img className="seller-post-photo" src={post.image} alt={post.caption} /> : post.type === "video" ? (
                             <span
                                 className="explore-play"
                                 aria-label="Play video">

@@ -1,7 +1,17 @@
 import { useState } from "react";
 import "./Settings.css";
+import { supabase } from "../services/supabase";
 
-function Settings({ onBack, profile }) {
+function Settings({ onBack, profile, email }) {
+    const [logoutError, setLogoutError] = useState('');
+    const [busy, setBusy] = useState(false);
+    const logout = async () => {
+        setBusy(true);
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        if (error) setLogoutError(error.message);
+        else window.location.hash = 'login';
+        setBusy(false);
+    };
     const [activeSection, setActiveSection] =
         useState("account");
 
@@ -134,10 +144,7 @@ function Settings({ onBack, profile }) {
                             </div>
 
                             <div className="settings-info-row">
-                                <span>School Email</span>
-                                <strong>
-                                    Not connected yet
-                                </strong>
+                                <span>Email</span><strong>{email}</strong>
                             </div>
 
                             <div className="settings-info-row">
@@ -148,8 +155,7 @@ function Settings({ onBack, profile }) {
                             </div>
 
                             <p className="settings-note">
-                                Account information will be
-                                connected to the backend later.
+                                Your email is verified by Supabase. Profile edits are currently saved in this browser.
                             </p>
                         </>
                     )}
@@ -204,11 +210,8 @@ function Settings({ onBack, profile }) {
                                 account.
                             </p>
 
-                            <p className="settings-note">
-                                Demo only: authentication has
-                                not been connected yet, so
-                                logout is currently unavailable.
-                            </p>
+                            <button type="button" onClick={logout} disabled={busy}>{busy ? 'Signing out…' : 'Log out'}</button>
+                            {logoutError && <p role="alert">{logoutError}</p>}
                         </>
                     )}
 

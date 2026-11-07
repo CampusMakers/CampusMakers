@@ -138,12 +138,10 @@ export const explorePosts = [
 export const postTags = (post) => post.tags || [post.tag];
 export const createExploreFeed = () =>
     [...explorePosts].sort(() => Math.random() - 0.5);
-export const currentExplorePostId = () =>
-    Number(
-        window.location.hash
-            .split("?")[0]
-            .match(/^#explore\/(\d+)$/i)?.[1]
-    ) || null;
+export const currentExplorePostId = () => {
+    const id = window.location.hash.split("?")[0].match(/^#explore\/((?:post-)?\d+)$/i)?.[1];
+    return id?.startsWith("post-") ? id : Number(id) || null;
+};
 export const currentSellerUsername = () => {
     const creator = window.location.hash.split("?")[0].match(
         /^#seller\/([^/]+)$/i

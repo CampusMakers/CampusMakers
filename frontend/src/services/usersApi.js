@@ -16,36 +16,12 @@
  * }
  */
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(
-    /\/$/,
-    ""
-);
+import { apiRequest } from './api';
 
 export async function searchUsers(query, signal) {
-    const search = query.trim().replace(/^@/, "");
-
-    if (!search) {
-        return [];
-    }
-
-    const params = new URLSearchParams({
-        search,
-        limit: "8"
-    });
-
-    const response = await fetch(
-        `${API_ORIGIN}/api/users?${params}`,
-        {
-            credentials: "include",
-            signal
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error("User search is not available yet.");
-    }
-
-    const result = await response.json();
-
+    const search = query.trim().replace(/^@/, '');
+    if (!search) return [];
+    const params = new URLSearchParams({ search, limit: '8' });
+    const result = await apiRequest(`/users?${params}`, { signal });
     return Array.isArray(result.data) ? result.data : [];
 }
