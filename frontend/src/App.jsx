@@ -5,9 +5,11 @@ import {
     useState
 } from "react";
 import "./App.css";
+import { supabase } from "./services/supabase";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import { useAuth } from "./auth/useAuth";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import {
@@ -22,6 +24,8 @@ import {
     currentSellerUsername,
     explorePosts
 } from "./Explore Page/exploreData";
+
+const asExplorePost = post => ({ ...post, id: `post-${post.id}`, type: post.image ? "image" : "text", tags: ["Campus makers"], layout: "standard", tone: "peach" });
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 const currentPage = () => {
@@ -89,6 +93,7 @@ function Icon({ name }) {
 }
 
 function App() {
+    const { user, loading } = useAuth();
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
@@ -102,6 +107,19 @@ function App() {
         [exploreFeed, setExploreFeed] = useState(
             createExploreFeed
         );
+    const [publishedPosts, setPublishedPosts] = useState([]);
+    const [postsError, setPostsError] = useState("");
+    useEffect(() => {
+        if (!supabase) return;
+        let active = true;
+        supabase.from("maker_posts").select("*").order("created_at", { ascending: false }).then(({ data, error }) => {
+            if (!active) return;
+            if (error) setPostsError("Posts could not be loaded. Please try again later.");
+            else { setPublishedPosts(data.map(asExplorePost)); setPostsError(""); }
+        });
+        return () => { active = false; };
+    }, []);
+    const allPosts = [...publishedPosts, ...explorePosts];
     const lastPage = useRef(currentPage());
 
     const [messageRecipient, setMessageRecipient] = useState(
@@ -145,7 +163,7 @@ function App() {
                 page === "Home" ? "home" : postSource;
             window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
         },
-        selectedPost = explorePosts.find(
+        selectedPost = allPosts.find(
             (post) => post.id === selectedPostId
         );
     return (
@@ -171,7 +189,7 @@ function App() {
                 }>
                 {page === "Home" && (
                     <Home
-                        posts={explorePosts}
+                        posts={allPosts}
                         onOpenPost={(id) =>
                             openPost(id, "home")
                         }
@@ -199,7 +217,7 @@ function App() {
                         />
                     ) : (
                         <ExplorePage
-                            posts={exploreFeed}
+                            posts={[...publishedPosts, ...exploreFeed]}
                             onOpenPost={openPost}
                             onOpenSeller={openSeller}
                         />
@@ -232,13 +250,23 @@ function App() {
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && <CalendarPage />}
-                {page === "Profile" && (
+                {page === "Profile" && !loading && (
                     <Profile
-                        key={messageRecipient ?? "profile"}
-                        initialConversation={messageRecipient}
+                        key={`${user?.id ?? "guest"}:${messageRecipient ?? "profile"}`}
+                        user={user}
+                        posts={publishedPosts}
+                        postsError={postsError}
+                        onPublished={post => {
+                            setPublishedPosts(current => [asExplorePost(post), ...current]);
+                            setPostsError("");
+                        }}
+                        sellerVerified={user?.sellerVerified}
+                        initialConversation={user ? messageRecipient : null}
                     />
                 )}
-                {page === "Login" && <Login />}
+                {page === "Profile" && loading && <p role="status">Checking your session…</p>}
+                {page === "Login" &&
+                    (loading ? <p role="status">Checking your session…</p> : <Login />)}
             </main>
             <nav
                 className="bottom-nav"
