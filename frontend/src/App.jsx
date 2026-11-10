@@ -16,16 +16,24 @@ import {
     ExplorePage,
     PostDetail,
     SellerProfilePage
-} from "./Explore Page/Explore";
+} from "./pages/Explore Page/Explore";
 import {
     createExploreFeed,
+    currentProfileFeedUsername,
     currentExplorePostId,
     currentPostSource,
     currentSellerUsername,
     explorePosts
-} from "./Explore Page/exploreData";
+} from "./pages/Explore Page/exploreData";
 
-const asExplorePost = post => ({ ...post, id: `post-${post.id}`, type: post.image ? "image" : "text", tags: ["Campus makers"], layout: "standard", tone: "peach" });
+const asExplorePost = post => ({
+    ...post,
+    id: `post-${post.id}`,
+    type: post.post_type || (post.image ? "image" : "text"),
+    tags: ["Campus makers"],
+    layout: "standard",
+    tone: "peach"
+});
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 const currentPage = () => {
@@ -98,8 +106,14 @@ function App() {
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
         ),
+        [eventDetailsOpen, setEventDetailsOpen] = useState(
+            () => /\/event-details(?:\?|$)/i.test(window.location.hash)
+        ),
         [postSource, setPostSource] = useState(
             currentPostSource
+        ),
+        [profileFeedUser, setProfileFeedUser] = useState(
+            currentProfileFeedUsername
         ),
         [selectedSeller, setSelectedSeller] = useState(
             currentSellerUsername
@@ -136,7 +150,9 @@ function App() {
             lastPage.current = nextPage;
             setPage(nextPage);
             setSelectedPostId(currentExplorePostId());
+            setEventDetailsOpen(/\/event-details(?:\?|$)/i.test(window.location.hash));
             setPostSource(currentPostSource());
+            setProfileFeedUser(currentProfileFeedUsername());
             setSelectedSeller(currentSellerUsername());
             setMessageRecipient(currentMessageRecipient());
         };
@@ -153,7 +169,7 @@ function App() {
             left: 0,
             behavior: "instant"
         });
-    }, [page, selectedPostId, selectedSeller]);
+    }, [page, selectedPostId, selectedSeller, eventDetailsOpen]);
 
     const openPost = (id, source = "explore") => {
             window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
@@ -166,6 +182,14 @@ function App() {
         selectedPost = allPosts.find(
             (post) => post.id === selectedPostId
         );
+    const profileFeedPosts = profileFeedUser
+        ? [...publishedPosts, ...exploreFeed].filter(
+              (post) =>
+                  (post.creator === profileFeedUser ||
+                  post.collaborators?.includes(profileFeedUser)) &&
+                  post.type !== "listing"
+          )
+        : null;
     return (
         <div className="app-shell">
             <header className="brand">
@@ -201,19 +225,38 @@ function App() {
                         <PostDetail
                             key={selectedPost.id}
                             post={selectedPost}
+                            eventDetailsOpen={eventDetailsOpen && selectedPost.is_event}
+                            onOpenEventDetails={(id) => {
+                                const query = window.location.hash.split("?")[1];
+                                window.location.hash = `explore/${id}/event-details${query ? `?${query}` : ""}`;
+                            }}
+                            onBackToEventPost={() => {
+                                const query = window.location.hash.split("?")[1];
+                                window.location.hash = `explore/${selectedPost.id}${query ? `?${query}` : ""}`;
+                            }}
                             backLabel={
-                                postSource === "home"
+                                profileFeedUser
+                                    ? "Back to Profile"
+                                    : postSource === "home"
                                     ? "Back to Home"
                                     : "Back to Explore"
                             }
                             onBack={() => {
-                                window.location.hash =
-                                    postSource;
+                                window.location.hash = profileFeedUser
+                                    ? `seller/${encodeURIComponent(profileFeedUser.slice(1))}`
+                                    : postSource;
+                            }}
+                            profileFeed={profileFeedPosts}
+                            profileFeedUser={profileFeedUser}
+                            canReply={Boolean(user?.sellerVerified)}
+                            onMessageUser={(username) => {
+                                window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
                             }}
                             onOpenPost={(id) =>
                                 openPost(id, postSource)
                             }
                             onOpenSeller={openSeller}
+                            relatedPosts={allPosts}
                         />
                     ) : (
                         <ExplorePage
@@ -225,6 +268,13 @@ function App() {
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
                         seller={selectedSeller}
+                        posts={[...publishedPosts, ...exploreFeed]}
+                        canMessage={Boolean(user)}
+                        canFollow={Boolean(user)}
+                        onOpenPost={(id) => {
+                            window.location.hash = `explore/${id}?from=profile&profile=${encodeURIComponent(selectedSeller.slice(1))}`;
+                        }}
+                        onOpenSeller={openSeller}
                         backLabel={
                             postSource === "home"
                                 ? "Back to Home"

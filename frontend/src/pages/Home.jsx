@@ -1,7 +1,7 @@
 import { useAuth } from "../auth/useAuth";
 import { useState } from "react";
 import { sellerSavedItems } from "./mockProfileData";
-import { PostCard } from "../Explore Page/Explore";
+import { PostCard } from "./Explore Page/Explore";
 import "./Home.css";
 
 function ProductCard({ product }) {
