@@ -61,6 +61,11 @@
     background: #fff8eb;
     border: 1px solid #e8d0aa;
     border-radius: 12px;
+    cursor: pointer;
+}
+.home-product-card:focus-visible {
+    outline: 3px solid #8d7356;
+    outline-offset: 3px;
 }
 .home-product-card > img,
 .home-product-placeholder {

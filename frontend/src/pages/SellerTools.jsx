@@ -12,8 +12,10 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
     const [eventLocation, setEventLocation] = useState('');
     const [eventStartsAt, setEventStartsAt] = useState('');
     const [eventEndsAt, setEventEndsAt] = useState('');
+    const [eventStatusMode, setEventStatusMode] = useState('manual');
     const [eventSlots, setEventSlots] = useState('');
     const [eventListingIds, setEventListingIds] = useState([]);
+    const [eventListingAvailability, setEventListingAvailability] = useState({});
     const [eventPostIds, setEventPostIds] = useState([]);
     const [collaborator, setCollaborator] = useState('');
     const [collaborators, setCollaborators] = useState([]);
@@ -68,12 +70,28 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
             setError('An event needs a name, location, and start time.');
             return;
         }
+        if (postKind === 'event' && eventEndsAt && new Date(eventEndsAt) <= new Date(eventStartsAt)) {
+            setError('The event end time must be after its start time.');
+            return;
+        }
+        if (postKind === 'event' && eventStatusMode === 'automatic' && (!eventEndsAt || new Date(eventEndsAt) <= new Date())) {
+            setError('Automatic status requires an event end time in the future.');
+            return;
+        }
+        if (postKind === 'event' && eventListingIds.some(id => !eventListingAvailability[id])) {
+            setError('Choose availability for each linked listing.');
+            return;
+        }
         setBusy(true); setError('');
         try {
             if (!supabase) throw new Error('Please log in to publish a post.');
             const image = postType === 'image' && file ? await uploadPhoto(file) : postType === 'video' ? videoUrl.trim() : null;
             const selectedListings = listings.filter(item => eventListingIds.includes(String(item.id))).map(item => ({
-                id: String(item.id), name: item.name, price: Number(item.price) || 0, image: item.photos?.[0]?.src || item.image || null
+                id: String(item.id), name: item.name, price: Number(item.price) || 0,
+                image: item.images?.[0] || item.image || null,
+                quantity: item.quantity, maxPerOrder: item.maxPerOrder,
+                creator,
+                availability: eventListingAvailability[String(item.id)]
             }));
             const { data, error: failure } = await supabase.from('maker_posts').insert({
                 seller_id: user.id, creator, caption: caption.trim(), image,
@@ -84,6 +102,7 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
                 event_location: postKind === 'event' ? eventLocation.trim() : null,
                 event_starts_at: postKind === 'event' ? new Date(eventStartsAt).toISOString() : null,
                 event_ends_at: postKind === 'event' && eventEndsAt ? new Date(eventEndsAt).toISOString() : null,
+                event_status_mode: postKind === 'event' ? eventStatusMode : 'manual',
                 event_listings: postKind === 'event' ? selectedListings : [],
                 event_slots: postKind === 'event' ? eventSlots.split('\n').map(value => value.trim()).filter(Boolean) : [],
                 event_posts: postKind === 'event' ? eventPostIds : []
@@ -102,8 +121,24 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
                 <legend>Event details</legend>
                 <label>Event name<input required maxLength={120} value={eventTitle} onChange={e => setEventTitle(e.target.value)} placeholder="Spring Makers Market" /></label>
                 <label>Location<input required maxLength={200} value={eventLocation} onChange={e => setEventLocation(e.target.value)} placeholder="Campus Union courtyard" /></label>
-                <div className="event-time-fields"><label>Starts<input required type="datetime-local" value={eventStartsAt} onChange={e => setEventStartsAt(e.target.value)} /></label><label>Ends <span>(optional)</span><input type="datetime-local" value={eventEndsAt} onChange={e => setEventEndsAt(e.target.value)} /></label></div>
-                {listings.length > 0 && <div className="event-link-picker"><strong>Listings <span>(optional)</span></strong>{listings.map(item => <label key={item.id}><input type="checkbox" checked={eventListingIds.includes(String(item.id))} onChange={() => setEventListingIds(current => current.includes(String(item.id)) ? current.filter(id => id !== String(item.id)) : [...current, String(item.id)])} /> {item.name}</label>)}</div>}
+                <div className="event-time-fields"><label>Starts<input required type="datetime-local" value={eventStartsAt} onChange={e => setEventStartsAt(e.target.value)} /></label><label>Ends <span>({eventStatusMode === 'automatic' ? 'required for automatic status' : 'optional'})</span><input type="datetime-local" required={eventStatusMode === 'automatic'} value={eventEndsAt} onChange={e => setEventEndsAt(e.target.value)} /></label></div>
+                <label>Status updates<select value={eventStatusMode} onChange={e => setEventStatusMode(e.target.value)}><option value="manual">Manual</option><option value="automatic">Automatic using event times</option></select></label>
+                {eventStatusMode === 'automatic' && <p>At the end time, the event will be marked Event Ended and can no longer be edited.</p>}
+                {listings.length > 0 && <div className="event-link-picker"><strong>Listings <span>(optional)</span></strong>{listings.map(item => {
+                    const id = String(item.id);
+                    const selected = eventListingIds.includes(id);
+                    return <div className="event-listing-option" key={id}>
+                        <label><input type="checkbox" checked={selected} onChange={() => setEventListingIds(current => selected ? current.filter(value => value !== id) : [...current, id])} /> {item.name}</label>
+                        {selected && <label className="event-listing-availability">Availability for {item.name}
+                            <select required value={eventListingAvailability[id] || ''} onChange={e => setEventListingAvailability(current => ({ ...current, [id]: e.target.value }))}>
+                                <option value="">Choose availability</option>
+                                <option value="event">Available at the event</option>
+                                <option value="preorder">Available for preorder</option>
+                                <option value="both">Available at the event and for preorder</option>
+                            </select>
+                        </label>}
+                    </div>;
+                })}</div>}
                 <label>Available appointment slots <span>(optional, one per line)</span><textarea value={eventSlots} onChange={e => setEventSlots(e.target.value)} placeholder={'Saturday, 10:00 AM\nSaturday, 10:30 AM'} /></label>
                 {promotablePosts.length > 0 && <div className="event-link-picker"><strong>Promotion posts <span>(optional)</span></strong>{promotablePosts.map(item => <label key={item.id}><input type="checkbox" checked={eventPostIds.includes(String(item.id))} onChange={() => setEventPostIds(current => current.includes(String(item.id)) ? current.filter(id => id !== String(item.id)) : [...current, String(item.id)])} /> {item.caption.slice(0, 80)}{item.caption.length > 80 ? '...' : ''}</label>)}</div>}
             </fieldset>}

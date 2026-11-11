@@ -3,6 +3,10 @@ import "./Explore.css";
 
 import { explorePosts, postTags } from "./exploreData";
 import { supabase } from "../../services/supabase";
+import { useFollows } from "../../services/useFollows";
+import { useTagFollow } from "../../services/useTagFollow";
+import EventManager from "../EventManager";
+import PostComments from "../PostComments";
 
 const mentionPattern = /(^|\s)(@[a-z0-9._-]+)/gi;
 
@@ -168,44 +172,96 @@ function CreatorResult({ creator, onOpenSeller }) {
     );
 }
 
-function PostResults({ posts, onOpenPost, onOpenSeller, emptyMessage, masonry = false }) {
+function PostResults({ posts, onOpenPost, onOpenSeller, emptyMessage }) {
     if (!posts.length) return <div className="explore-empty">{emptyMessage}</div>;
 
-    if (masonry) {
-        const columns = [[], [], []];
-        posts.forEach((post, index) => columns[index % columns.length].push(post));
-        return (
-            <div className="explore-search-masonry">
-                {columns.map((column, index) => (
-                    <div className="explore-search-column" key={index}>
-                        {column.map((post) => (
-                            <PostCard key={post.id} post={post} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />
-                        ))}
-                    </div>
-                ))}
-            </div>
-        );
-    }
+    const columns = [[], [], []];
+    posts.forEach((post, index) => columns[index % columns.length].push(post));
+    return (
+        <div className="explore-search-masonry">
+            {columns.map((column, index) => (
+                <div className="explore-search-column" key={index}>
+                    {column.map((post) => (
+                        <PostCard key={post.id} post={post} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+}
 
-    return <div className="explore-grid">
-        {posts.map((post) => (
-            <PostCard key={post.id} post={post} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />
-        ))}
+export function TagPage({ tag, posts, viewerId, onBack, onOpenPost, onOpenSeller }) {
+    const [signInPromptOpen, setSignInPromptOpen] = useState(false);
+    const taggedPosts = posts.filter((post) =>
+        postTags(post).some((postTag) => postTag.toLowerCase() === tag.toLowerCase())
+    );
+    const { isFollowing, busy, error, toggleFollow } = useTagFollow(tag, viewerId);
+
+    return (
+        <section className="tag-page" aria-labelledby="tag-page-title">
+            <button type="button" className="explore-back" onClick={onBack}>
+                ← Back to Explore
+            </button>
+            <header className="tag-page-header">
+                <div>
+                    <p className="tag-page-eyebrow">Tag</p>
+                    <h2 id="tag-page-title">#{tag}</h2>
+                    <p>{taggedPosts.length} {taggedPosts.length === 1 ? "post" : "posts"}</p>
+                </div>
+                <button
+                    type="button"
+                    className={`tag-follow-button${isFollowing ? " is-following" : ""}`}
+                    disabled={busy}
+                    onClick={() => {
+                        if (!viewerId) {
+                            setSignInPromptOpen(true);
+                            return;
+                        }
+                        toggleFollow();
+                    }}>
+                    {busy ? "Saving…" : isFollowing ? "Following" : "Follow"}
+                </button>
+            </header>
+            {error && <p className="tag-follow-error" role="alert">{error}</p>}
+            <PostResults
+                posts={taggedPosts}
+                onOpenPost={onOpenPost}
+                onOpenSeller={onOpenSeller}
+                emptyMessage={`No posts have been shared with #${tag} yet.`}
+            />
+            {signInPromptOpen && (
+                <div className="tag-sign-in-backdrop" onClick={() => setSignInPromptOpen(false)}>
+                    <section className="tag-sign-in-prompt" role="dialog" aria-modal="true" aria-labelledby="tag-sign-in-title" onClick={(event) => event.stopPropagation()}>
+                        <h3 id="tag-sign-in-title">Sign in to follow tags</h3>
+                        <p>Create an account or sign in to keep track of #{tag}.</p>
+                        <button type="button" onClick={() => setSignInPromptOpen(false)}>Got it</button>
+                    </section>
+                </div>
+            )}
+        </section>
+    );
+}
+
+function TwoColumnPostGrid({ posts, onOpenPost, onOpenSeller }) {
+    const columns = [[], []];
+    posts.forEach((post, index) => columns[index % 2].push(post));
+    return <div className="explore-two-column-grid">
+        {columns.map((column, index) => <div className="explore-two-column" key={index}>
+            {column.map(post => <PostCard key={post.id} post={post} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />)}
+        </div>)}
     </div>;
 }
 
 export function PostCard({ post, onOpenPost, onOpenSeller }) {
     const isListing = post.type === "listing";
     const isEvent = Boolean(post.is_event);
-    const openPost = () => {
-        if (!isListing) onOpenPost(post.id);
-    };
+    const openPost = () => onOpenPost(post.id);
 
     return (
         <article
             className={`explore-card ${post.layout} ${post.type}${isListing ? " explore-listing-card" : ""}`}
-            role={isListing ? undefined : "link"}
-            tabIndex={isListing ? undefined : "0"}
+            role="link"
+            tabIndex="0"
             onClick={openPost}
             onKeyDown={(event) => {
                 if (
@@ -249,6 +305,7 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                     <div className="explore-listing-info">
                         <h2>{post.name}</h2>
                         <span>${post.price.toFixed(2)}</span>
+                        {post.availability && <p className="event-listing-label">{{ event: "Available at event", preorder: "Available for preorder", both: "At event and for preorder" }[post.availability]}</p>}
                     </div>
                 )}
             </div>
@@ -317,6 +374,7 @@ export function ExplorePage({
                     post.type === "video") ||
                 (activeFilter === "Text" &&
                     post.type === "text") ||
+                (activeFilter === "Events" && post.is_event) ||
                 (activeFilter === "Products" &&
                     post.type === "listing"))
     );
@@ -375,7 +433,7 @@ export function ExplorePage({
                         </div>
                         {filterOpen && (
                             <div className="explore-filter-panel">
-                                {["All posts", "Photos", "Videos", "Text", "Products"].map((filter) => (
+                                {["All posts", "Photos", "Videos", "Text", "Events", "Products"].map((filter) => (
                                     <button
                                         className={`explore-filter-option${activeFilter === filter ? " selected" : ""}`}
                                         key={filter}
@@ -385,7 +443,7 @@ export function ExplorePage({
                                 ))}
                             </div>
                         )}
-                        <PostResults posts={filteredPosts} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} emptyMessage="No posts or products match your search." masonry />
+                        <PostResults posts={filteredPosts} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} emptyMessage="No posts or products match your search." />
                     </>}
                 </section>
             ) : <>
@@ -404,6 +462,7 @@ export function ExplorePage({
                         "Photos",
                         "Videos",
                         "Text",
+                        "Events",
                         "Products"
                     ].map((filter) => (
                         <button
@@ -422,7 +481,6 @@ export function ExplorePage({
                 onOpenPost={onOpenPost}
                 onOpenSeller={onOpenSeller}
                 emptyMessage="No posts match your search."
-                masonry={activeFilter === "Products"}
             />
             </>}
         </div>
@@ -435,6 +493,7 @@ export function PostDetail({
     onBack,
     onOpenPost,
     onOpenSeller,
+    onOpenTag,
     profileFeed = null,
     profileFeedUser = null,
     embedded = false,
@@ -443,45 +502,27 @@ export function PostDetail({
     relatedPosts = [],
     eventDetailsOpen = false,
     onOpenEventDetails,
-    onBackToEventPost
+    onOpenEventPost,
+    onBackFromEventDetails,
+    user,
+    eventListings = [],
+    onEventUpdated
 }) {
     const [liked, setLiked] = useState(false),
         [likeCount, setLikeCount] = useState(post.seller_id ? 0 : 18 + post.id * 3),
-        [comments, setComments] = useState([
-            {
-                id: 1,
-                author: "@ava.collects",
-                text: "This is so lovely!"
-            },
-            {
-                id: 2,
-                author: "@milo.buys",
-                text: "Saving this for inspiration."
-            },
-            {
-                id: 3,
-                author: "@riley.student",
-                text: "The color palette is perfect."
-            },
-            {
-                id: 4,
-                author: "@nora.shops",
-                text: "Can't wait to see what you make next."
-            }
-        ]),
-        [commentsPanelOpen, setCommentsPanelOpen] = useState(false),
-        [draft, setDraft] = useState(""),
+        [commentCount, setCommentCount] = useState(post.seller_id ? 0 : 4),
         [eventTab, setEventTab] = useState("posts");
-    const eventListings = Array.isArray(post.event_listings) ? post.event_listings : [];
+    const linkedEventListings = Array.isArray(post.event_listings) ? post.event_listings : [];
     const eventSlots = Array.isArray(post.event_slots) ? post.event_slots : [];
     const eventPosts = relatedPosts.filter(item =>
         (post.event_posts || []).map(id => String(id).replace(/^post-/, "")).includes(String(item.id).replace(/^post-/, ""))
     );
     const eventTabs = [
         { id: "posts", label: "Posts", visible: true },
-        { id: "listings", label: "Listings", visible: eventListings.length > 0 },
+        { id: "listings", label: "Listings", visible: linkedEventListings.length > 0 },
         { id: "appointments", label: "Appointments", visible: eventSlots.length > 0 }
     ].filter(tab => tab.visible);
+    const currentEventTab = eventTabs.some(tab => tab.id === eventTab) ? eventTab : "posts";
     const suggestions = explorePosts
         .filter((item) => item.id !== post.id)
         .map((item) => ({
@@ -501,20 +542,6 @@ export function PostDetail({
     const profileFeedPosts = profileFeed
         ? newestFirst(profileFeed.filter((item) => item.id !== post.id))
         : null;
-    const addComment = (event) => {
-        event.preventDefault();
-        if (!draft.trim()) return;
-        setComments([
-            ...comments,
-            {
-                id: Date.now(),
-                author: "@you",
-                text: draft.trim()
-            }
-        ]);
-        setDraft("");
-        setCommentsPanelOpen(true);
-    };
     useEffect(() => {
         if (!profileFeed || embedded) return;
         document.getElementById(`profile-post-${post.id}`)?.scrollIntoView({
@@ -538,10 +565,14 @@ export function PostDetail({
                         post={feedPost}
                         onOpenPost={onOpenPost}
                         onOpenSeller={onOpenSeller}
+                        onOpenTag={onOpenTag}
                         canReply={canReply}
                         onMessageUser={onMessageUser}
                         relatedPosts={relatedPosts}
                         onOpenEventDetails={onOpenEventDetails}
+                        user={user}
+                        eventListings={eventListings}
+                        onEventUpdated={onEventUpdated}
                     />
                 ))}
             </section>
@@ -554,13 +585,14 @@ export function PostDetail({
             {!embedded && <button
                 type="button"
                 className="explore-back"
-                onClick={eventDetailsOpen ? onBackToEventPost : onBack}>
-                ← {eventDetailsOpen ? "Back to Post" : backLabel}
+                onClick={eventDetailsOpen ? onBackFromEventDetails : onBack}>
+                ← {eventDetailsOpen ? "Back to Explore" : backLabel}
             </button>}
-            {post.is_event && <div className="event-details-heading event-details-banner">
-                <span>EVENT DETAILS</span><h2>{post.event_title}</h2><p>{post.event_location} · {new Date(post.event_starts_at).toLocaleString()}{post.event_ends_at ? ` – ${new Date(post.event_ends_at).toLocaleString()}` : ""}</p>
-            </div>}
             <article className="explore-post-detail">
+                {post.is_event && <div className="event-details-heading event-details-banner">
+                    <span>EVENT DETAILS</span><h2>{post.event_title}</h2><p>{post.event_location} · {new Date(post.event_starts_at).toLocaleString()}{post.event_ends_at ? ` – ${new Date(post.event_ends_at).toLocaleString()}` : ""}</p>
+                    <EventManager key={post.id} post={post} user={user} onUpdated={onEventUpdated} listings={eventListings} posts={relatedPosts} />
+                </div>}
                 <PostAuthors
                     post={post}
                     onOpenSeller={onOpenSeller}
@@ -595,11 +627,13 @@ export function PostDetail({
                     )}
                     <div className="explore-tag-list">
                         {postTags(post).map((tag) => (
-                            <span
+                            <button
+                                type="button"
                                 className="explore-tag"
-                                key={tag}>
-                                {tag}
-                            </span>
+                                key={tag}
+                                onClick={() => onOpenTag?.(tag)}>
+                                #{tag}
+                            </button>
                         ))}
                     </div>
                     <div className="explore-engagement">
@@ -610,114 +644,26 @@ export function PostDetail({
                             }
                             onClick={() => {
                                 setLiked(!liked);
-                                setLikeCount(
-                                    likeCount + (liked ? -1 : 1)
-                                );
+                                setLikeCount(likeCount + (liked ? -1 : 1));
                             }}>
                             <span className="explore-heart">
                                 {liked ? "♥" : "♡"}
                             </span>
                             {likeCount}
                         </button>
-                        <span>{comments.length} comments</span>
+                        <span>{commentCount} comments</span>
                     </div>
-                    <section className="explore-comments">
-                        <h2>Comments</h2>
-                        {comments.slice(0, 2).map((comment) => (
-                            <div
-                                className="explore-comment"
-                                key={comment.id}>
-                                <button
-                                    type="button"
-                                    className="explore-comment-author"
-                                    onClick={() => onOpenSeller(comment.author)}>
-                                    {comment.author}
-                                </button>{" "}
-                                {comment.text}
-                                {comment.author === "@you" && (
-                                    <button
-                                        onClick={() =>
-                                            setComments(
-                                                comments.filter(
-                                                    (item) =>
-                                                        item.id !==
-                                                        comment.id
-                                                )
-                                            )
-                                        }>
-                                        Delete
-                                    </button>
-                                )}
-                                {canReply && comment.author !== "@you" && (
-                                    <button onClick={() => onMessageUser?.(comment.author)}>
-                                        Reply in messages
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        {comments.length > 2 && (
-                            <button
-                                className="explore-more-comments"
-                                onClick={() =>
-                                    setCommentsPanelOpen(true)
-                                }>
-                                See {comments.length - 2} more comments
-                            </button>
-                        )}
-                        <form
-                            className="explore-comment-form"
-                            onSubmit={addComment}>
-                            <input
-                                value={draft}
-                                onChange={(event) =>
-                                    setDraft(event.target.value)
-                                }
-                                placeholder="Add a comment"
-                            />
-                            <button>Post</button>
-                        </form>
-                    </section>
-                    {commentsPanelOpen && (
-                        <div
-                            className="explore-comments-sheet-backdrop"
-                            role="presentation"
-                            onClick={() => setCommentsPanelOpen(false)}>
-                            <section
-                                className="explore-comments-sheet"
-                                role="dialog"
-                                aria-modal="true"
-                                aria-label="All comments"
-                                onClick={(event) => event.stopPropagation()}>
-                                <div className="explore-comments-sheet-heading">
-                                    <h2>Comments</h2>
-                                    <button type="button" aria-label="Close comments" onClick={() => setCommentsPanelOpen(false)}>×</button>
-                                </div>
-                                <div className="explore-comments-sheet-list">
-                                    {comments.map((comment) => (
-                                        <div className="explore-comment" key={comment.id}>
-                                            <button type="button" className="explore-comment-author" onClick={() => onOpenSeller(comment.author)}>{comment.author}</button>{" "}{comment.text}
-                                            {comment.author === "@you" && (
-                                                <button onClick={() => setComments(current => current.filter((item) => item.id !== comment.id))}>Delete</button>
-                                            )}
-                                            {canReply && comment.author !== "@you" && (
-                                                <button onClick={() => onMessageUser?.(comment.author)}>Reply in messages</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </div>
-                    )}
+                    {post.is_event && !eventDetailsOpen && <button className="event-details-button" type="button" onClick={() => onOpenEventDetails?.(post.id)}>Event Details <span aria-hidden="true">→</span></button>}
+                    <PostComments post={post} user={user} canReply={canReply} onOpenSeller={onOpenSeller} onMessageUser={onMessageUser} onCountChange={setCommentCount} />
                 </div>
             </article>
-            {post.is_event && !eventDetailsOpen && <button className="event-details-button" type="button" onClick={() => onOpenEventDetails?.(post.id)}>Event Details <span aria-hidden="true">→</span></button>}
             {eventDetailsOpen && <section className="event-details" aria-label="Event Details">
                 <div className="event-tabs" role="tablist" aria-label="Event content">
-                    {eventTabs.map(tab => <button key={tab.id} type="button" role="tab" aria-selected={eventTab === tab.id} onClick={() => setEventTab(tab.id)}>{tab.label}</button>)}
+                    {eventTabs.map(tab => <button key={tab.id} type="button" role="tab" aria-selected={currentEventTab === tab.id} onClick={() => setEventTab(tab.id)}>{tab.label}</button>)}
                 </div>
-                {eventTab === "posts" && <div className="event-tab-panel">{eventPosts.length ? <div className="explore-grid">{eventPosts.map(item => <PostCard key={item.id} post={item} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />)}</div> : <p>No promotion posts have been linked yet.</p>}</div>}
-                {eventTab === "listings" && <div className="event-tab-panel event-listings">{eventListings.map(item => <article key={item.id} className="event-listing"><>{item.image && <img src={item.image} alt="" />}</><div><h3>{item.name}</h3><p>${Number(item.price).toFixed(2)}</p><small>Available for event pickup or preorder</small></div></article>)}</div>}
-                {eventTab === "appointments" && <div className="event-tab-panel event-slots">{eventSlots.map((slot, index) => <div key={`${slot}-${index}`}><span>Available</span>{slot}</div>)}</div>}
+                {currentEventTab === "posts" && <div className="event-tab-panel">{eventPosts.length ? <TwoColumnPostGrid posts={eventPosts} onOpenPost={onOpenEventPost || onOpenPost} onOpenSeller={onOpenSeller} /> : <p>No promotion posts have been linked yet.</p>}</div>}
+                {currentEventTab === "listings" && <div className="event-tab-panel"><TwoColumnPostGrid posts={linkedEventListings.map(item => ({ ...item, id: `listing-${item.id}`, type: "listing", creator: item.creator || post.creator, caption: item.name, price: Number(item.price) || 0, layout: "portrait", tone: "peach" }))} onOpenPost={onOpenEventPost || onOpenPost} onOpenSeller={onOpenSeller} /></div>}
+                {currentEventTab === "appointments" && <div className="event-tab-panel event-slots">{eventSlots.map((slot, index) => <div key={`${slot}-${index}`}><span>Available</span>{slot}</div>)}</div>}
             </section>}
             {embedded || eventDetailsOpen ? null : profileFeedPosts ? (
                 <section className="explore-profile-feed" aria-label={`${profileFeedUser} posts`}>
@@ -736,16 +682,7 @@ export function PostDetail({
                         <h2>Suggested posts</h2>
                         <span>{suggestions.length} posts</span>
                     </div>
-                    <div className="explore-grid">
-                        {suggestions.map((item) => (
-                            <PostCard
-                                key={item.id}
-                                post={item}
-                                onOpenPost={onOpenPost}
-                                onOpenSeller={onOpenSeller}
-                            />
-                        ))}
-                    </div>
+                    <TwoColumnPostGrid posts={suggestions} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />
                 </section>
             )}
         </section>
@@ -759,15 +696,19 @@ export function SellerProfilePage({
     onMessageSeller,
     canMessage = false,
     canFollow = false,
+    viewerId,
     posts = [],
     onOpenPost,
-    onOpenSeller
+    onOpenSeller,
+    onOpenListing,
+    initialTab = "Posts"
 }) {
     const [profile, setProfile] = useState(null);
-    const [activeTab, setActiveTab] = useState("Posts");
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [messageNotice, setMessageNotice] = useState("");
-    const [isFollowing, setIsFollowing] = useState(false);
     const username = seller.replace(/^@/, "");
+    const follow = useFollows(profile?.id, viewerId);
+    const isFollowing = follow.isFollowing;
     const profilePosts = newestFirst(
         posts.filter((post) => postAuthors(post).includes(seller))
     );
@@ -777,7 +718,7 @@ export function SellerProfilePage({
         let active = true;
         supabase
             .from("messaging_profiles")
-            .select("name, username, image, seller_verified")
+            .select("id, name, username, image, seller_verified")
             .ilike("username", username)
             .maybeSingle()
             .then(({ data }) => {
@@ -812,7 +753,11 @@ export function SellerProfilePage({
             setMessageNotice("Sign in or create an account to start following people.");
             return;
         }
-        setIsFollowing((current) => !current);
+        if (!profile?.id) {
+            setMessageNotice("This example profile cannot be followed.");
+            return;
+        }
+        follow.toggleFollow();
     };
 
     return (
@@ -846,14 +791,15 @@ export function SellerProfilePage({
                     <button type="button" aria-label="Dismiss message" onClick={() => setMessageNotice("")}>×</button>
                 </div>
             )}
+            {follow.error && <div className="profile-notice" role="alert">{follow.error}</div>}
             <div className="profile-header">
                 <div className="profile-avatar public-profile-avatar">
                     {viewedProfile?.image ? <img src={viewedProfile.image} alt="" /> : seller.slice(1, 3).toUpperCase()}
                 </div>
                 <div className={`profile-social-stats${isSeller ? "" : " buyer-profile-stats"}`} aria-label="Profile statistics">
                     {isSeller && <div><strong>{publicPosts.length}</strong><span>Posts</span></div>}
-                    <div><strong>0</strong><span>Following</span></div>
-                    <div><strong>{isFollowing ? 1 : 0}</strong><span>Followers</span></div>
+                    <div><strong>{follow.ready && !follow.error ? follow.followingCount : "—"}</strong><span>Following</span></div>
+                    <div><strong>{follow.ready && !follow.error ? follow.followerCount : "—"}</strong><span>Followers</span></div>
                 </div>
             </div>
             <div className="profile-bio">
@@ -865,8 +811,9 @@ export function SellerProfilePage({
                 type="button"
                 className={`public-profile-follow${isFollowing ? " is-following" : ""}`}
                 aria-pressed={isFollowing}
+                disabled={follow.busy || (profile?.id && (!follow.ready || Boolean(follow.error))) || (profile?.id && profile.id === viewerId)}
                 onClick={toggleFollow}>
-                {isFollowing ? "Following" : "Follow"}
+                {profile?.id && profile.id === viewerId ? "Your profile" : isFollowing ? "Following" : "Follow"}
             </button>
             {isSeller && <div className="profile-tabs" role="tablist" aria-label={`${seller} profile sections`}>
                 {tabs.map((tab) => (
@@ -892,7 +839,10 @@ export function SellerProfilePage({
                 publicListings.length ? <section className="profile-listings">
                     <div className="profile-panel-heading"><h3>Listings</h3><span className="profile-count">{publicListings.length} items</span></div>
                     <div className="profile-listings-grid">
-                        {publicListings.map((listing) => <article className="profile-listing-card" key={listing.id}>
+                        {publicListings.map((listing) => <article className="profile-listing-card public-profile-listing-link" key={listing.id}
+                            role="link" tabIndex={0} aria-label={`View ${listing.name}`}
+                            onClick={() => onOpenListing(listing.id)}
+                            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpenListing(listing.id); } }}>
                             {listing.image && <img className="profile-listing-image" src={listing.image} alt="" />}
                             <h4>{listing.name}</h4>
                             <p>${listing.price?.toFixed(2)}</p>

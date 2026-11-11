@@ -22,6 +22,7 @@ import "./Profile.css";
 import "./SellerWorkspace.css";
 import { supabase } from "../services/supabase";
 import { uploadPhoto } from "../services/photos";
+import { useFollows } from "../services/useFollows";
 
 const newestFirst = (items) =>
     [...items].sort((a, b) => {
@@ -43,6 +44,8 @@ function Profile({
     posts = [],
     postsError = "",
     onPublished,
+    myListings = [],
+    setMyListings,
     sellerVerified = false,
     initialConversation = null
 }) {
@@ -56,12 +59,12 @@ function Profile({
     const [selectedTab, setActiveTab] = useState(null);
     const [notice, setNotice] = useState("");
     const [connectionPanel, setConnectionPanel] = useState(null);
-    const [following] = useState([]);
-    const [followers] = useState([]);
+    const follow = useFollows(user?.id, user?.id);
+    const following = follow.following;
+    const followers = follow.followers;
 
     const [showComposer, setShowComposer] = useState(false);
     const myPosts = newestFirst(posts.filter(post => post.seller_id === user?.id));
-    const [myListings, setMyListings] = useState([]);
     // R03: Dedicated create/edit screen for the seller's listings.
     const [showListingForm, setShowListingForm] =
         useState(false);
@@ -467,8 +470,8 @@ function Profile({
 
                 <div className="profile-social-stats" aria-label="Profile statistics">
                     <div><strong>{postsError ? '—' : myPosts.length}</strong><span>Posts</span></div>
-                    <button type="button" onClick={() => setConnectionPanel("following")}><strong>{following.length}</strong><span>Following</span></button>
-                    <button type="button" onClick={() => setConnectionPanel("followers")}><strong>{followers.length}</strong><span>Followers</span></button>
+                    <button type="button" onClick={() => setConnectionPanel("following")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followingCount : "—"}</strong><span>Following</span></button>
+                    <button type="button" onClick={() => setConnectionPanel("followers")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followerCount : "—"}</strong><span>Followers</span></button>
                 </div>
             </div>
 
@@ -503,9 +506,11 @@ function Profile({
                         <h3>{connectionPanel === "following" ? "Following" : "Followers"}</h3>
                         <button type="button" className="profile-connection-close" onClick={() => setConnectionPanel(null)}>Close</button>
                     </div>
-                    <p className="seller-empty-state">
-                        {connectionPanel === "following" ? "You are not following anyone yet." : "No followers yet."}
-                    </p>
+                    {follow.error ? <p role="alert">{follow.error}</p> : (connectionPanel === "following" ? following : followers).length ? <div className="profile-connection-list">
+                        {(connectionPanel === "following" ? following : followers).map(person => <button type="button" key={person.id} onClick={() => { window.location.hash = `seller/${encodeURIComponent(person.username)}`; }}>
+                            {person.name && <strong>{person.name} </strong>}@{person.username}
+                        </button>)}
+                    </div> : <p className="seller-empty-state">{connectionPanel === "following" ? "You are not following anyone yet." : "No followers yet."}</p>}
                 </section>
             )}
 
@@ -680,14 +685,7 @@ function Profile({
                 )}
 
             {/* SELLER: SAVED */}
-            {mode === "seller" &&
-                hasSellerAccess &&
-                activeTab === "Saved" && (
-                    <section className="profile-empty-tab">
-                        <h3>No saved items to display</h3>
-                    </section>
-                )}
-
+            {mode === "seller" && hasSellerAccess && activeTab === "Saved" && <section className="profile-empty-tab"><h3>No saved items to display</h3></section>}
             {/* BUYER: PICKUPS */}
             {mode === "buyer" && activeTab === "Pickups" && (
                 <BuyerPickups onDemoAction={showDemoNotice} />

@@ -338,6 +338,8 @@
     display: block;
     margin-bottom: 12px;
 }
+.profile-connection-list { display: grid; gap: 8px; }
+.profile-connection-list button { padding: 12px; border: 1px solid #dfd6cd; border-radius: 10px; background: #fff; color: #554433; font: inherit; text-align: left; cursor: pointer; }
 
 .profile-appointment-card,
 .profile-event-card {

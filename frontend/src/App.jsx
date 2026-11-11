@@ -10,12 +10,19 @@ import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import { useAuth } from "./auth/useAuth";
+import calendarIcon from "./assets/nav-icons/Calendar.svg";
+import exploreIcon from "./assets/nav-icons/Explore.svg";
+import homeIcon from "./assets/nav-icons/Home.svg";
+import mapIcon from "./assets/nav-icons/Map.svg";
+import profileIcon from "./assets/nav-icons/Profile.svg";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
+import ProductDetail from "./pages/ProductDetail";
 import {
     ExplorePage,
     PostDetail,
-    SellerProfilePage
+    SellerProfilePage,
+    TagPage
 } from "./pages/Explore Page/Explore";
 import {
     createExploreFeed,
@@ -23,6 +30,8 @@ import {
     currentExplorePostId,
     currentPostSource,
     currentSellerUsername,
+    currentTagName,
+    exploreListings,
     explorePosts
 } from "./pages/Explore Page/exploreData";
 
@@ -30,7 +39,7 @@ const asExplorePost = post => ({
     ...post,
     id: `post-${post.id}`,
     type: post.post_type || (post.image ? "image" : "text"),
-    tags: ["Campus makers"],
+    tags: post.tags?.length ? post.tags : ["Campus makers"],
     layout: "standard",
     tone: "peach"
 });
@@ -42,8 +51,8 @@ const currentPage = () => {
         .toLowerCase()
         .split("/")[0];
     if (slug === "login") return "Login";
-    return slug === "seller"
-        ? "Seller"
+    return slug === "seller" ? "Seller"
+        : slug === "tag" ? "Tag"
         : pages.find((page) => page.toLowerCase() === slug) ||
               "Home";
 };
@@ -63,40 +72,21 @@ const currentMessageRecipient = () => {
 };
 
 function Icon({ name }) {
-    const shapes = {
-        Home: <path d="M4 12 16 2l12 10v18H4Z" />,
-        Map: (
-            <path
-                fillRule="evenodd"
-                d="M16 1a11 11 0 0 0-11 11c0 8 11 20 11 20s11-12 11-20A11 11 0 0 0 16 1Zm0 7a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"
-            />
-        ),
-        Calendar: (
-            <>
-                <path d="M3 3h26v27H3z" />
-                <path d="M3 8h26v3H3z" fill="var(--paper)" />
-            </>
-        ),
-        Explore: (
-            <g
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2">
-                <circle cx="13" cy="13" r="10" />
-                <path d="m21 21 10 10" />
-            </g>
-        ),
-        Profile: (
-            <>
-                <circle cx="16" cy="5" r="4" />
-                <path d="m16 11 11 19H5Z" />
-            </>
-        )
+    const icons = {
+        Home: homeIcon,
+        Map: mapIcon,
+        Calendar: calendarIcon,
+        Explore: exploreIcon,
+        Profile: profileIcon
     };
+
     return (
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-            {shapes[name]}
-        </svg>
+        <img
+            className="nav-icon"
+            src={icons[name]}
+            alt=""
+            aria-hidden="true"
+        />
     );
 }
 
@@ -118,23 +108,45 @@ function App() {
         [selectedSeller, setSelectedSeller] = useState(
             currentSellerUsername
         ),
+        [selectedTag, setSelectedTag] = useState(currentTagName),
         [exploreFeed, setExploreFeed] = useState(
             createExploreFeed
         );
     const [publishedPosts, setPublishedPosts] = useState([]);
+    const [listingsByUser, setListingsByUser] = useState({});
+    const listingOwner = user?.id || "guest";
+    const myListings = listingsByUser[listingOwner] || [];
+    const setMyListings = (value) => setListingsByUser(current => ({ ...current, [listingOwner]: typeof value === "function" ? value(current[listingOwner] || []) : value }));
     const [postsError, setPostsError] = useState("");
     useEffect(() => {
         if (!supabase) return;
         let active = true;
-        supabase.from("maker_posts").select("*").order("created_at", { ascending: false }).then(({ data, error }) => {
+        const loadPosts = () => supabase.from("maker_posts").select("*").order("created_at", { ascending: false }).then(({ data, error }) => {
             if (!active) return;
             if (error) setPostsError("Posts could not be loaded. Please try again later.");
             else { setPublishedPosts(data.map(asExplorePost)); setPostsError(""); }
         });
-        return () => { active = false; };
+        loadPosts();
+        const timer = window.setInterval(loadPosts, 30000);
+        return () => { active = false; window.clearInterval(timer); };
     }, []);
     const allPosts = [...publishedPosts, ...explorePosts];
-    const lastPage = useRef(currentPage());
+    const activeListings = myListings.filter(item => item.status === "Active").map(item => ({
+        ...item,
+        id: `listing-${item.id}`,
+        creator: `@${user?.username || user?.email?.split("@")[0] || "maker"}`,
+        image: item.images?.[0] || item.image,
+        type: "listing",
+        caption: item.name,
+        layout: "portrait",
+        tone: "peach"
+    }));
+    const eventListings = allPosts.flatMap(post => (post.event_listings || []).map(item => ({
+        ...item, id: `listing-${item.id}`, creator: item.creator || post.creator,
+        type: "listing", caption: item.name, tags: [], layout: "portrait", tone: "peach"
+    })));
+    const allListings = [...activeListings, ...exploreListings, ...eventListings];
+    const exploreSession = useRef(["Explore", "Tag"].includes(currentPage()));
 
     const [messageRecipient, setMessageRecipient] = useState(
         currentMessageRecipient
@@ -142,18 +154,14 @@ function App() {
     useEffect(() => {
         const onNavigation = () => {
             const nextPage = currentPage();
-            if (
-                nextPage === "Explore" &&
-                lastPage.current !== "Explore"
-            )
-                setExploreFeed(createExploreFeed());
-            lastPage.current = nextPage;
+            if (nextPage === "Explore" || nextPage === "Tag") exploreSession.current = true;
             setPage(nextPage);
             setSelectedPostId(currentExplorePostId());
             setEventDetailsOpen(/\/event-details(?:\?|$)/i.test(window.location.hash));
             setPostSource(currentPostSource());
             setProfileFeedUser(currentProfileFeedUsername());
             setSelectedSeller(currentSellerUsername());
+            setSelectedTag(currentTagName());
             setMessageRecipient(currentMessageRecipient());
         };
         window.addEventListener("hashchange", onNavigation);
@@ -169,7 +177,7 @@ function App() {
             left: 0,
             behavior: "instant"
         });
-    }, [page, selectedPostId, selectedSeller, eventDetailsOpen]);
+    }, [page, selectedPostId, selectedSeller, selectedTag, eventDetailsOpen]);
 
     const openPost = (id, source = "explore") => {
             window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
@@ -179,9 +187,19 @@ function App() {
                 page === "Home" ? "home" : postSource;
             window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
         },
-        selectedPost = allPosts.find(
+        openTag = (tag) => {
+            window.location.hash = `tag/${encodeURIComponent(tag)}`;
+        },
+        selectedPost = [...allPosts, ...allListings].find(
             (post) => post.id === selectedPostId
         );
+    const eventReturn = new URLSearchParams(window.location.hash.split("?")[1]).get("eventReturn");
+    const linkedEventDetails = eventReturn && /^#explore\/(?:post-)?\d+\/event-details(?:\?.*)?$/i.test(eventReturn)
+        ? eventReturn
+        : null;
+    const profileListingReturn = selectedPost?.type === "listing" && profileFeedUser
+        ? `seller/${encodeURIComponent(profileFeedUser.slice(1))}?tab=listings${new URLSearchParams(window.location.hash.split("?")[1]).get("source") === "home" ? "&from=home" : ""}`
+        : null;
     const profileFeedPosts = profileFeedUser
         ? [...publishedPosts, ...exploreFeed].filter(
               (post) =>
@@ -209,6 +227,8 @@ function App() {
                         ? "home"
                         : page === "Explore"
                           ? "explore"
+                          : page === "Tag"
+                            ? "explore"
                           : "blank-page"
                 }>
                 {page === "Home" && (
@@ -221,30 +241,47 @@ function App() {
                     />
                 )}
                 {page === "Explore" &&
-                    (selectedPost ? (
+                    (selectedPost?.type === "listing" ? (
+                        <ProductDetail
+                            key={`${selectedPost.id}:${user?.id || "guest"}`}
+                            product={selectedPost}
+                            user={user}
+                            viewerId={user?.id}
+                            products={allListings}
+                            backLabel={linkedEventDetails ? "Back to Post" : profileListingReturn ? "Back to Profile" : postSource === "home" ? "Back to Home" : "Back to Explore"}
+                            onBack={() => { window.location.hash = linkedEventDetails || profileListingReturn || postSource; }}
+                            onOpenProduct={(id) => openPost(id, postSource)}
+                            onOpenSeller={openSeller}
+                            onOpenTag={openTag}
+                            onMessageUser={(username) => {
+                                window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
+                            }}
+                        />
+                    ) : selectedPost ? (
                         <PostDetail
                             key={selectedPost.id}
                             post={selectedPost}
+                            user={user}
+                            eventListings={myListings}
+                            onEventUpdated={post => setPublishedPosts(current => current.map(item => item.id === `post-${post.id}` ? asExplorePost(post) : item))}
                             eventDetailsOpen={eventDetailsOpen && selectedPost.is_event}
                             onOpenEventDetails={(id) => {
                                 const query = window.location.hash.split("?")[1];
                                 window.location.hash = `explore/${id}/event-details${query ? `?${query}` : ""}`;
                             }}
-                            onBackToEventPost={() => {
-                                const query = window.location.hash.split("?")[1];
-                                window.location.hash = `explore/${selectedPost.id}${query ? `?${query}` : ""}`;
-                            }}
                             backLabel={
-                                profileFeedUser
+                                linkedEventDetails
+                                    ? "Back to Post"
+                                    : profileFeedUser
                                     ? "Back to Profile"
                                     : postSource === "home"
                                     ? "Back to Home"
                                     : "Back to Explore"
                             }
                             onBack={() => {
-                                window.location.hash = profileFeedUser
+                                window.location.hash = linkedEventDetails || (profileFeedUser
                                     ? `seller/${encodeURIComponent(profileFeedUser.slice(1))}`
-                                    : postSource;
+                                    : postSource);
                             }}
                             profileFeed={profileFeedPosts}
                             profileFeedUser={profileFeedUser}
@@ -255,24 +292,48 @@ function App() {
                             onOpenPost={(id) =>
                                 openPost(id, postSource)
                             }
+                            onOpenEventPost={(id) => {
+                                const query = new URLSearchParams({ eventReturn: window.location.hash });
+                                window.location.hash = `explore/${id}?${query}`;
+                            }}
+                            onBackFromEventDetails={() => { window.location.hash = "explore"; }}
                             onOpenSeller={openSeller}
+                            onOpenTag={openTag}
                             relatedPosts={allPosts}
                         />
                     ) : (
                         <ExplorePage
-                            posts={[...publishedPosts, ...exploreFeed]}
+                            posts={[...publishedPosts, ...activeListings, ...exploreFeed]}
                             onOpenPost={openPost}
                             onOpenSeller={openSeller}
                         />
                     ))}
+                {page === "Tag" && selectedTag && (
+                    <TagPage
+                        key={selectedTag.toLowerCase()}
+                        tag={selectedTag}
+                        posts={[...allPosts, ...activeListings, ...exploreListings]}
+                        viewerId={user?.id}
+                        onBack={() => { window.location.hash = "explore"; }}
+                        onOpenPost={openPost}
+                        onOpenSeller={openSeller}
+                    />
+                )}
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
+                        key={selectedSeller}
                         seller={selectedSeller}
-                        posts={[...publishedPosts, ...exploreFeed]}
+                        posts={[...publishedPosts, ...exploreFeed.filter(post => post.type !== "listing"), ...allListings.filter((item, index) => allListings.findIndex(listing => listing.id === item.id) === index)]}
+                        initialTab={new URLSearchParams(window.location.hash.split("?")[1]).get("tab") === "listings" ? "Listings" : "Posts"}
                         canMessage={Boolean(user)}
                         canFollow={Boolean(user)}
+                        viewerId={user?.id}
                         onOpenPost={(id) => {
                             window.location.hash = `explore/${id}?from=profile&profile=${encodeURIComponent(selectedSeller.slice(1))}`;
+                        }}
+                        onOpenListing={(id) => {
+                            const query = new URLSearchParams({ from: "profile", profile: selectedSeller.slice(1), source: postSource });
+                            window.location.hash = `explore/${id}?${query}`;
                         }}
                         onOpenSeller={openSeller}
                         backLabel={
@@ -305,6 +366,8 @@ function App() {
                         key={`${user?.id ?? "guest"}:${messageRecipient ?? "profile"}`}
                         user={user}
                         posts={publishedPosts}
+                        myListings={myListings}
+                        setMyListings={setMyListings}
                         postsError={postsError}
                         onPublished={post => {
                             setPublishedPosts(current => [asExplorePost(post), ...current]);
@@ -326,6 +389,10 @@ function App() {
                         key={item}
                         href={`#${item.toLowerCase()}`}
                         onClick={() => {
+                            if (item !== "Explore" && exploreSession.current) {
+                                setExploreFeed(createExploreFeed());
+                                exploreSession.current = false;
+                            }
                             setPage(item);
                             setSelectedPostId(null);
                         }}
@@ -334,7 +401,6 @@ function App() {
                             page === item ? "page" : undefined
                         }>
                         <Icon name={item} />
-                        <span>{item}</span>
                     </a>
                 ))}
             </nav>

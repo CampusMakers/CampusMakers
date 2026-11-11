@@ -209,8 +209,8 @@ export const explorePosts = [
         event_ends_at: "2026-11-14T15:00:00-08:00",
         event_posts: ["15", "17"],
         event_listings: [
-            { id: "101", name: "Ash Droplet Chawan", price: 28, image: sellerSavedItems[0].image },
-            { id: "103", name: "Conservatory Riso #4", price: 18, image: sellerSavedItems[2].image }
+            { id: "101", name: "Ash Droplet Chawan", creator: sellerSavedItems[0].creator, price: 28, image: sellerSavedItems[0].image, availability: "event" },
+            { id: "103", name: "Conservatory Riso #4", creator: sellerSavedItems[2].creator, price: 18, image: sellerSavedItems[2].image, availability: "preorder" }
         ],
         event_slots: []
     },
@@ -247,8 +247,8 @@ export const explorePosts = [
         event_ends_at: "2026-11-21T16:00:00-08:00",
         event_posts: ["4", "19"],
         event_listings: [
-            { id: "102", name: "Woven Grid Tapestry", price: 45, image: sellerSavedItems[1].image },
-            { id: "104", name: "Kinetic Brass Dangles", price: 32, image: sellerSavedItems[3].image }
+            { id: "102", name: "Woven Grid Tapestry", creator: sellerSavedItems[1].creator, price: 45, image: sellerSavedItems[1].image, availability: "both" },
+            { id: "104", name: "Kinetic Brass Dangles", creator: sellerSavedItems[3].creator, price: 32, image: sellerSavedItems[3].image, availability: "event" }
         ],
         event_slots: ["12:30 PM - Fiber color consult", "1:30 PM - Clay texture demo", "2:30 PM - Mini maker session"]
     },
@@ -288,14 +288,24 @@ export const postTags = (post) => post.tags || [post.tag];
 export const createExploreFeed = () =>
     [...explorePosts, ...exploreListings].sort(() => Math.random() - 0.5);
 export const currentExplorePostId = () => {
-    const id = window.location.hash.split("?")[0].match(/^#explore\/((?:post-)?\d+)(?:\/event-details)?$/i)?.[1];
-    return id?.startsWith("post-") ? id : Number(id) || null;
+    const id = window.location.hash.split("?")[0].match(/^#explore\/((?:(?:post-)?\d+|listing-[a-z0-9-]+))(?:\/event-details)?$/i)?.[1];
+    return id?.startsWith("post-") || id?.startsWith("listing-") ? id : Number(id) || null;
 };
 export const currentSellerUsername = () => {
     const creator = window.location.hash.split("?")[0].match(
         /^#seller\/([^/]+)$/i
     )?.[1];
     return creator ? `@${decodeURIComponent(creator)}` : null;
+};
+
+export const currentTagName = () => {
+    const tag = window.location.hash.split("?")[0].match(/^#tag\/([^/]+)$/i)?.[1];
+    if (!tag) return null;
+    try {
+        return decodeURIComponent(tag);
+    } catch {
+        return null;
+    }
 };
 
 export const currentPostSource = () =>

@@ -62,6 +62,9 @@
 .event-link-picker strong span { color: #617d8c; font-weight: 400; }
 .event-link-picker label { display: block; color: #315f77; font-size: 13px; font-weight: 400; }
 .event-link-picker input { width: auto; margin-right: 5px; }
+.event-listing-option { display: grid; gap: 8px; }
+.event-link-picker .event-listing-availability { display: grid; gap: 5px; margin-left: 22px; }
+.event-listing-availability select { width: 100%; padding: 10px; border: 1px solid #bcddeb; border-radius: 8px; background: #fff; color: #315f77; font: inherit; }
 .profile-page {
     --seller-surface: #fff8eb;
     --seller-border: #dfcbb0;
