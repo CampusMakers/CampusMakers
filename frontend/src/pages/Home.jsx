@@ -1,13 +1,13 @@
 import { useAuth } from "../auth/useAuth";
 import { useState } from "react";
 import { sellerSavedItems } from "./mockProfileData";
-import { PostCard } from "../Explore Page/Explore";
+import { PostCard } from "./Explore Page/Explore";
 import "./Home.css";
 
-function ProductCard({ product }) {
+function ProductCard({ product, onOpen }) {
     const [imageFailed, setImageFailed] = useState(false);
     return (
-        <article className="home-product-card">
+        <article className="home-product-card" role="link" tabIndex="0" onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }}>
             {imageFailed ? (
                 <div className="home-product-placeholder">
                     Product image
@@ -75,6 +75,7 @@ export default function Home({
                         <ProductCard
                             key={product.id}
                             product={product}
+                            onOpen={() => onOpenPost(`listing-${product.id}`)}
                         />
                     ))}
                 </div>

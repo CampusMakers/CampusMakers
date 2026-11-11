@@ -12,6 +12,7 @@ import EditProfile from "./EditProfile";
 import Messages from "./Messages";
 import Conversation from "./Conversation";
 import SellerListingForm from "./SellerListingForm";
+import { PostCard } from "./Explore Page/Explore";
 
 import {
     sellerSavedItems
@@ -21,12 +22,30 @@ import "./Profile.css";
 import "./SellerWorkspace.css";
 import { supabase } from "../services/supabase";
 import { uploadPhoto } from "../services/photos";
+import { useFollows } from "../services/useFollows";
+
+const newestFirst = (items) =>
+    [...items].sort((a, b) => {
+        const timeDifference = new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        return timeDifference || String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+    });
+
+const toExploreCardPost = (post) => ({
+    ...post,
+    id: post.seller_id && !String(post.id).startsWith("post-") ? `post-${post.id}` : post.id,
+    type: post.type || post.post_type || (post.image ? "image" : "text"),
+    tags: post.tags || ["Campus makers"],
+    layout: post.layout || "standard",
+    tone: post.tone || "peach"
+});
 
 function Profile({
     user,
     posts = [],
     postsError = "",
     onPublished,
+    myListings = [],
+    setMyListings,
     sellerVerified = false,
     initialConversation = null
 }) {
@@ -39,10 +58,13 @@ function Profile({
     const mode = isGuest ? previewMode : sellerVerified ? "seller" : "buyer";
     const [selectedTab, setActiveTab] = useState(null);
     const [notice, setNotice] = useState("");
+    const [connectionPanel, setConnectionPanel] = useState(null);
+    const follow = useFollows(user?.id, user?.id);
+    const following = follow.following;
+    const followers = follow.followers;
 
     const [showComposer, setShowComposer] = useState(false);
-    const myPosts = posts.filter(post => post.seller_id === user?.id);
-    const [myListings, setMyListings] = useState([]);
+    const myPosts = newestFirst(posts.filter(post => post.seller_id === user?.id));
     // R03: Dedicated create/edit screen for the seller's listings.
     const [showListingForm, setShowListingForm] =
         useState(false);
@@ -340,6 +362,8 @@ function Profile({
 
     if (showComposer && hasSellerAccess) {
         return <div className="profile-page"><PostComposer user={user}
+            listings={myListings}
+            promotablePosts={myPosts.filter(post => !post.is_event)}
             onCancel={() => setShowComposer(false)}
             onPublished={post => {
                 onPublished(post);
@@ -446,8 +470,8 @@ function Profile({
 
                 <div className="profile-social-stats" aria-label="Profile statistics">
                     <div><strong>{postsError ? '—' : myPosts.length}</strong><span>Posts</span></div>
-                    <div><strong>0</strong><span>Following</span></div>
-                    <div><strong>0</strong><span>Followers</span></div>
+                    <button type="button" onClick={() => setConnectionPanel("following")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followingCount : "—"}</strong><span>Following</span></button>
+                    <button type="button" onClick={() => setConnectionPanel("followers")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followerCount : "—"}</strong><span>Followers</span></button>
                 </div>
             </div>
 
@@ -475,6 +499,20 @@ function Profile({
                 }}>
                 Edit Profile
             </button>
+
+            {connectionPanel && (
+                <section className="profile-panel profile-connections" aria-label={connectionPanel}>
+                    <div className="profile-panel-heading">
+                        <h3>{connectionPanel === "following" ? "Following" : "Followers"}</h3>
+                        <button type="button" className="profile-connection-close" onClick={() => setConnectionPanel(null)}>Close</button>
+                    </div>
+                    {follow.error ? <p role="alert">{follow.error}</p> : (connectionPanel === "following" ? following : followers).length ? <div className="profile-connection-list">
+                        {(connectionPanel === "following" ? following : followers).map(person => <button type="button" key={person.id} onClick={() => { window.location.hash = `seller/${encodeURIComponent(person.username)}`; }}>
+                            {person.name && <strong>{person.name} </strong>}@{person.username}
+                        </button>)}
+                    </div> : <p className="seller-empty-state">{connectionPanel === "following" ? "You are not following anyone yet." : "No followers yet."}</p>}
+                </section>
+            )}
 
             {mode === "seller" && <div className="profile-appointment-actions">
                 <button type="button" className="profile-action-button profile-action-primary"
@@ -548,11 +586,13 @@ function Profile({
                 <div className="profile-panel-heading"><h3>Your posts</h3><span className="profile-count">{postsError ? "—" : myPosts.length} posts</span></div>
                 <p className="seller-section-description">Share your latest work with your campus.</p>
                 <button type="button" className="profile-action-button profile-action-primary seller-section-action" onClick={() => setShowComposer(true)}>+ Create post</button>
-                {postsError ? <p role="alert">{postsError}</p> : myPosts.length ? <div className="profile-card-stack">
-                    {myPosts.map(post => <article className="profile-appointment-card" key={post.id}>
-                        {post.image && <img className="seller-post-photo" src={post.image} alt={post.caption} />}
-                        <p>{post.caption}</p><a href={`#explore/${post.id}`}>View on Explore →</a>
-                    </article>)}
+                {postsError ? <p role="alert">{postsError}</p> : myPosts.length ? <div className="profile-post-feed">
+                    {myPosts.map(post => <PostCard
+                        key={post.id}
+                        post={toExploreCardPost(post)}
+                        onOpenPost={(id) => { window.location.hash = `explore/${id}`; }}
+                        onOpenSeller={(creator) => { window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}`; }}
+                    />)}
                 </div> : <p className="seller-empty-state">No posts yet. Create your first post to share your work.</p>}
             </section>}
             {/* SELLER: LISTINGS */}
@@ -645,14 +685,7 @@ function Profile({
                 )}
 
             {/* SELLER: SAVED */}
-            {mode === "seller" &&
-                hasSellerAccess &&
-                activeTab === "Saved" && (
-                    <section className="profile-empty-tab">
-                        <h3>No saved items to display</h3>
-                    </section>
-                )}
-
+            {mode === "seller" && hasSellerAccess && activeTab === "Saved" && <section className="profile-empty-tab"><h3>No saved items to display</h3></section>}
             {/* BUYER: PICKUPS */}
             {mode === "buyer" && activeTab === "Pickups" && (
                 <BuyerPickups onDemoAction={showDemoNotice} />

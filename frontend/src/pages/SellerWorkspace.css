@@ -1,4 +1,70 @@
 /* Shared seller surfaces: posts, listings, appointments, and their forms. */
+
+.post-collaborators {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #dfd6cd;
+    border-radius: 10px;
+}
+.post-collaborators legend,
+.seller-tool-form label span {
+    color: #786c60;
+    font-size: 0.85em;
+}
+.post-collaborators > div {
+    display: flex;
+    gap: 8px;
+}
+.post-collaborators p {
+    margin: 0 0 10px;
+    color: #68523d;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.post-collaborators input {
+    min-width: 0;
+    flex: 1;
+}
+.post-collaborators ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.post-collaborators li {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f5f1ec;
+    color: #68523d;
+}
+.post-collaborators li button {
+    margin-left: 5px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+.event-composer-details {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid #bcddeb;
+    border-radius: 12px;
+    background: #edf8fe;
+}
+.event-composer-details legend { padding: 0 5px; color: #28688c; font-size: 13px; font-weight: 700; }
+.event-time-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.event-link-picker { display: grid; gap: 7px; }
+.event-link-picker strong { color: #315f77; font-size: 13px; }
+.event-link-picker strong span { color: #617d8c; font-weight: 400; }
+.event-link-picker label { display: block; color: #315f77; font-size: 13px; font-weight: 400; }
+.event-link-picker input { width: auto; margin-right: 5px; }
+.event-listing-option { display: grid; gap: 8px; }
+.event-link-picker .event-listing-availability { display: grid; gap: 5px; margin-left: 22px; }
+.event-listing-availability select { width: 100%; padding: 10px; border: 1px solid #bcddeb; border-radius: 8px; background: #fff; color: #315f77; font: inherit; }
 .profile-page {
     --seller-surface: #fff8eb;
     --seller-border: #dfcbb0;

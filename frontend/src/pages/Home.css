@@ -61,6 +61,11 @@
     background: #fff8eb;
     border: 1px solid #e8d0aa;
     border-radius: 12px;
+    cursor: pointer;
+}
+.home-product-card:focus-visible {
+    outline: 3px solid #8d7356;
+    outline-offset: 3px;
 }
 .home-product-card > img,
 .home-product-placeholder {
@@ -135,7 +140,21 @@
     border-radius: 12px;
 }
 .home-suggestions .explore-card-body {
-    padding: 10px;
+    padding: 0;
+}
+.home-suggestions .explore-media-button,
+.home-suggestions .explore-visual {
+    width: 100%;
+}
+.home-suggestions .explore-visual .seller-post-photo {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+    border-radius: 0;
+}
+.home-suggestions .explore-creator-link {
+    padding: 8px 5px 8px 10px;
 }
 .home-suggestions .explore-creator-link {
     max-width: 100%;

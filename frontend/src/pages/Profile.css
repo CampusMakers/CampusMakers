@@ -330,6 +330,16 @@
     flex-direction: column;
     gap: 12px;
 }
+.profile-post-feed {
+    display: block;
+    margin-top: 14px;
+}
+.profile-post-feed .explore-card {
+    display: block;
+    margin-bottom: 12px;
+}
+.profile-connection-list { display: grid; gap: 8px; }
+.profile-connection-list button { padding: 12px; border: 1px solid #dfd6cd; border-radius: 10px; background: #fff; color: #554433; font: inherit; text-align: left; cursor: pointer; }
 
 .profile-appointment-card,
 .profile-event-card {
@@ -842,6 +852,33 @@
     justify-content: center;
     gap: 5px;
     min-width: 0;
+}
+.profile-social-stats > button {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.profile-social-stats > button:hover span,
+.profile-social-stats > button:focus-visible span {
+    color: #a36500;
+    text-decoration: underline;
+}
+.profile-connection-close {
+    border: 0;
+    background: transparent;
+    color: #704b18;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 .profile-social-stats strong {
