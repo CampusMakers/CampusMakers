@@ -318,6 +318,20 @@
     font-size: clamp(9px, 6cqw, 12px);
     line-height: 1.15;
 }
+.admin-card-bar {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    margin: -1px -1px 0;
+    padding: 10px;
+    background: #f8d9d9;
+    color: #8f4147;
+}
+.admin-card-bar strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(10px, 7cqw, 13px); }
+.admin-pin-icon { width: 18px; height: 18px; flex: none; }
+.explore-admin-pinned { margin: 0 0 14px; }
+.explore-admin-pinned .explore-card { display: block; max-width: 380px; margin-bottom: 0; }
 .explore-creator-link {
     display: flex;
     width: 100%;
@@ -844,6 +858,10 @@
 .event-details-button:hover { background: #d9efff; }
 .event-details-banner { border-bottom: 1px solid #cbe5f4; }
 .event-details-heading { padding: 18px; background: #e7f5ff; }
+.admin-post-banner { padding: 18px; border-bottom: 1px solid #f0cccc; background: #fde9e9; color: #773a3f; }
+.admin-post-banner > span { color: #a04e55; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+.admin-post-banner h2 { display: flex; align-items: center; gap: 8px; margin: 5px 0 0; font-size: 20px; }
+.admin-post-banner .admin-pin-icon { width: 21px; height: 21px; }
 .event-details-heading span { color: #39779d; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
 .event-details-heading h2 { margin: 4px 0; font-size: 20px; }
 .event-details-heading p { margin: 0; color: #3f6479; font-size: 13px; line-height: 1.5; }

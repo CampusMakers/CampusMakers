@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { uploadPhoto } from '../services/photos';
+import { deviceTimeZone, formatScheduledTime } from '../services/dateTime';
 
 export function PostComposer({ user, onPublished, onCancel, listings = [], promotablePosts = [] }) {
     const [caption, setCaption] = useState('');
@@ -102,6 +103,7 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
                 event_location: postKind === 'event' ? eventLocation.trim() : null,
                 event_starts_at: postKind === 'event' ? new Date(eventStartsAt).toISOString() : null,
                 event_ends_at: postKind === 'event' && eventEndsAt ? new Date(eventEndsAt).toISOString() : null,
+                event_time_zone: postKind === 'event' ? deviceTimeZone() : null,
                 event_status_mode: postKind === 'event' ? eventStatusMode : 'manual',
                 event_listings: postKind === 'event' ? selectedListings : [],
                 event_slots: postKind === 'event' ? eventSlots.split('\n').map(value => value.trim()).filter(Boolean) : [],
@@ -122,6 +124,7 @@ export function PostComposer({ user, onPublished, onCancel, listings = [], promo
                 <label>Event name<input required maxLength={120} value={eventTitle} onChange={e => setEventTitle(e.target.value)} placeholder="Spring Makers Market" /></label>
                 <label>Location<input required maxLength={200} value={eventLocation} onChange={e => setEventLocation(e.target.value)} placeholder="Campus Union courtyard" /></label>
                 <div className="event-time-fields"><label>Starts<input required type="datetime-local" value={eventStartsAt} onChange={e => setEventStartsAt(e.target.value)} /></label><label>Ends <span>({eventStatusMode === 'automatic' ? 'required for automatic status' : 'optional'})</span><input type="datetime-local" required={eventStatusMode === 'automatic'} value={eventEndsAt} onChange={e => setEventEndsAt(e.target.value)} /></label></div>
+                <p>Event times use your device time zone: {deviceTimeZone()}.</p>
                 <label>Status updates<select value={eventStatusMode} onChange={e => setEventStatusMode(e.target.value)}><option value="manual">Manual</option><option value="automatic">Automatic using event times</option></select></label>
                 {eventStatusMode === 'automatic' && <p>At the end time, the event will be marked Event Ended and can no longer be edited.</p>}
                 {listings.length > 0 && <div className="event-link-picker"><strong>Listings <span>(optional)</span></strong>{listings.map(item => {
@@ -191,7 +194,7 @@ export function AppointmentManager({ user }) {
         try {
             const { data, error: failure } = await supabase.from('maker_appointments').insert({
                 seller_id: user.id, title: fields.get('title').trim(), buyer: fields.get('buyer').trim(),
-                location: fields.get('location').trim(), starts_at: startsAt.toISOString()
+                location: fields.get('location').trim(), starts_at: startsAt.toISOString(), time_zone: deviceTimeZone()
             }).select().single();
             if (failure) throw failure;
             setItems(current => [...current, data].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
@@ -215,6 +218,7 @@ export function AppointmentManager({ user }) {
             <label>Appointment<input name="title" required maxLength={120} placeholder="Custom order pickup" /></label>
             <label>Buyer<input name="buyer" required maxLength={120} placeholder="Name or username" /></label>
             <label>Date and time<input name="starts_at" type="datetime-local" required /></label>
+            <p>Appointment time uses your device time zone: {deviceTimeZone()}.</p>
             <label>Meeting location<input name="location" required maxLength={200} /></label>
             <button className="profile-action-button profile-action-primary" disabled={busy || loading}>{busy ? 'Saving…' : '+ Add appointment'}</button>
         </form>
@@ -222,7 +226,7 @@ export function AppointmentManager({ user }) {
         {loading ? <p role="status">Loading appointments…</p> : !items.length && !error ? <p className="seller-empty-state">No appointments yet. Add your first one above.</p> : null}
         <div className="profile-card-stack">
             {items.map(item => <article key={item.id} className="profile-appointment-card">
-                <h4>{item.title}</h4><p>{item.buyer} · {new Date(item.starts_at).toLocaleString()}</p>
+                <h4>{item.title}</h4><p>{item.buyer} · {formatScheduledTime(item.starts_at, item.time_zone)}</p>
                 <p>{item.location}</p><span className={`profile-status ${item.status === "Completed" ? "profile-status-confirmed" : item.status === "Scheduled" ? "profile-status-pending" : "seller-status-neutral"}`}>{item.status}</span>
                 {item.status === 'Scheduled' && <div className="profile-appointment-actions">
                     <button className="profile-action-button" disabled={busy} onClick={() => update(item, 'Completed')}>Mark completed</button>

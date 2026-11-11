@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import "./Explore.css";
 
-import { explorePosts, postTags } from "./exploreData";
+import { explorePosts, isAdminPostPinned, postTags } from "./exploreData";
 import { supabase } from "../../services/supabase";
 import { useFollows } from "../../services/useFollows";
 import { useTagFollow } from "../../services/useTagFollow";
 import EventManager from "../EventManager";
 import PostComments from "../PostComments";
+import { formatScheduledTime } from "../../services/dateTime";
 
 const mentionPattern = /(^|\s)(@[a-z0-9._-]+)/gi;
 
@@ -61,6 +62,10 @@ function CreatorLink({ creator, onOpenSeller }) {
             </span>
         </button>
     );
+}
+
+function PinIcon() {
+    return <svg className="admin-pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 6 3 3v2H6v-2l3-3-1-6Zm4 11v7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 function PostAuthors({ post, onOpenSeller, expanded = false }) {
@@ -255,11 +260,12 @@ function TwoColumnPostGrid({ posts, onOpenPost, onOpenSeller }) {
 export function PostCard({ post, onOpenPost, onOpenSeller }) {
     const isListing = post.type === "listing";
     const isEvent = Boolean(post.is_event);
+    const isAdminPost = Boolean(post.is_admin_post);
     const openPost = () => onOpenPost(post.id);
 
     return (
         <article
-            className={`explore-card ${post.layout} ${post.type}${isListing ? " explore-listing-card" : ""}`}
+            className={`explore-card ${post.layout} ${post.type}${isListing ? " explore-listing-card" : ""}${isAdminPost ? " explore-admin-card" : ""}`}
             role="link"
             tabIndex="0"
             onClick={openPost}
@@ -273,7 +279,7 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                 }
             }}>
             <div className="explore-card-body">
-                {isEvent ? <div className="event-card-bar">
+                {isAdminPost ? <div className="admin-card-bar"><PinIcon /><strong>{post.admin_title || "Admin post"}</strong></div> : isEvent ? <div className="event-card-bar">
                     <span>EVENT</span>
                     <strong>{post.event_title || "Event"}</strong>
                 </div> : <PostAuthors post={post} onOpenSeller={onOpenSeller} />}
@@ -378,6 +384,12 @@ export function ExplorePage({
                 (activeFilter === "Products" &&
                     post.type === "listing"))
     );
+    const pinnedPosts = filteredPosts.filter(isAdminPostPinned);
+    const regularPosts = filteredPosts.filter(post => !isAdminPostPinned(post));
+    const renderPostResults = (emptyMessage) => !filteredPosts.length ? <div className="explore-empty">{emptyMessage}</div> : <>
+        {pinnedPosts.length > 0 && <section className="explore-admin-pinned" aria-label="Pinned admin posts">{pinnedPosts.map(post => <PostCard key={post.id} post={post} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} />)}</section>}
+        {regularPosts.length > 0 && <PostResults posts={regularPosts} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} emptyMessage={emptyMessage} />}
+    </>;
     return (
         <div className="explore-page">
             <form
@@ -443,7 +455,7 @@ export function ExplorePage({
                                 ))}
                             </div>
                         )}
-                        <PostResults posts={filteredPosts} onOpenPost={onOpenPost} onOpenSeller={onOpenSeller} emptyMessage="No posts or products match your search." />
+                        {renderPostResults("No posts or products match your search.")}
                     </>}
                 </section>
             ) : <>
@@ -476,12 +488,7 @@ export function ExplorePage({
                     ))}
                 </div>
             )}
-            <PostResults
-                posts={filteredPosts}
-                onOpenPost={onOpenPost}
-                onOpenSeller={onOpenSeller}
-                emptyMessage="No posts match your search."
-            />
+            {renderPostResults("No posts match your search.")}
             </>}
         </div>
     );
@@ -589,8 +596,9 @@ export function PostDetail({
                 ← {eventDetailsOpen ? "Back to Explore" : backLabel}
             </button>}
             <article className="explore-post-detail">
+                {post.is_admin_post && <div className="admin-post-banner"><span>ADMIN POST</span><h2><PinIcon />{post.admin_title || "Admin post"}</h2></div>}
                 {post.is_event && <div className="event-details-heading event-details-banner">
-                    <span>EVENT DETAILS</span><h2>{post.event_title}</h2><p>{post.event_location} · {new Date(post.event_starts_at).toLocaleString()}{post.event_ends_at ? ` – ${new Date(post.event_ends_at).toLocaleString()}` : ""}</p>
+                    <h2>{post.event_title}</h2><p>{post.event_location} · {formatScheduledTime(post.event_starts_at, post.event_time_zone)}{post.event_ends_at ? ` – ${formatScheduledTime(post.event_ends_at, post.event_time_zone)}` : ""}</p>
                     <EventManager key={post.id} post={post} user={user} onUpdated={onEventUpdated} listings={eventListings} posts={relatedPosts} />
                 </div>}
                 <PostAuthors
@@ -663,7 +671,7 @@ export function PostDetail({
                 </div>
                 {currentEventTab === "posts" && <div className="event-tab-panel">{eventPosts.length ? <TwoColumnPostGrid posts={eventPosts} onOpenPost={onOpenEventPost || onOpenPost} onOpenSeller={onOpenSeller} /> : <p>No promotion posts have been linked yet.</p>}</div>}
                 {currentEventTab === "listings" && <div className="event-tab-panel"><TwoColumnPostGrid posts={linkedEventListings.map(item => ({ ...item, id: `listing-${item.id}`, type: "listing", creator: item.creator || post.creator, caption: item.name, price: Number(item.price) || 0, layout: "portrait", tone: "peach" }))} onOpenPost={onOpenEventPost || onOpenPost} onOpenSeller={onOpenSeller} /></div>}
-                {currentEventTab === "appointments" && <div className="event-tab-panel event-slots">{eventSlots.map((slot, index) => <div key={`${slot}-${index}`}><span>Available</span>{slot}</div>)}</div>}
+                {currentEventTab === "appointments" && <div className="event-tab-panel event-slots">{post.event_time_zone && <p className="event-slots-time-zone">Appointment slots are in {post.event_time_zone}.</p>}{!post.event_time_zone && <p className="event-slots-time-zone">The creator’s time zone is unavailable for these slots.</p>}{eventSlots.map((slot, index) => <div key={`${slot}-${index}`}><span>Available</span>{slot}</div>)}</div>}
             </section>}
             {embedded || eventDetailsOpen ? null : profileFeedPosts ? (
                 <section className="explore-profile-feed" aria-label={`${profileFeedUser} posts`}>

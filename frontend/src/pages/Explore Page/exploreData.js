@@ -205,6 +205,7 @@ export const explorePosts = [
         is_event: true,
         event_title: "Campus Print Swap & Mini Market",
         event_location: "University Union Plaza",
+        event_time_zone: "America/Los_Angeles",
         event_starts_at: "2026-11-14T11:00:00-08:00",
         event_ends_at: "2026-11-14T15:00:00-08:00",
         event_posts: ["15", "17"],
@@ -225,6 +226,7 @@ export const explorePosts = [
         is_event: true,
         event_title: "Prototype Clinic",
         event_location: "Library Innovation Lab, Room 204",
+        event_time_zone: "America/Los_Angeles",
         event_starts_at: "2026-11-18T13:00:00-08:00",
         event_ends_at: "2026-11-18T16:00:00-08:00",
         event_posts: ["3", "16"],
@@ -243,6 +245,7 @@ export const explorePosts = [
         is_event: true,
         event_title: "Make & Mingle Studio Social",
         event_location: "Arts Building Courtyard",
+        event_time_zone: "America/Los_Angeles",
         event_starts_at: "2026-11-21T12:00:00-08:00",
         event_ends_at: "2026-11-21T16:00:00-08:00",
         event_posts: ["4", "19"],
@@ -263,11 +266,23 @@ export const explorePosts = [
         is_event: true,
         event_title: "Clay Texture Demo with Mia",
         event_location: "Arts Building, Studio 102",
+        event_time_zone: "America/Los_Angeles",
         event_starts_at: "2026-12-02T14:00:00-08:00",
         event_ends_at: "2026-12-02T16:00:00-08:00",
         event_posts: ["10"],
         event_listings: [],
         event_slots: ["2:00 PM - 2:30 PM", "2:45 PM - 3:15 PM", "3:30 PM - 4:00 PM"]
+    },
+    {
+        id: 25,
+        type: "text",
+        creator: "@campusmakers",
+        caption: "Preparing for finishing touches and deployment of Campus Makers App",
+        tags: ["Campus update", "Announcement"],
+        layout: "standard",
+        is_admin_post: true,
+        admin_title: "Testing In Progress",
+        admin_pinned: true
     }
 ];
 
@@ -285,8 +300,15 @@ export const exploreListings = sellerSavedItems.map((listing) => ({
 }));
 
 export const postTags = (post) => post.tags || [post.tag];
-export const createExploreFeed = () =>
-    [...explorePosts, ...exploreListings].sort(() => Math.random() - 0.5);
+export const isAdminPostPinned = (post, now = Date.now()) =>
+    Boolean(post.is_admin_post && (post.admin_pinned || (post.admin_pinned_until && new Date(post.admin_pinned_until).getTime() > now)));
+
+export const createExploreFeed = () => {
+    const items = [...explorePosts, ...exploreListings];
+    const pinned = items.filter(isAdminPostPinned);
+    const normal = items.filter(item => !isAdminPostPinned(item)).sort(() => Math.random() - 0.5);
+    return [...pinned, ...normal];
+};
 export const currentExplorePostId = () => {
     const id = window.location.hash.split("?")[0].match(/^#explore\/((?:(?:post-)?\d+|listing-[a-z0-9-]+))(?:\/event-details)?$/i)?.[1];
     return id?.startsWith("post-") || id?.startsWith("listing-") ? id : Number(id) || null;

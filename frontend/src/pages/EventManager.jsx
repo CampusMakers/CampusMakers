@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
 import { eventStatusAt } from "../services/eventStatus";
+import { deviceTimeZone } from "../services/dateTime";
 
 const localDateTime = value => {
     if (!value) return "";
@@ -17,8 +18,10 @@ export default function EventManager({ post, user, onUpdated, listings = [], pos
     const [title, setTitle] = useState(post.event_title || "");
     const [location, setLocation] = useState(post.event_location || "");
     const [caption, setCaption] = useState(post.caption || "");
-    const [starts, setStarts] = useState(() => localDateTime(post.event_starts_at));
-    const [ends, setEnds] = useState(() => localDateTime(post.event_ends_at));
+    const [initialStarts, setInitialStarts] = useState(() => localDateTime(post.event_starts_at));
+    const [initialEnds, setInitialEnds] = useState(() => localDateTime(post.event_ends_at));
+    const [starts, setStarts] = useState(initialStarts);
+    const [ends, setEnds] = useState(initialEnds);
     const [slots, setSlots] = useState(() => (post.event_slots || []).join("\n"));
     const [linkedListings, setLinkedListings] = useState(() => post.event_listings || []);
     const [linkedPosts, setLinkedPosts] = useState(() => (post.event_posts || []).map(String));
@@ -70,8 +73,11 @@ export default function EventManager({ post, user, onUpdated, listings = [], pos
         if (!title.trim() || !location.trim() || !caption.trim() || !starts) { setError("Enter an event name, location, start time, and post caption."); return; }
         if (ends && new Date(ends) <= new Date(starts)) { setError("The event end time must be after its start time."); return; }
         if (mode === "automatic" && (!ends || new Date(ends) <= new Date())) { setError("Automatic status requires an end time in the future."); return; }
-        const saved = await save({ event_title: title.trim(), event_location: location.trim(), caption: caption.trim(), event_starts_at: new Date(starts).toISOString(), event_ends_at: ends ? new Date(ends).toISOString() : null, event_slots: slots.split("\n").map(slot => slot.trim()).filter(Boolean), event_listings: linkedListings, event_posts: linkedPosts });
-        if (saved) setEditing(false);
+        const changes = { event_title: title.trim(), event_location: location.trim(), caption: caption.trim(), event_slots: slots.split("\n").map(slot => slot.trim()).filter(Boolean), event_listings: linkedListings, event_posts: linkedPosts };
+        if (starts !== initialStarts) changes.event_starts_at = new Date(starts).toISOString();
+        if (ends !== initialEnds) changes.event_ends_at = ends ? new Date(ends).toISOString() : null;
+        const saved = await save(changes);
+        if (saved) { setInitialStarts(starts); setInitialEnds(ends); setEditing(false); }
     }
 
     return <>
@@ -96,7 +102,8 @@ export default function EventManager({ post, user, onUpdated, listings = [], pos
             <label>Post caption<textarea value={caption} maxLength={2000} required onChange={e => setCaption(e.target.value)} /></label>
             <label>Starts<input type="datetime-local" required value={starts} onChange={e => setStarts(e.target.value)} /></label>
             <label>Ends<input type="datetime-local" required={mode === "automatic"} value={ends} onChange={e => setEnds(e.target.value)} /></label>
-            <label>Appointment slots (one per line)<textarea value={slots} onChange={e => setSlots(e.target.value)} /></label>
+            <p>Editing times use your device time zone ({deviceTimeZone()}). The event will be shown in its original time zone{post.event_time_zone ? ` (${post.event_time_zone})` : " when known"}.</p>
+            <label>Appointment slots (one per line{post.event_time_zone ? `, in ${post.event_time_zone}` : "; original time zone unknown"})<textarea value={slots} onChange={e => setSlots(e.target.value)} /></label>
             <div><strong>Linked listings</strong>{linkedListings.length ? linkedListings.map(item => <div className="event-editor-item" key={item.id}><span>{item.name}</span><button type="button" onClick={() => setLinkedListings(current => current.filter(link => String(link.id) !== String(item.id)))}>Remove</button></div>) : <p>No listings linked.</p>}</div>
             {choices.length > 0 && <div className="event-editor-add"><label>Add a listing<select value={newListingId} onChange={e => setNewListingId(e.target.value)}><option value="">Choose a listing</option>{choices.map(item => <option key={item.id} value={String(item.id)}>{item.name}</option>)}</select></label><label>Availability<select value={newListingAvailability} onChange={e => setNewListingAvailability(e.target.value)}><option value="">Choose availability</option><option value="event">Available at the event</option><option value="preorder">Available for preorder</option><option value="both">At the event and for preorder</option></select></label><button type="button" disabled={!newListingId || !newListingAvailability} onClick={() => { const item = choices.find(choice => String(choice.id) === newListingId); if (!item) return; setLinkedListings(current => [...current, { id: String(item.id), name: item.name, price: Number(item.price) || 0, image: item.images?.[0] || item.image || null, creator: username, quantity: item.quantity, maxPerOrder: item.maxPerOrder, availability: newListingAvailability }]); setNewListingId(""); setNewListingAvailability(""); }}>Add listing</button></div>}
             <div><strong>Linked posts</strong>{linkedPosts.length ? linkedPosts.map(id => { const item = posts.find(candidate => String(candidate.id).replace(/^post-/, "") === id.replace(/^post-/, "")); return <div className="event-editor-item" key={id}><span>{item?.caption || "Linked post"}</span><button type="button" onClick={() => setLinkedPosts(current => current.filter(value => value !== id))}>Remove</button></div>; }) : <p>No posts linked.</p>}</div>
