@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { withAvailableUsername } from "../services/usernames";
 
-import { AppointmentManager, PostComposer } from "./SellerTools";
+import {
+    AppointmentManager,
+    PostComposer
+} from "./SellerTools";
 import ListingGallery from "./ListingGallery";
 import BuyerPickups from "./BuyerPickups";
 import BuyerPurchases from "./BuyerPurchases";
@@ -14,9 +17,7 @@ import Conversation from "./Conversation";
 import SellerListingForm from "./SellerListingForm";
 import { PostCard } from "./Explore Page/Explore";
 
-import {
-    sellerSavedItems
-} from "./mockProfileData";
+import { sellerSavedItems } from "./mockProfileData";
 
 import "./Profile.css";
 import "./SellerWorkspace.css";
@@ -26,14 +27,29 @@ import { useFollows } from "../services/useFollows";
 
 const newestFirst = (items) =>
     [...items].sort((a, b) => {
-        const timeDifference = new Date(b.created_at || 0) - new Date(a.created_at || 0);
-        return timeDifference || String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+        const timeDifference =
+            new Date(b.created_at || 0) -
+            new Date(a.created_at || 0);
+        return (
+            timeDifference ||
+            String(b.id).localeCompare(
+                String(a.id),
+                undefined,
+                { numeric: true }
+            )
+        );
     });
 
 const toExploreCardPost = (post) => ({
     ...post,
-    id: post.seller_id && !String(post.id).startsWith("post-") ? `post-${post.id}` : post.id,
-    type: post.type || post.post_type || (post.image ? "image" : "text"),
+    id:
+        post.seller_id && !String(post.id).startsWith("post-")
+            ? `post-${post.id}`
+            : post.id,
+    type:
+        post.type ||
+        post.post_type ||
+        (post.image ? "image" : "text"),
     tags: post.tags || ["Campus makers"],
     layout: post.layout || "standard",
     tone: post.tone || "peach"
@@ -44,27 +60,149 @@ function Profile({
     posts = [],
     postsError = "",
     onPublished,
+    onPostUpdated,
+    onPostDeleted,
     myListings = [],
     setMyListings,
     sellerVerified = false,
-    initialConversation = null
+    initialConversation = null,
+    joinedEvents = [],
+    hostedEvents = [],
+    onLeaveEvent,
+    onOpenEvent
 }) {
     const isGuest = !user;
-    const goToLogin = () => { window.location.hash = "login"; };
+    const goToLogin = () => {
+        window.location.hash = "login";
+    };
     const initialProfile = isGuest
-        ? { name: "Your Name", username: "username", bio: "Your bio goes here.", image: "" }
-        : { name: user.name || user.email, username: user.username || user.email.split("@")[0], bio: user.bio || "", image: user.image || "" };
-    const [previewMode, setPreviewMode] = useState("buyer");
-    const mode = isGuest ? previewMode : sellerVerified ? "seller" : "buyer";
+        ? {
+              name: "Your Name",
+              username: "username",
+              bio: "Your bio goes here.",
+              image: ""
+          }
+        : {
+              name: user.name || user.email,
+              username:
+                  user.username || user.email.split("@")[0],
+              bio: user.bio || "",
+              image: user.image || ""
+          };
+    const [previewMode, setPreviewMode] = useState(() => {
+        const requestedMode = window.sessionStorage.getItem(
+            "campus-makers-login-mode"
+        );
+
+        window.sessionStorage.removeItem(
+            "campus-makers-login-mode"
+        );
+
+        return sellerVerified && requestedMode === "seller"
+            ? "seller"
+            : "buyer";
+    });
+    const mode =
+        sellerVerified && !isGuest ? previewMode : "buyer";
     const [selectedTab, setActiveTab] = useState(null);
     const [notice, setNotice] = useState("");
-    const [connectionPanel, setConnectionPanel] = useState(null);
+    const [connectionPanel, setConnectionPanel] =
+        useState(null);
     const follow = useFollows(user?.id, user?.id);
     const following = follow.following;
     const followers = follow.followers;
 
     const [showComposer, setShowComposer] = useState(false);
-    const myPosts = newestFirst(posts.filter(post => post.seller_id === user?.id));
+
+    const [editingPost, setEditingPost] = useState(null);
+
+    const openEditPost = (post) => {
+        if (
+            !user ||
+            !sellerVerified ||
+            post.seller_id !== user.id
+        ) {
+            setNotice(
+                "Only verified sellers can edit their own posts."
+            );
+            return;
+        }
+
+        setEditingPost(post);
+        setNotice("");
+        setShowComposer(true);
+    };
+    const openCreatePost = () => {
+        if (!user || !sellerVerified) {
+            setNotice(
+                "A verified seller account is required to publish posts."
+            );
+            return;
+        }
+
+        setEditingPost(null);
+        setNotice("");
+        setShowComposer(true);
+    };
+
+    const [deletingPostId, setDeletingPostId] = useState(null);
+
+    const deletePost = async (post) => {
+        if (!user || !sellerVerified) {
+            setNotice("A verified seller account is required.");
+            return;
+        }
+
+        if (
+            !window.confirm(
+                "Delete this post? This cannot be undone."
+            )
+        ) {
+            return;
+        }
+
+        const postId = String(post.id).replace(/^post-/, "");
+
+        setDeletingPostId(post.id);
+        setNotice("");
+
+        try {
+            if (!supabase) {
+                throw new Error("Supabase is not configured.");
+            }
+
+            const { data, error } = await supabase
+                .from("maker_posts")
+                .delete()
+                .eq("id", postId)
+                .eq("seller_id", user.id)
+                .select("id");
+
+            if (error) throw error;
+
+            if (!data?.length) {
+                throw new Error(
+                    "The post could not be deleted. Check seller permissions."
+                );
+            }
+
+            onPostDeleted?.(postId);
+            setNotice("Your post was deleted.");
+        } catch (error) {
+            setNotice(
+                `Unable to delete post: ${error.message}`
+            );
+        } finally {
+            setDeletingPostId(null);
+        }
+    };
+
+    const myPosts = newestFirst(
+        user
+            ? posts.filter((post) => post.seller_id === user.id)
+            : []
+    );
+
     // R03: Dedicated create/edit screen for the seller's listings.
     const [showListingForm, setShowListingForm] =
         useState(false);
@@ -140,10 +278,19 @@ function Profile({
     const photoInputRef = useRef(null);
 
     const saveProfile = async (updatedProfile) => {
-        const { error } = await withAvailableUsername(supabase, updatedProfile.username, () => supabase.auth.updateUser({ data: {
-            full_name: updatedProfile.name, username: updatedProfile.username,
-            bio: updatedProfile.bio, avatar_url: updatedProfile.image
-        } }));
+        const { error } = await withAvailableUsername(
+            supabase,
+            updatedProfile.username,
+            () =>
+                supabase.auth.updateUser({
+                    data: {
+                        full_name: updatedProfile.name,
+                        username: updatedProfile.username,
+                        bio: updatedProfile.bio,
+                        avatar_url: updatedProfile.image
+                    }
+                })
+        );
         if (error) throw error;
         setProfile(updatedProfile);
         setShowEditProfile(false);
@@ -200,11 +347,28 @@ function Profile({
             }
 
             if (event.key === "Tab") {
-                const controls = [...avatarCloseButtonRef.current.closest('[role="dialog"]').querySelectorAll('button:not(:disabled)')];
+                const controls = [
+                    ...avatarCloseButtonRef.current
+                        .closest('[role="dialog"]')
+                        .querySelectorAll(
+                            "button:not(:disabled)"
+                        )
+                ];
                 const first = controls[0];
                 const last = controls[controls.length - 1];
-                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                if (
+                    event.shiftKey &&
+                    document.activeElement === first
+                ) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (
+                    !event.shiftKey &&
+                    document.activeElement === last
+                ) {
+                    event.preventDefault();
+                    first.focus();
+                }
             }
         };
 
@@ -222,18 +386,27 @@ function Profile({
     }, [showAvatarPreview]);
 
     const hasSellerAccess = sellerVerified;
-    const canPreviewSeller = isGuest;
-
+    const canPreviewSeller = sellerVerified && !isGuest;
     const [savedIds, setSavedIds] = useState(() =>
-        sellerVerified ? [] : sellerSavedItems.map((item) => item.id)
+        sellerVerified
+            ? []
+            : sellerSavedItems.map((item) => item.id)
     );
 
     const tabs =
         mode === "seller"
-            ? ["Posts", "Listings", "Appointments", "Saved"]
-            : ["Pickups", "Purchases", "Saved"];
+            ? [
+                  "Posts",
+                  "Listings",
+                  "Appointments",
+                  "Events",
+                  "Saved"
+              ]
+            : ["Pickups", "Purchases", "Events", "Saved"];
 
-    const activeTab = tabs.includes(selectedTab) ? selectedTab : tabs[0];
+    const activeTab = tabs.includes(selectedTab)
+        ? selectedTab
+        : tabs[0];
 
     // Guests can preview the account layouts.
     const changeMode = (newMode) => {
@@ -248,9 +421,11 @@ function Profile({
         setNotice("");
     };
 
-    const completeDemoSellerSignup = () => {
+    const completeSellerSignup = () => {
+        if (!sellerVerified) return;
+
         setShowSellerSignup(false);
-        setNotice('Seller access requires a confirmed .edu email on your signed-in account.');
+        changeMode("seller");
     };
 
     const showDemoNotice = (action) => {
@@ -354,24 +529,51 @@ function Profile({
         return (
             <div className="profile-page">
                 <BecomeSeller
+                    user={user}
+                    sellerVerified={sellerVerified}
                     onBack={() => setShowSellerSignup(false)}
-                    onRegistered={completeDemoSellerSignup}
+                    onRegistered={completeSellerSignup}
                 />
             </div>
         );
     }
 
     if (showComposer && hasSellerAccess) {
-        return <div className="profile-page"><PostComposer user={user}
-            listings={myListings}
-            promotablePosts={myPosts.filter(post => !post.is_event)}
-            onCancel={() => setShowComposer(false)}
-            onPublished={post => {
-                onPublished(post);
-                setShowComposer(false);
-                setActiveTab("Posts");
-                setNotice("Your post is published on Explore.");
-            }} /></div>;
+        return (
+            <div className="profile-page">
+                <PostComposer
+                    key={editingPost?.id ?? "create-post"}
+                    user={user}
+                    initialPost={editingPost}
+                    listings={myListings}
+                    promotablePosts={myPosts.filter(
+                        (post) => !post.is_event
+                    )}
+                    onCancel={() => {
+                        setShowComposer(false);
+                        setEditingPost(null);
+                    }}
+                    onPublished={(post) => {
+                        onPublished(post);
+                        setShowComposer(false);
+                        setEditingPost(null);
+                        setActiveTab("Posts");
+                        setNotice(
+                            "Your post is published on Explore."
+                        );
+                    }}
+                    onUpdated={(post) => {
+                        onPostUpdated?.(post);
+                        setShowComposer(false);
+                        setEditingPost(null);
+                        setActiveTab("Posts");
+                        setNotice(
+                            "Your post was updated successfully."
+                        );
+                    }}
+                />
+            </div>
+        );
     }
 
     // R03: Create and edit listings on a separate screen.
@@ -427,7 +629,10 @@ function Profile({
                         onClick={() => {
                             setNotice("");
                             setSelectedConversation(null);
-                            if (isGuest) { goToLogin(); return; }
+                            if (isGuest) {
+                                goToLogin();
+                                return;
+                            }
                             setShowMessages(true);
                         }}>
                         ✉
@@ -440,7 +645,10 @@ function Profile({
                         title="Settings"
                         onClick={() => {
                             setNotice("");
-                            if (isGuest) { goToLogin(); return; }
+                            if (isGuest) {
+                                goToLogin();
+                                return;
+                            }
                             setShowSettings(true);
                         }}>
                         ⚙
@@ -469,10 +677,43 @@ function Profile({
                     )}
                 </button>
 
-                <div className="profile-social-stats" aria-label="Profile statistics">
-                    <div><strong>{postsError ? '—' : myPosts.length}</strong><span>Posts</span></div>
-                    <button type="button" onClick={() => setConnectionPanel("following")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followingCount : "—"}</strong><span>Following</span></button>
-                    <button type="button" onClick={() => setConnectionPanel("followers")}><strong>{isGuest ? 0 : follow.ready && !follow.error ? follow.followerCount : "—"}</strong><span>Followers</span></button>
+                <div
+                    className="profile-social-stats"
+                    aria-label="Profile statistics">
+                    <div>
+                        <strong>
+                            {postsError ? "—" : myPosts.length}
+                        </strong>
+                        <span>Posts</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setConnectionPanel("following")
+                        }>
+                        <strong>
+                            {isGuest
+                                ? 0
+                                : follow.ready && !follow.error
+                                  ? follow.followingCount
+                                  : "—"}
+                        </strong>
+                        <span>Following</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setConnectionPanel("followers")
+                        }>
+                        <strong>
+                            {isGuest
+                                ? 0
+                                : follow.ready && !follow.error
+                                  ? follow.followerCount
+                                  : "—"}
+                        </strong>
+                        <span>Followers</span>
+                    </button>
                 </div>
             </div>
 
@@ -485,7 +726,16 @@ function Profile({
                 </p>
 
                 <p className="profile-description">
-                    {profile.bio || <button type="button" className="login-text-button" onClick={() => setShowEditProfile(true)}>Add bio</button>}
+                    {profile.bio || (
+                        <button
+                            type="button"
+                            className="login-text-button"
+                            onClick={() =>
+                                setShowEditProfile(true)
+                            }>
+                            Add bio
+                        </button>
+                    )}
                 </p>
             </div>
 
@@ -495,32 +745,88 @@ function Profile({
                 className="profile-edit-button"
                 onClick={() => {
                     setNotice("");
-                    if (isGuest) { goToLogin(); return; }
+                    if (isGuest) {
+                        goToLogin();
+                        return;
+                    }
                     setShowEditProfile(true);
                 }}>
                 Edit Profile
             </button>
 
             {connectionPanel && (
-                <section className="profile-panel profile-connections" aria-label={connectionPanel}>
+                <section
+                    className="profile-panel profile-connections"
+                    aria-label={connectionPanel}>
                     <div className="profile-panel-heading">
-                        <h3>{connectionPanel === "following" ? "Following" : "Followers"}</h3>
-                        <button type="button" className="profile-connection-close" onClick={() => setConnectionPanel(null)}>Close</button>
+                        <h3>
+                            {connectionPanel === "following"
+                                ? "Following"
+                                : "Followers"}
+                        </h3>
+                        <button
+                            type="button"
+                            className="profile-connection-close"
+                            onClick={() =>
+                                setConnectionPanel(null)
+                            }>
+                            Close
+                        </button>
                     </div>
-                    {follow.error ? <p role="alert">{follow.error}</p> : (connectionPanel === "following" ? following : followers).length ? <div className="profile-connection-list">
-                        {(connectionPanel === "following" ? following : followers).map(person => <button type="button" key={person.id} onClick={() => { window.location.hash = `seller/${encodeURIComponent(person.username)}`; }}>
-                            {person.name && <strong>{person.name} </strong>}@{person.username}
-                        </button>)}
-                    </div> : <p className="seller-empty-state">{connectionPanel === "following" ? "You are not following anyone yet." : "No followers yet."}</p>}
+                    {follow.error ? (
+                        <p role="alert">{follow.error}</p>
+                    ) : (connectionPanel === "following"
+                          ? following
+                          : followers
+                      ).length ? (
+                        <div className="profile-connection-list">
+                            {(connectionPanel === "following"
+                                ? following
+                                : followers
+                            ).map((person) => (
+                                <button
+                                    type="button"
+                                    key={person.id}
+                                    onClick={() => {
+                                        window.location.hash = `seller/${encodeURIComponent(person.username)}`;
+                                    }}>
+                                    {person.name && (
+                                        <strong>
+                                            {person.name}{" "}
+                                        </strong>
+                                    )}
+                                    @{person.username}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="seller-empty-state">
+                            {connectionPanel === "following"
+                                ? "You are not following anyone yet."
+                                : "No followers yet."}
+                        </p>
+                    )}
                 </section>
             )}
 
-            {mode === "seller" && <div className="profile-appointment-actions">
-                <button type="button" className="profile-action-button profile-action-primary"
-                    onClick={() => isGuest ? goToLogin() : setShowComposer(true)}>+ Create post</button>
-                <button type="button" className="profile-action-button"
-                    onClick={() => setActiveTab("Appointments")}>Manage appointments</button>
-            </div>}
+            {mode === "seller" && (
+                <div className="profile-appointment-actions">
+                    <button
+                        type="button"
+                        className="profile-action-button profile-action-primary"
+                        onClick={openCreatePost}>
+                        + Create post
+                    </button>
+                    <button
+                        type="button"
+                        className="profile-action-button"
+                        onClick={() =>
+                            setActiveTab("Appointments")
+                        }>
+                        Manage appointments
+                    </button>
+                </div>
+            )}
 
             {/* BECOME A SELLER */}
             {!isGuest && !hasSellerAccess && (
@@ -578,136 +884,398 @@ function Profile({
             </div>
 
             {isGuest ? (
-                <section className="profile-empty-tab" aria-label={`${activeTab} empty`}>
+                <section
+                    className="profile-empty-tab"
+                    aria-label={`${activeTab} empty`}>
                     <h3>Nothing here yet</h3>
-                    <p><a href="#login">Log in</a> to start exploring your Campus Makers.</p>
+                    <p>
+                        <a href="#login">Log in</a> to start
+                        exploring your Campus Makers.
+                    </p>
                 </section>
-            ) : <>
-            {mode === "seller" && activeTab === "Posts" && <section className="profile-panel seller-panel">
-                <div className="profile-panel-heading"><h3>Your posts</h3><span className="profile-count">{postsError ? "—" : myPosts.length} posts</span></div>
-                <p className="seller-section-description">Share your latest work with your campus.</p>
-                <button type="button" className="profile-action-button profile-action-primary seller-section-action" onClick={() => setShowComposer(true)}>+ Create post</button>
-                {postsError ? <p role="alert">{postsError}</p> : myPosts.length ? <div className="profile-post-feed">
-                    {myPosts.map(post => <PostCard
-                        key={post.id}
-                        post={toExploreCardPost(post)}
-                        onOpenPost={(id) => { window.location.hash = `explore/${id}`; }}
-                        onOpenSeller={(creator) => { window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}`; }}
-                    />)}
-                </div> : <p className="seller-empty-state">No posts yet. Create your first post to share your work.</p>}
-            </section>}
-            {/* SELLER: LISTINGS */}
-            {mode === "seller" &&
-                hasSellerAccess &&
-                activeTab === "Listings" && (
-                    <section className="profile-listings seller-panel">
-                        <div className="profile-panel-heading">
-                            <h3>Your Listings</h3>
-
-                            <span className="profile-count">
-                                {myListings.length} items
-                            </span>
-                        </div>
-
-                        <p className="seller-section-description">Manage the items you offer to your campus.</p>
-                        <button
-                            type="button"
-                            className="profile-action-button profile-action-primary seller-section-action"
-                            onClick={openCreateListing}>
-                            + Add Listing
-                        </button>
-
-                        <div className="profile-listings-grid">
-                            {myListings.map((listing) => (
-                                <article
-                                    className="profile-listing-card"
-                                    key={listing.id}>
-                                    <ListingGallery
-                                        images={listing.images}
-                                        productName={
-                                            listing.name
-                                        }
-                                    />
-
-                                    <h4>{listing.name}</h4>
-
-                                    <p>
-                                        $
-                                        {listing.price.toFixed(
-                                            2
-                                        )}
-                                    </p>
-
-                                    <span>
-                                        {listing.status}
+            ) : (
+                <>
+                    {mode === "seller" &&
+                        activeTab === "Posts" && (
+                            <section className="profile-panel seller-panel">
+                                <div className="profile-panel-heading">
+                                    <h3>Your posts</h3>
+                                    <span className="profile-count">
+                                        {postsError
+                                            ? "—"
+                                            : myPosts.length}{" "}
+                                        posts
                                     </span>
+                                </div>
+                                <p className="seller-section-description">
+                                    Share your latest work with
+                                    your campus.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="profile-action-button profile-action-primary seller-section-action"
+                                    onClick={openCreatePost}>
+                                    + Create post
+                                </button>
+                                {postsError ? (
+                                    <p role="alert">
+                                        {postsError}
+                                    </p>
+                                ) : myPosts.length ? (
+                                    <div className="profile-post-feed">
+                                        {myPosts.map((post) => (
+                                            <div
+                                                className="profile-own-post"
+                                                key={post.id}>
+                                                <PostCard
+                                                    post={toExploreCardPost(
+                                                        post
+                                                    )}
+                                                    onOpenPost={(
+                                                        id
+                                                    ) => {
+                                                        window.location.hash = `explore/${id}`;
+                                                    }}
+                                                    onOpenSeller={(
+                                                        creator
+                                                    ) => {
+                                                        window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}`;
+                                                    }}
+                                                />
 
-                                    {/* Seller management actions: no Save icon on owned listings. */}
-                                    <div className="profile-listing-management">
-                                        <button
-                                            type="button"
-                                            className="profile-listing-edit"
-                                            onClick={() =>
-                                                openEditListing(
-                                                    listing
-                                                )
-                                            }>
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="profile-listing-delete"
-                                            onClick={() =>
-                                                deleteListing(
-                                                    listing
-                                                )
-                                            }>
-                                            Delete
-                                        </button>
+                                                <details className="profile-post-menu">
+                                                    <summary aria-label="Post options">
+                                                        ⋯
+                                                    </summary>
+
+                                                    <div className="profile-post-menu-options">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openEditPost(
+                                                                    post
+                                                                )
+                                                            }>
+                                                            ✎
+                                                            Edit
+                                                            Post
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="profile-post-menu-delete"
+                                                            disabled={
+                                                                deletingPostId ===
+                                                                post.id
+                                                            }
+                                                            onClick={() =>
+                                                                deletePost(
+                                                                    post
+                                                                )
+                                                            }>
+                                                            {deletingPostId ===
+                                                            post.id
+                                                                ? "Deleting..."
+                                                                : "Delete Post"}
+                                                        </button>
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        ))}
                                     </div>
-                                </article>
-                            ))}
-                        </div>
-
-                        {myListings.length === 0 && (
-                            <p className="seller-empty-state">
-                                No listings yet. Click + Add
-                                Listing to get started.
-                            </p>
+                                ) : (
+                                    <p className="seller-empty-state">
+                                        No posts yet. Create
+                                        your first post to share
+                                        your work.
+                                    </p>
+                                )}
+                            </section>
                         )}
-                    </section>
-                )}
+                    {/* SELLER: LISTINGS */}
+                    {mode === "seller" &&
+                        hasSellerAccess &&
+                        activeTab === "Listings" && (
+                            <section className="profile-listings seller-panel">
+                                <div className="profile-panel-heading">
+                                    <h3>Your Listings</h3>
 
-            {/* SELLER: APPOINTMENTS */}
-            {mode === "seller" &&
-                hasSellerAccess &&
-                activeTab === "Appointments" && (
-                    <AppointmentManager user={user} />
-                )}
+                                    <span className="profile-count">
+                                        {myListings.length}{" "}
+                                        items
+                                    </span>
+                                </div>
 
-            {/* SELLER: SAVED */}
-            {mode === "seller" && hasSellerAccess && activeTab === "Saved" && <section className="profile-empty-tab"><h3>No saved items to display</h3></section>}
-            {/* BUYER: PICKUPS */}
-            {mode === "buyer" && activeTab === "Pickups" && (
-                <BuyerPickups onDemoAction={showDemoNotice} />
+                                <p className="seller-section-description">
+                                    Manage the items you offer
+                                    to your campus.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="profile-action-button profile-action-primary seller-section-action"
+                                    onClick={openCreateListing}>
+                                    + Add Listing
+                                </button>
+
+                                <div className="profile-listings-grid">
+                                    {myListings.map(
+                                        (listing) => (
+                                            <article
+                                                className="profile-listing-card"
+                                                key={
+                                                    listing.id
+                                                }>
+                                                <ListingGallery
+                                                    images={
+                                                        listing.images
+                                                    }
+                                                    productName={
+                                                        listing.name
+                                                    }
+                                                />
+
+                                                <h4>
+                                                    {
+                                                        listing.name
+                                                    }
+                                                </h4>
+
+                                                <p>
+                                                    $
+                                                    {listing.price.toFixed(
+                                                        2
+                                                    )}
+                                                </p>
+
+                                                <span>
+                                                    {
+                                                        listing.status
+                                                    }
+                                                </span>
+
+                                                {/* Seller management actions: no Save icon on owned listings. */}
+                                                <div className="profile-listing-management">
+                                                    <button
+                                                        type="button"
+                                                        className="profile-listing-edit"
+                                                        onClick={() =>
+                                                            openEditListing(
+                                                                listing
+                                                            )
+                                                        }>
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="profile-listing-delete"
+                                                        onClick={() =>
+                                                            deleteListing(
+                                                                listing
+                                                            )
+                                                        }>
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        )
+                                    )}
+                                </div>
+
+                                {myListings.length === 0 && (
+                                    <p className="seller-empty-state">
+                                        No listings yet. Click +
+                                        Add Listing to get
+                                        started.
+                                    </p>
+                                )}
+                            </section>
+                        )}
+
+                    {/* SELLER: APPOINTMENTS */}
+                    {mode === "seller" &&
+                        hasSellerAccess &&
+                        activeTab === "Appointments" && (
+                            <AppointmentManager user={user} />
+                        )}
+
+                    {/* SELLER: HOSTED EVENTS */}
+                    {mode === "seller" &&
+                        hasSellerAccess &&
+                        activeTab === "Events" && (
+                            <section className="profile-events-section">
+                                <h3>My Hosted Events</h3>
+
+                                {hostedEvents.length === 0 ? (
+                                    <p className="seller-empty-state">
+                                        No hosted events yet.
+                                    </p>
+                                ) : (
+                                    <div className="profile-events-list">
+                                        {hostedEvents.map(
+                                            (event) => (
+                                                <article
+                                                    className="profile-event-card"
+                                                    key={
+                                                        event.id
+                                                    }>
+                                                    <h4>
+                                                        {event.event_title ||
+                                                            "Campus Event"}
+                                                    </h4>
+
+                                                    <p>
+                                                        {new Date(
+                                                            event.event_starts_at
+                                                        ).toLocaleString(
+                                                            "en-US",
+                                                            {
+                                                                dateStyle:
+                                                                    "medium",
+                                                                timeStyle:
+                                                                    "short"
+                                                            }
+                                                        )}
+                                                    </p>
+
+                                                    <p>
+                                                        {event.event_location ||
+                                                            "Location TBD"}
+                                                    </p>
+
+                                                    <button
+                                                        type="button"
+                                                        className="profile-event-button"
+                                                        onClick={() =>
+                                                            onOpenEvent?.(
+                                                                event.id
+                                                            )
+                                                        }>
+                                                        View
+                                                        Event
+                                                    </button>
+                                                </article>
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                    {/* SELLER: SAVED */}
+                    {mode === "seller" &&
+                        hasSellerAccess &&
+                        activeTab === "Saved" && (
+                            <section className="profile-empty-tab">
+                                <h3>
+                                    No saved items to display
+                                </h3>
+                            </section>
+                        )}
+                    {/* BUYER: PICKUPS */}
+                    {mode === "buyer" &&
+                        activeTab === "Pickups" && (
+                            <BuyerPickups
+                                onDemoAction={showDemoNotice}
+                            />
+                        )}
+
+                    {/* BUYER: PURCHASES */}
+                    {mode === "buyer" &&
+                        activeTab === "Purchases" && (
+                            <BuyerPurchases
+                                onDemoAction={showDemoNotice}
+                            />
+                        )}
+
+                    {/* BUYER: JOINED EVENTS */}
+                    {mode === "buyer" &&
+                        activeTab === "Events" && (
+                            <section className="profile-events-section">
+                                <h3>My Joined Events</h3>
+
+                                {joinedEvents.length === 0 ? (
+                                    <p className="profile-events-empty">
+                                        You haven't joined any
+                                        events yet.
+                                    </p>
+                                ) : (
+                                    <div className="profile-events-list">
+                                        {joinedEvents.map(
+                                            (event) => (
+                                                <article
+                                                    className="profile-event-card"
+                                                    key={
+                                                        event.id
+                                                    }>
+                                                    <h4>
+                                                        {event.event_title ||
+                                                            "Campus Event"}
+                                                    </h4>
+
+                                                    <p>
+                                                        {new Date(
+                                                            event.event_starts_at
+                                                        ).toLocaleString(
+                                                            "en-US",
+                                                            {
+                                                                dateStyle:
+                                                                    "medium",
+                                                                timeStyle:
+                                                                    "short"
+                                                            }
+                                                        )}
+                                                    </p>
+
+                                                    <p>
+                                                        {event.event_location ||
+                                                            "Location TBD"}
+                                                    </p>
+
+                                                    <div className="profile-event-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="profile-event-button"
+                                                            onClick={() =>
+                                                                onOpenEvent?.(
+                                                                    event.id
+                                                                )
+                                                            }>
+                                                            View
+                                                            Event
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="profile-event-leave"
+                                                            onClick={() =>
+                                                                onLeaveEvent?.(
+                                                                    event.id
+                                                                )
+                                                            }>
+                                                            Leave
+                                                            Event
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                    {/* BUYER: SAVED */}
+                    {mode === "buyer" &&
+                        activeTab === "Saved" && (
+                            <BuyerSaved
+                                savedItems={sellerSavedItems}
+                                savedIds={savedIds}
+                                onToggleSaved={toggleSaved}
+                                onDemoAction={showDemoNotice}
+                            />
+                        )}
+                </>
             )}
-
-            {/* BUYER: PURCHASES */}
-            {mode === "buyer" && activeTab === "Purchases" && (
-                <BuyerPurchases onDemoAction={showDemoNotice} />
-            )}
-
-            {/* BUYER: SAVED */}
-            {mode === "buyer" && activeTab === "Saved" && (
-                <BuyerSaved
-                    savedItems={sellerSavedItems}
-                    savedIds={savedIds}
-                    onToggleSaved={toggleSaved}
-                    onDemoAction={showDemoNotice}
-                />
-            )}
-
-            </>}
 
             {/* ENLARGED PROFILE PICTURE PREVIEW */}
             {showAvatarPreview && (
@@ -751,9 +1319,29 @@ function Profile({
                         </div>
 
                         <p>Profile Picture</p>
-                        <input ref={photoInputRef} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={changePhoto} />
-                        <button type="button" className="profile-edit-button" disabled={uploadingPhoto} onClick={() => isGuest ? goToLogin() : photoInputRef.current?.click()}>{uploadingPhoto ? "Uploading…" : "Change profile picture"}</button>
-                        {photoError && <p role="alert">{photoError}</p>}
+                        <input
+                            ref={photoInputRef}
+                            type="file"
+                            hidden
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={changePhoto}
+                        />
+                        <button
+                            type="button"
+                            className="profile-edit-button"
+                            disabled={uploadingPhoto}
+                            onClick={() =>
+                                isGuest
+                                    ? goToLogin()
+                                    : photoInputRef.current?.click()
+                            }>
+                            {uploadingPhoto
+                                ? "Uploading…"
+                                : "Change profile picture"}
+                        </button>
+                        {photoError && (
+                            <p role="alert">{photoError}</p>
+                        )}
                     </div>
                 </div>
             )}

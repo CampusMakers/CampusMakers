@@ -21,7 +21,7 @@
     padding: 8px 0;
     border: none;
     background: transparent;
-    color: #a36500;
+    color: #68420d;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -54,7 +54,7 @@
     height: 54px;
     border-radius: 15px;
     background: #ead6ad;
-    color: #a36500;
+    color: #68420d;
     font-size: 30px;
 }
 
@@ -126,7 +126,7 @@
     height: 37px;
     border-radius: 10px;
     background: #ead6ad;
-    color: #a36500;
+    color: #68420d;
     font-size: 20px;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .settings-menu-arrow {
-    color: #a36500;
+    color: #68420d;
     font-size: 23px;
     font-weight: 600;
 }
@@ -544,7 +544,7 @@
 }
 
 .settings-stars button:hover:not(:disabled) {
-    color: #a36500;
+    color: #68420d;
 }
 
 .settings-rating-display {

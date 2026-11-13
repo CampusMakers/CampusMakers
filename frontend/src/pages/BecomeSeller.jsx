@@ -1,173 +1,215 @@
 import { useState } from "react";
-import UniversitySelect from "./UniversitySelect";
+import "./Login.css";
 import "./BecomeSeller.css";
 
-function BecomeSeller({ onBack, onRegistered }) {
-    const [selectedUniversity, setSelectedUniversity] =
-        useState(null);
-
+function BecomeSeller({
+    onBack,
+    onRegistered,
+    onRequestVerification,
+    user,
+    sellerVerified = false
+}) {
     const [schoolEmail, setSchoolEmail] = useState("");
+    const [error, setError] = useState("");
     const [message, setMessage] = useState("");
-    const [hasError, setHasError] = useState(false);
+    const [busy, setBusy] = useState(false);
 
-    const handleSubmit = (event) => {
+    const accountEmail = user?.email || "";
+    const schoolEmailPattern = /^[^\s@]+@[^\s@]+\.edu$/i;
+
+    async function handleVerification(event) {
         event.preventDefault();
 
-        if (!selectedUniversity) {
-            setHasError(true);
-            setMessage(
-                "Please select your university from the dropdown."
-            );
-            return;
-        }
-
-        const validSchoolEmail = /^[^\s@]+@[^\s@]+\.edu$/i.test(
-            schoolEmail.trim()
-        );
-
-        if (!validSchoolEmail) {
-            setHasError(true);
-            setMessage(
-                "Please enter a school email ending in .edu."
-            );
-            return;
-        }
-
-        // Demo only: the email format is checked,
-        // but no real student verification takes place.
-        setHasError(false);
+        setError("");
         setMessage("");
 
-        onRegistered();
-    };
+        const email = schoolEmail.trim().toLowerCase();
+
+        if (!schoolEmailPattern.test(email)) {
+            setError(
+                "Enter a valid university email ending in .edu."
+            );
+            return;
+        }
+
+        // The Profile currently does not provide this callback.
+        // We'll connect it to the backend verification endpoint
+        // once that endpoint is available.
+        if (!onRequestVerification) {
+            setMessage(
+                "Your school email format looks valid. " +
+                    "Verification is not connected yet, " +
+                    "so no email has been sent."
+            );
+            return;
+        }
+
+        setBusy(true);
+
+        try {
+            await onRequestVerification(email);
+
+            setMessage(
+                "Verification requested. Check your school " +
+                    "inbox for the confirmation instructions."
+            );
+        } catch (failure) {
+            setError(
+                failure.message ||
+                    "Could not request verification."
+            );
+        } finally {
+            setBusy(false);
+        }
+    }
 
     return (
-        <div className="become-seller-page">
-            {/* BACK BUTTON */}
+        <section
+            className="login-page seller-onboarding"
+            aria-labelledby="seller-onboarding-heading">
+            <div className="seller-onboarding-top">
+                <span>CAMPUS MAKERS</span>
+                <span className="seller-onboarding-step">
+                    SELLER SETUP
+                </span>
+            </div>
+
+            <div className="seller-onboarding-heading">
+                <h2 id="seller-onboarding-heading">
+                    Start selling on campus.
+                </h2>
+
+                <p>
+                    Turn your creativity into something students
+                    can discover, love, and buy.
+                </p>
+            </div>
+
+            <div className="login-card seller-onboarding-card">
+                <div className="seller-onboarding-card-heading">
+                    <span
+                        className="seller-onboarding-symbol"
+                        aria-hidden="true">
+                        🎓
+                    </span>
+
+                    <div>
+                        <h3>Verify your student status</h3>
+                        <p>
+                            Use your school email to unlock
+                            seller features.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="seller-onboarding-account">
+                    <span>YOUR CURRENT ACCOUNT</span>
+                    <strong>
+                        {accountEmail || "Not signed in"}
+                    </strong>
+                </div>
+
+                {sellerVerified ? (
+                    <div className="seller-onboarding-verified">
+                        <span aria-hidden="true">✓</span>
+
+                        <div>
+                            <h3>You're eligible to sell!</h3>
+                            <p>
+                                Your school email is verified.
+                                No additional verification or
+                                password is needed.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <p className="seller-onboarding-description">
+                            Add your university email below.
+                            You'll use your existing Campus
+                            Makers account and password.
+                        </p>
+
+                        <form
+                            className="seller-onboarding-form"
+                            onSubmit={handleVerification}>
+                            <label htmlFor="seller-school-email">
+                                University email
+                            </label>
+
+                            <input
+                                id="seller-school-email"
+                                type="email"
+                                autoComplete="email"
+                                placeholder="student@university.edu"
+                                value={schoolEmail}
+                                onChange={(event) => {
+                                    setSchoolEmail(
+                                        event.target.value
+                                    );
+                                    setError("");
+                                    setMessage("");
+                                }}
+                                required
+                                disabled={busy}
+                            />
+
+                            <p className="seller-onboarding-hint">
+                                A verification link will be sent
+                                to your school inbox once
+                                verification is available.
+                            </p>
+
+                            {error && (
+                                <p
+                                    className="seller-onboarding-error"
+                                    role="alert">
+                                    {error}
+                                </p>
+                            )}
+
+                            {message && (
+                                <p
+                                    className="seller-onboarding-message"
+                                    role="status">
+                                    {message}
+                                </p>
+                            )}
+
+                            <button
+                                type="submit"
+                                className="login-submit"
+                                disabled={busy}>
+                                {busy
+                                    ? "Requesting verification..."
+                                    : "Continue with School Email →"}
+                            </button>
+                        </form>
+                    </>
+                )}
+
+                {sellerVerified && (
+                    <button
+                        type="button"
+                        className="login-submit"
+                        onClick={onRegistered}>
+                        Continue to Seller Mode →
+                    </button>
+                )}
+
+                <div className="seller-onboarding-footer">
+                    <span aria-hidden="true">🔒</span>
+                    One account. One password. Both modes.
+                </div>
+            </div>
+
             <button
                 type="button"
-                className="become-seller-back"
+                className="seller-onboarding-back"
                 onClick={onBack}>
                 ← Back to Profile
             </button>
-
-            {/* SELLER HEADER */}
-            <div className="become-seller-header">
-                <div className="become-seller-icon">
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        aria-hidden="true">
-                        <path d="M3 9 12 4l9 5v11H3V9Z" />
-                        <path d="M3 9h18M8 20v-7h8v7" />
-                    </svg>
-                </div>
-
-                <h2>Become a Campus Maker</h2>
-
-                <p>
-                    Turn your creativity into a campus business.
-                    Join our community of student sellers.
-                </p>
-            </div>
-
-            {/* SELLER BENEFITS */}
-            <div className="become-seller-benefits">
-                <h3>Why become a seller?</h3>
-
-                <div>
-                    <span>✓</span>
-                    <p>
-                        Create listings for your handmade
-                        products.
-                    </p>
-                </div>
-
-                <div>
-                    <span>✓</span>
-                    <p>Connect with students on your campus.</p>
-                </div>
-
-                <div>
-                    <span>✓</span>
-                    <p>
-                        Manage orders and pickup appointments.
-                    </p>
-                </div>
-            </div>
-
-            {/* SELLER REGISTRATION */}
-            <form
-                className="become-seller-form"
-                onSubmit={handleSubmit}>
-                <h3>School Information</h3>
-
-                <p>
-                    To preview the Campus Makers seller
-                    experience, select your university and enter
-                    a school email.
-                </p>
-
-                {/* SEARCHABLE UNIVERSITY DROPDOWN */}
-                <UniversitySelect
-                    value={selectedUniversity}
-                    onChange={(university) => {
-                        setSelectedUniversity(university);
-                        setMessage("");
-                    }}
-                />
-
-                {/* SCHOOL EMAIL */}
-                <label htmlFor="seller-email">
-                    School Email
-                </label>
-
-                <input
-                    id="seller-email"
-                    type="email"
-                    value={schoolEmail}
-                    onChange={(event) => {
-                        setSchoolEmail(event.target.value);
-                        setMessage("");
-                    }}
-                    placeholder="yourname@university.edu"
-                    autoComplete="email"
-                    required
-                />
-
-                <p className="become-seller-hint">
-                    For this demo, enter a sample email ending
-                    in .edu.
-                </p>
-
-                {/* VALIDATION MESSAGE */}
-                {message && (
-                    <div
-                        className={`become-seller-message ${
-                            hasError
-                                ? "become-seller-message-error"
-                                : "become-seller-message-info"
-                        }`}
-                        role="status">
-                        {message}
-                    </div>
-                )}
-
-                <button
-                    type="submit"
-                    className="become-seller-submit">
-                    Continue to Seller Preview →
-                </button>
-
-                <p className="become-seller-disclaimer">
-                    Demo only. No real seller account is created
-                    or verified. Preview access is saved in this
-                    browser.
-                </p>
-            </form>
-        </div>
+        </section>
     );
 }
 

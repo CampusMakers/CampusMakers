@@ -40,7 +40,7 @@
     border: 1px solid #dfcbb0;
     border-radius: 20px;
     background: #fff8eb;
-    color: #a36500;
+    color: #68420d;
     font-size: 10px;
     font-weight: 700;
 }
@@ -113,7 +113,7 @@
 }
 
 .buyer-pickup-product-info strong {
-    color: #cc8000;
+    color: #805516;
     font-size: 14px;
 }
 
@@ -176,7 +176,7 @@
     flex-shrink: 0;
     border-radius: 8px;
     background: #ead6ad;
-    color: #a36500;
+    color: #68420d;
 }
 
 .buyer-pickup-detail-icon svg {
@@ -229,19 +229,19 @@
 }
 
 .buyer-pickup-primary {
-    border: 1px solid #cc8000;
-    background: #cc8000;
+    border: 1px solid #805516;
+    background: #805516;
     color: white;
 }
 
 .buyer-pickup-primary:hover {
-    background: #a36500;
+    background: #68420d;
 }
 
 .buyer-pickup-secondary {
-    border: 1px solid #cc8000;
+    border: 1px solid #805516;
     background: #faf2e3;
-    color: #a36500;
+    color: #68420d;
 }
 
 .buyer-pickup-secondary:hover {
@@ -283,7 +283,7 @@
 }
 
 .buyer-event-date span {
-    color: #cc8000;
+    color: #805516;
     font-size: 10px;
     font-weight: 700;
 }
@@ -339,10 +339,10 @@
 
 .buyer-event-bottom button {
     padding: 9px 12px;
-    border: 1px solid #cc8000;
+    border: 1px solid #805516;
     border-radius: 9px;
     background: #faf2e3;
-    color: #a36500;
+    color: #68420d;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
@@ -435,10 +435,10 @@
     min-height: 42px;
     margin-top: 12px;
     padding: 11px;
-    border: 1px solid #cc8000;
+    border: 1px solid #805516;
     border-radius: 9px;
     background: #faf2e3;
-    color: #a36500;
+    color: #68420d;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -516,7 +516,7 @@
 .buyer-pickup-pin-code {
     margin: 22px 0 10px;
     padding: 18px;
-    border: 2px dashed #cc8000;
+    border: 2px dashed #805516;
     border-radius: 12px;
     background: #faf2e3;
     color: #704b18;
@@ -534,7 +534,7 @@
 }
 
 .buyer-pickup-pin-note strong {
-    color: #a36500;
+    color: #68420d;
     font-size: 12px;
 }
 
@@ -551,7 +551,7 @@
     padding: 12px;
     border: none;
     border-radius: 10px;
-    background: #cc8000;
+    background: #805516;
     color: white;
     font-size: 13px;
     font-weight: 700;
@@ -559,5 +559,5 @@
 }
 
 .buyer-pickup-pin-done:hover {
-    background: #a36500;
+    background: #68420d;
 }

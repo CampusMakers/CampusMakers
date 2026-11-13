@@ -40,7 +40,7 @@
     border: 1px solid #dfcbb0;
     border-radius: 20px;
     background: #fff8eb;
-    color: #a36500;
+    color: #68420d;
     font-size: 10px;
     font-weight: 700;
 }
@@ -122,7 +122,7 @@
 }
 
 .buyer-purchase-product-info strong {
-    color: #cc8000;
+    color: #805516;
     font-size: 14px;
 }
 
@@ -181,19 +181,19 @@
 }
 
 .buyer-purchase-primary {
-    border: 1px solid #cc8000;
-    background: #cc8000;
+    border: 1px solid #805516;
+    background: #805516;
     color: white;
 }
 
 .buyer-purchase-primary:hover {
-    background: #a36500;
+    background: #68420d;
 }
 
 .buyer-purchase-secondary {
-    border: 1px solid #cc8000;
+    border: 1px solid #805516;
     background: #faf2e3;
-    color: #a36500;
+    color: #68420d;
 }
 
 .buyer-purchase-secondary:hover {
@@ -240,10 +240,10 @@
 
 .buyer-purchase-expanded > button {
     padding: 10px;
-    border: 1px solid #cc8000;
+    border: 1px solid #805516;
     border-radius: 9px;
     background: #fff8eb;
-    color: #a36500;
+    color: #68420d;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
