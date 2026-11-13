@@ -340,6 +340,7 @@ function Profile({
         return (
             <div className="profile-page">
                 <Settings
+                    user={user}
                     email={user.email}
                     profile={profile}
                     onBack={() => setShowSettings(false)}

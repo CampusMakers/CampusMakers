@@ -286,3 +286,341 @@
         padding: 18px 14px;
     }
 }
+
+/* ==========================================
+   SETTINGS - FORMS AND ACTIVITIES
+   ========================================== */
+
+/* FORM LAYOUT */
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-top: 22px;
+}
+
+.settings-field {
+    display: block;
+    margin-top: 5px;
+    margin-bottom: -5px;
+    color: #704b18;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+/* INPUTS, SELECTS AND TEXTAREAS */
+
+.settings-input,
+.settings-textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 13px 14px;
+    box-sizing: border-box;
+    border: 1px solid #dfcbb0;
+    border-radius: 10px;
+    outline: none;
+    background: #fffdf8;
+    color: #3d2c1e;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.settings-input {
+    min-height: 46px;
+}
+
+.settings-textarea {
+    min-height: 130px;
+    resize: vertical;
+}
+
+.settings-input::placeholder,
+.settings-textarea::placeholder {
+    color: #a89a87;
+}
+
+.settings-input:focus,
+.settings-textarea:focus {
+    border-color: #b77c22;
+    box-shadow: 0 0 0 3px rgba(183, 124, 34, 0.12);
+}
+
+/* PRIMARY ACTION BUTTON */
+
+.settings-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 12px 22px;
+    margin-top: 8px;
+    border: 1px solid #805516;
+    border-radius: 10px;
+    background: #805516;
+    color: #fffaf0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.settings-action:hover:not(:disabled) {
+    background: #68420d;
+}
+
+.settings-action:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.settings-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* DEMO NOTICES */
+
+.settings-demo-note {
+    margin: 14px 0 20px;
+    border-left: 3px solid #bd8a3c;
+    background: #f6ead5;
+}
+
+/* ACTIVITY NAVIGATION */
+
+.settings-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.settings-tabs button {
+    flex: 1 1 110px;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #dfcbb0;
+    border-radius: 9px;
+    background: #faf2e3;
+    color: #704b18;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.settings-tabs button:hover {
+    border-color: #b77c22;
+}
+
+.settings-tabs .settings-tab-active {
+    border-color: #805516;
+    background: #805516;
+    color: #fffaf0;
+}
+
+/* ACTIVITY CARDS */
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin-top: 18px;
+}
+
+.settings-list h4 {
+    margin: 12px 0 2px;
+    color: #704b18;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.settings-activity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 17px;
+    border: 1px solid #e5d4ba;
+    border-radius: 12px;
+    background: #fffcf6;
+}
+
+.settings-activity-card p {
+    margin: 0;
+    color: #3d2c1e;
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.settings-activity-card strong {
+    color: #704b18;
+    font-size: 13px;
+}
+
+.settings-card-meta {
+    color: #927b5c;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.settings-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 4px;
+}
+
+/* DELETE ACTIONS */
+
+.settings-action-danger {
+    align-self: flex-start;
+    min-height: 36px;
+    padding: 8px 13px;
+    border: 1px solid #e7b5aa;
+    border-radius: 8px;
+    background: #fff1ee;
+    color: #b64435;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.settings-action-danger:hover:not(:disabled) {
+    background: #f8e1dc;
+}
+
+.settings-action-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* SELLER REPLIES */
+
+.settings-seller-reply {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 13px;
+    border-left: 3px solid #c99441;
+    border-radius: 8px;
+    background: #faf2e3;
+}
+
+/* PRODUCT RATINGS */
+
+.settings-stars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.settings-stars button {
+    min-width: 38px;
+    min-height: 42px;
+    padding: 5px;
+    border: none;
+    background: transparent;
+    color: #d9ccb8;
+    font-size: 27px;
+    cursor: pointer;
+}
+
+.settings-stars .settings-star-filled {
+    color: #bd841f;
+}
+
+.settings-stars button:hover:not(:disabled) {
+    color: #a36500;
+}
+
+.settings-rating-display {
+    color: #bd841f !important;
+    font-size: 21px !important;
+    letter-spacing: 3px;
+}
+
+/* FOLLOWED TAGS */
+
+.settings-tag-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 15px;
+    border: 1px solid #e5d4ba;
+    border-radius: 10px;
+    background: #fffcf6;
+}
+
+.settings-tag-row strong {
+    color: #704b18;
+    font-size: 13px;
+}
+
+/* EMPTY STATES AND FEEDBACK */
+
+.settings-empty {
+    margin: 0;
+    padding: 20px 15px;
+    border: 1px dashed #dfcbb0;
+    border-radius: 10px;
+    background: #faf2e3;
+    color: #85745e;
+    font-size: 12px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+.settings-form-error {
+    margin: 10px 0;
+    color: #b64435;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+/* KEYBOARD ACCESSIBILITY */
+
+.settings-page button:focus-visible {
+    outline: 3px solid #c99441;
+    outline-offset: 3px;
+}
+
+/* MOBILE RESPONSIVENESS */
+
+@media (max-width: 600px) {
+    .settings-form {
+        gap: 11px;
+    }
+
+    .settings-action {
+        width: 100%;
+        align-self: stretch;
+    }
+
+    .settings-content {
+        padding: 20px 16px;
+    }
+
+    .settings-activity-card {
+        padding: 14px;
+    }
+
+    .settings-tabs button {
+        font-size: 11px;
+    }
+}
