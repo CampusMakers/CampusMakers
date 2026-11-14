@@ -4,7 +4,7 @@
     margin: 0 auto;
     background: var(--paper);
     position: relative;
-    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
     box-shadow: 0 0 64px #644b1410;
 }
 /* Full-width wordmark, kept shallow so the feed stays in view. */
@@ -61,7 +61,7 @@ h2 {
     align-items: center;
     justify-content: space-around;
     gap: 8px;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
     background: #f8ecd1;
     border-top: 1px solid var(--border);
     box-shadow: 0 -6px 24px #644b1408;
@@ -74,7 +74,7 @@ h2 {
     justify-content: center;
     gap: 5px;
     width: 64px;
-    min-height: 62px;
+    min-height: 48px;
     color: #87632d;
     border-radius: 14px;
     text-decoration: none;
@@ -90,10 +90,12 @@ h2 {
     background: #eed7a9;
     color: #704b18;
 }
-.bottom-nav svg {
-    width: 27px;
-    height: 27px;
-    fill: currentColor;
+.nav-icon {
+    display: block;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    object-fit: contain;
 }
 .blank-page {
     min-height: calc(100svh - 200px);
@@ -111,4 +113,13 @@ h2 {
         scroll-behavior: auto !important;
         transition: none !important;
     }
+}
+
+.preview-notice {
+    margin: 0;
+    padding: 8px 16px;
+    background: #f6f1eb;
+    color: #68523d;
+    font-size: 12px;
+    text-align: center;
 }

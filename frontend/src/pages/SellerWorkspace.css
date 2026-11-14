@@ -1,0 +1,209 @@
+/* Shared seller surfaces: posts, listings, appointments, and their forms. */
+
+.post-collaborators {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #dfd6cd;
+    border-radius: 10px;
+}
+.post-collaborators legend,
+.seller-tool-form label span {
+    color: #786c60;
+    font-size: 0.85em;
+}
+.post-collaborators > div {
+    display: flex;
+    gap: 8px;
+}
+.post-collaborators p {
+    margin: 0 0 10px;
+    color: #68523d;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.post-collaborators input {
+    min-width: 0;
+    flex: 1;
+}
+.post-collaborators ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.post-collaborators li {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f5f1ec;
+    color: #68523d;
+}
+.post-collaborators li button {
+    margin-left: 5px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+.event-composer-details {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid #bcddeb;
+    border-radius: 12px;
+    background: #edf8fe;
+}
+.event-composer-details legend { padding: 0 5px; color: #28688c; font-size: 13px; font-weight: 700; }
+.event-time-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.event-link-picker { display: grid; gap: 7px; }
+.event-link-picker strong { color: #315f77; font-size: 13px; }
+.event-link-picker strong span { color: #617d8c; font-weight: 400; }
+.event-link-picker label { display: block; color: #315f77; font-size: 13px; font-weight: 400; }
+.event-link-picker input { width: auto; margin-right: 5px; }
+.event-listing-option { display: grid; gap: 8px; }
+.event-link-picker .event-listing-availability { display: grid; gap: 5px; margin-left: 22px; }
+.event-listing-availability select { width: 100%; padding: 10px; border: 1px solid #bcddeb; border-radius: 8px; background: #fff; color: #315f77; font: inherit; }
+.profile-page {
+    --seller-surface: #fff8eb;
+    --seller-border: #dfcbb0;
+    --seller-accent: #a36500;
+    --seller-muted: #69533d;
+}
+
+.seller-panel,
+.seller-listing-section {
+    padding: 16px;
+    border: 1px solid var(--seller-border);
+    border-radius: 16px;
+    background: #ebddc5;
+}
+
+.seller-panel .profile-panel-heading h3,
+.seller-listing-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.seller-section-description {
+    margin: 0 0 16px;
+    color: var(--seller-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.profile-page .profile-action-button,
+.profile-page .profile-listing-management button,
+.seller-listing-bottom-actions button {
+    min-height: 44px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.profile-page .profile-action-primary {
+    background: var(--seller-accent);
+    border-color: var(--seller-accent);
+    color: white;
+}
+
+.profile-page .profile-action-primary:hover {
+    background: #80501a;
+}
+
+.seller-section-action {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.seller-panel .profile-appointment-card,
+.seller-panel .profile-listing-card {
+    background: var(--seller-surface);
+    border-color: var(--seller-border);
+    overflow-wrap: anywhere;
+}
+
+.seller-panel .profile-appointment-card h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.seller-panel .profile-appointment-card p {
+    color: var(--seller-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seller-panel a {
+    color: #80501a;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seller-empty-state {
+    margin: 0;
+    padding: 24px 16px;
+    border: 1px dashed var(--seller-border);
+    border-radius: 12px;
+    background: var(--seller-surface);
+    color: var(--seller-muted);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.seller-tool-form input,
+.seller-tool-form textarea,
+.seller-listing-section input:not([type="file"]),
+.seller-listing-section textarea,
+.seller-listing-section select {
+    padding: 12px;
+    border: 1px solid var(--seller-border);
+    border-radius: 10px;
+    background: var(--seller-surface);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.seller-tool-form :is(input, textarea):focus-visible {
+    outline: 2px solid var(--seller-accent);
+    outline-offset: 3px;
+}
+
+.profile-page .profile-action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.seller-status-neutral {
+    background: #e9dfc9;
+    color: var(--seller-muted);
+}
+
+.seller-panel .profile-listing-management {
+    margin-inline: 10px;
+    gap: 6px;
+}
+
+.seller-panel .profile-listing-management button {
+    padding-inline: 6px;
+}
+
+@media (max-width: 380px) {
+    .seller-panel,
+    .seller-listing-section {
+        padding: 12px;
+    }
+
+    .seller-panel .profile-panel-heading {
+        flex-wrap: wrap;
+    }
+
+    .seller-panel .profile-appointment-actions {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,12 +1,13 @@
+import { usePreviewUser } from "../services/usePreviewUser";
 import { useState } from "react";
 import { sellerSavedItems } from "./mockProfileData";
-import { PostCard } from "../Explore Page/Explore";
+import { PostCard } from "./Explore Page/Explore";
 import "./Home.css";
 
-function ProductCard({ product }) {
+function ProductCard({ product, onOpen }) {
     const [imageFailed, setImageFailed] = useState(false);
     return (
-        <article className="home-product-card">
+        <article className="home-product-card" role="link" tabIndex="0" onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }}>
             {imageFailed ? (
                 <div className="home-product-placeholder">
                     Product image
@@ -33,6 +34,7 @@ export default function Home({
     onOpenPost,
     onOpenSeller
 }) {
+    const { user } = usePreviewUser();
     const [showAllProducts, setShowAllProducts] =
         useState(false);
     const [showAllPosts, setShowAllPosts] = useState(false);
@@ -48,7 +50,7 @@ export default function Home({
                 className="home-intro"
                 aria-labelledby="home-title">
                 <h2 id="home-title">
-                    Welcome back, <span>@username</span>
+                    {user ? <>Welcome back, <span>@{user.username || user.email.split("@")[0]}</span></> : "Welcome"}
                 </h2>
                 <p>
                     Find your next favorite creation and the
@@ -73,6 +75,7 @@ export default function Home({
                         <ProductCard
                             key={product.id}
                             product={product}
+                            onOpen={() => onOpenPost(`listing-${product.id}`)}
                         />
                     ))}
                 </div>
@@ -147,16 +150,14 @@ export default function Home({
                 aria-labelledby="home-updates-heading">
                 <div className="home-panel-heading">
                     <h2 id="home-updates-heading">
-                        Your creator updates
+                        {user ? "Follow a creator to see updates" : "Your creator updates"}
                     </h2>
                 </div>
                 <p>
-                    Log in or create a buyer profile to follow
-                    your favorite creators and see their updates
-                    here.
+                    {user ? "Follow a creator to see their updates here." : "Log in or create an account to follow your favorite creators and see their updates here."}
                 </p>
-                <a className="home-login-link" href="#login">
-                    Log in / Create a buyer profile{" "}
+                <a className="home-login-link" href={user ? "#explore" : "#login"}>
+                    {user ? "Explore creators" : "Log in / Create an account"}{" "}
                     <span aria-hidden="true">→</span>
                 </a>
             </section>
