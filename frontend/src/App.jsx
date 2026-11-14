@@ -78,7 +78,7 @@ const currentPage = () => {
         .slice(1)
         .toLowerCase()
         .split("/")[0];
-    if (slug === "login") return "Login";
+    if (!slug || slug === "login") return "Login";
     return slug === "seller"
         ? "Seller"
         : slug === "tag"
@@ -417,7 +417,7 @@ function App() {
                     </h1>
                 </a>
             </header>
-            <p className="preview-notice" role="note">Preview mode — changes stay in this browser. Account login and password recovery are not connected.</p>
+            <p className="preview-notice" role="note">Backend not connected. Login and account services are currently unavailable.</p>
             <main
                 aria-label={`${page} page`}
                 className={

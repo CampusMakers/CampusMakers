@@ -93,7 +93,7 @@ export default function Login() {
             setStep(2);
             return;
         }
-        setErrors({ form: "Login and account creation are not connected in this preview. No account was created and no password was saved." });
+        setErrors({ form: "Backend not connected. Login and account creation are currently unavailable. No account was created and no password was saved." });
 
     };
 
@@ -487,8 +487,8 @@ export default function Login() {
                             <span aria-hidden="true">→</span>
                         </button>
                         <p className="login-demo-note">
-                            Preview only. Login and account creation
-                            are not connected. No passwords are saved.
+                            Backend not connected. Login and account creation
+                            are unavailable. No passwords are saved.
                         </p>
                     </form>
                 )}

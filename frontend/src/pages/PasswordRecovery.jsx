@@ -32,7 +32,7 @@ export default function PasswordRecovery({
         event.preventDefault();
         if (busy) return;
 
-        setError("Password recovery is not connected in this preview. No email was sent and no password was changed.");
+        setError("Backend not connected. Password recovery is unavailable. No email was sent and no password was changed.");
     }
 
     return (
@@ -55,7 +55,7 @@ export default function PasswordRecovery({
                 <p className="login-intro">
                     {isUpdate
                         ? "Choose a new password for your Campus Makers account."
-                        : "Preview the password recovery form. Email delivery is not connected."}
+                        : "Backend not connected. Password reset emails cannot be sent yet."}
                 </p>
 
                 {checking ? (
