@@ -67,8 +67,7 @@ function BecomeSeller({
         <section
             className="login-page seller-onboarding"
             aria-labelledby="seller-onboarding-heading">
-            <p className="preview-notice">Student verification is not connected in this preview.</p>
-            {!sellerVerified && <button type="button" className="profile-action-button" onClick={onRegistered}>Enable seller preview in this browser</button>}
+            <p className="preview-notice">Backend not connected. Student verification is unavailable.</p>
             <div className="seller-onboarding-top">
                 <span>CAMPUS MAKERS</span>
                 <span className="seller-onboarding-step">

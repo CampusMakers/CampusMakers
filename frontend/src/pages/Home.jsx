@@ -52,6 +52,7 @@ export default function Home({
                 <h2 id="home-title">
                     {user ? <>Welcome back, <span>@{user.username || user.email.split("@")[0]}</span></> : "Welcome"}
                 </h2>
+                <p role="status">Backend not connected. Listings and creator posts shown here are sample content.</p>
                 <p>
                     Find your next favorite creation and the
                     makers behind it.
