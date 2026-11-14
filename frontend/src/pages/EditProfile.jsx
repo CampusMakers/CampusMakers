@@ -1,7 +1,61 @@
 import { useRef, useState } from "react";
 import "./EditProfile.css";
 
-import { uploadPhoto } from "../services/photos";
+// Resize uploaded pictures before saving them locally.
+// This also prevents large photos from filling browser storage.
+function resizePhoto(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+
+        image.onload = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                const scale = Math.min(
+                    1,
+                    480 / Math.max(image.width, image.height)
+                );
+
+                canvas.width = Math.max(
+                    1,
+                    Math.round(image.width * scale)
+                );
+                canvas.height = Math.max(
+                    1,
+                    Math.round(image.height * scale)
+                );
+
+                const context = canvas.getContext("2d");
+                if (!context) {
+                    throw new Error(
+                        "Image processing unavailable."
+                    );
+                }
+
+                context.drawImage(
+                    image,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+                resolve(canvas.toDataURL("image/jpeg", 0.8));
+            } catch (error) {
+                reject(error);
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        };
+
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("Could not read that picture."));
+        };
+
+        image.src = url;
+    });
+}
 
 export default function EditProfile({
     profile,
@@ -28,17 +82,19 @@ export default function EditProfile({
         setUploading(true);
 
         try {
-            const image = await uploadPhoto(file);
+            const image = await resizePhoto(file);
             updateField("image", image);
-        } catch (error) {
-            setError(error.message);
+        } catch {
+            setError(
+                "Could not process your picture. Try another image."
+            );
         } finally {
             setUploading(false);
             event.target.value = "";
         }
     };
 
-    const handleSubmit = async (event) => {
+    const handleSubmit = (event) => {
         event.preventDefault();
         setError("");
 
@@ -68,13 +124,17 @@ export default function EditProfile({
             return;
         }
 
-        setUploading(true);
-        try {
-            await onSave({ name, username, bio, image: form.image });
-        } catch (error) {
-            setError(error.message || "Unable to save changes. Please try again.");
-        } finally {
-            setUploading(false);
+        const saved = onSave({
+            name,
+            username,
+            bio,
+            image: form.image
+        });
+
+        if (saved === false) {
+            setError(
+                "Unable to save changes in this browser. Try a smaller photo."
+            );
         }
     };
 
@@ -130,7 +190,7 @@ export default function EditProfile({
                         ref={photoInputRef}
                         className="edit-profile-file-input"
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/*"
                         onChange={handlePhotoChange}
                         disabled={uploading}
                     />
@@ -223,7 +283,7 @@ export default function EditProfile({
                                 event.target.value
                             )
                         }
-                        placeholder="Add bio"
+                        placeholder="Tell everyone a little about yourself..."
                     />
                     <small>
                         {form.bio.length}/500 characters
@@ -257,7 +317,8 @@ export default function EditProfile({
                 </div>
 
                 <p className="edit-profile-demo-note">
-                    Your profile is saved to your account. Pictures are stored in Cloudflare.
+                    Demo mode: Changes are saved in this browser
+                    until account integration is connected.
                 </p>
             </form>
         </section>

@@ -1,4 +1,3 @@
-import { uploadPhoto } from "../services/photos";
 import { useRef, useState } from "react";
 import "./SellerListingForm.css";
 
@@ -17,6 +16,15 @@ const CATEGORIES = [
     "Other Handmade Goods"
 ];
 const CONDITIONS = ["New", "Like New", "Good", "Fair"];
+
+function readPhoto(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Unable to read the photo."));
+        reader.readAsDataURL(file);
+    });
+}
 
 function initialPhotoList(listing) {
     return (listing?.images || [])
@@ -81,13 +89,13 @@ export default function SellerListingForm({
             const added = await Promise.all(
                 files.map(async (file) => ({
                     id: crypto.randomUUID(),
-                    src: await uploadPhoto(file)
+                    src: await readPhoto(file)
                 }))
             );
             setPhotos((current) => [...current, ...added]);
             setCoverId((current) => current ?? added[0]?.id ?? null);
-        } catch (error) {
-            setError(error.message);
+        } catch {
+            setError("The selected photos could not be opened. Please try again.");
         } finally {
             setProcessingPhotos(false);
         }

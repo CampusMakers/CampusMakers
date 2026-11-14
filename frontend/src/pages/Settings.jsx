@@ -1,17 +1,7 @@
 import { useState } from "react";
 import "./Settings.css";
-import { supabase } from "../services/supabase";
 
-function Settings({ onBack, profile, email }) {
-    const [logoutError, setLogoutError] = useState('');
-    const [busy, setBusy] = useState(false);
-    const logout = async () => {
-        setBusy(true);
-        const { error } = await supabase.auth.signOut({ scope: 'local' });
-        if (error) setLogoutError(error.message);
-        else window.location.hash = 'login';
-        setBusy(false);
-    };
+function Settings({ onBack, profile }) {
     const [activeSection, setActiveSection] =
         useState("account");
 
@@ -144,7 +134,10 @@ function Settings({ onBack, profile, email }) {
                             </div>
 
                             <div className="settings-info-row">
-                                <span>Email</span><strong>{email}</strong>
+                                <span>School Email</span>
+                                <strong>
+                                    Not connected yet
+                                </strong>
                             </div>
 
                             <div className="settings-info-row">
@@ -155,7 +148,8 @@ function Settings({ onBack, profile, email }) {
                             </div>
 
                             <p className="settings-note">
-                                Your email is verified by Supabase. Profile edits are currently saved in this browser.
+                                Account information will be
+                                connected to the backend later.
                             </p>
                         </>
                     )}
@@ -210,8 +204,11 @@ function Settings({ onBack, profile, email }) {
                                 account.
                             </p>
 
-                            <button type="button" onClick={logout} disabled={busy}>{busy ? 'Signing out…' : 'Log out'}</button>
-                            {logoutError && <p role="alert">{logoutError}</p>}
+                            <p className="settings-note">
+                                Demo only: authentication has
+                                not been connected yet, so
+                                logout is currently unavailable.
+                            </p>
                         </>
                     )}
 
