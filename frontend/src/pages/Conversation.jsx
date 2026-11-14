@@ -23,7 +23,6 @@ function formatTime(timestamp) {
 }
 
 export default function Conversation({ username, onBack }) {
-    const [canMessage, setCanMessage] = useState(false);
     const [partner, setPartner] = useState(null);
     const [messages, setMessages] = useState([]);
     const [draft, setDraft] = useState("");
@@ -51,7 +50,6 @@ export default function Conversation({ username, onBack }) {
                 if (cancelled) return;
 
                 setPartner(result.partner);
-                setCanMessage(result.canMessage === true);
                 setMessages(result.messages || []);
 
                 // Mark received messages as read.
@@ -98,7 +96,7 @@ export default function Conversation({ username, onBack }) {
 
         const content = draft.trim();
 
-        if (!content || sending || !canMessage || loading || error) return;
+        if (!content || sending) return;
 
         if (content.length > 4000) {
             setActionError(
@@ -333,7 +331,6 @@ export default function Conversation({ username, onBack }) {
                 </p>
             )}
 
-            {!loading && !error && !canMessage && <p role="status">Buyers can only message sellers.</p>}
             {/* MESSAGE INPUT */}
             <form
                 className="conversation-composer"
@@ -348,13 +345,12 @@ export default function Conversation({ username, onBack }) {
                     aria-label="Write a message"
                     rows={2}
                     maxLength={4000}
-                    disabled={loading || Boolean(error) || !canMessage}
+                    disabled={loading || Boolean(error)}
                 />
 
                 <button
                     type="submit"
                     disabled={
-                        !canMessage ||
                         !draft.trim() ||
                         sending ||
                         loading ||

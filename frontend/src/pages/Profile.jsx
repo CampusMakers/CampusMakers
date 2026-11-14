@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { withAvailableUsername } from "../services/usernames";
 
-import { AppointmentManager, PostComposer } from "./SellerTools";
 import ListingGallery from "./ListingGallery";
+import SellerAppointments from "./SellerAppointments";
+import SellerSaved from "./SellerSaved";
 import BuyerPickups from "./BuyerPickups";
 import BuyerPurchases from "./BuyerPurchases";
 import BuyerSaved from "./BuyerSaved";
@@ -14,35 +14,42 @@ import Conversation from "./Conversation";
 import SellerListingForm from "./SellerListingForm";
 
 import {
+    sellerListings,
     sellerSavedItems
 } from "./mockProfileData";
 
 import "./Profile.css";
-import "./SellerWorkspace.css";
-import { supabase } from "../services/supabase";
-import { uploadPhoto } from "../services/photos";
+
+// Temporary browser storage for the seller demo.
+// Remove this when real seller verification is connected.
+const DEMO_SELLER_KEY = "campusMakersDemoSeller";
+
+const PROFILE_KEY = "campusMakersDemoProfile";
+
+const DEFAULT_PROFILE = {
+    name: "Your Name",
+    username: "username",
+    bio: "Student creator at Campus Makers ✨",
+    image: ""
+};
 
 function Profile({
-    user,
-    posts = [],
-    postsError = "",
-    onPublished,
     sellerVerified = false,
     initialConversation = null
 }) {
-    const isGuest = !user;
-    const goToLogin = () => { window.location.hash = "login"; };
-    const initialProfile = isGuest
-        ? { name: "Your Name", username: "username", bio: "Your bio goes here.", image: "" }
-        : { name: user.name || user.email, username: user.username || user.email.split("@")[0], bio: user.bio || "", image: user.image || "" };
-    const [previewMode, setPreviewMode] = useState("buyer");
-    const mode = isGuest ? previewMode : sellerVerified ? "seller" : "buyer";
-    const [selectedTab, setActiveTab] = useState(null);
+    const [mode, setMode] = useState("buyer");
+    const [activeTab, setActiveTab] = useState("Pickups");
     const [notice, setNotice] = useState("");
 
-    const [showComposer, setShowComposer] = useState(false);
-    const myPosts = posts.filter(post => post.seller_id === user?.id);
-    const [myListings, setMyListings] = useState([]);
+    // R03: Seller listings managed by the frontend.
+    // The backend team can replace the initial mock data
+    // with listings from the API later.
+    const [myListings, setMyListings] = useState(() =>
+        sellerListings.map((listing) => ({
+            ...listing,
+            images: [...(listing.images || [])]
+        }))
+    );
     // R03: Dedicated create/edit screen for the seller's listings.
     const [showListingForm, setShowListingForm] =
         useState(false);
@@ -112,37 +119,34 @@ function Profile({
     const [showEditProfile, setShowEditProfile] =
         useState(false);
 
-    const [profile, setProfile] = useState(initialProfile);
-    const [uploadingPhoto, setUploadingPhoto] = useState(false);
-    const [photoError, setPhotoError] = useState("");
-    const photoInputRef = useRef(null);
+    const [profile, setProfile] = useState(() => {
+        try {
+            const saved =
+                window.localStorage.getItem(PROFILE_KEY);
+            return saved
+                ? { ...DEFAULT_PROFILE, ...JSON.parse(saved) }
+                : { ...DEFAULT_PROFILE };
+        } catch {
+            return { ...DEFAULT_PROFILE };
+        }
+    });
 
-    const saveProfile = async (updatedProfile) => {
-        const { error } = await withAvailableUsername(supabase, updatedProfile.username, () => supabase.auth.updateUser({ data: {
-            full_name: updatedProfile.name, username: updatedProfile.username,
-            bio: updatedProfile.bio, avatar_url: updatedProfile.image
-        } }));
-        if (error) throw error;
+    const saveProfile = (updatedProfile) => {
+        try {
+            window.localStorage.setItem(
+                PROFILE_KEY,
+                JSON.stringify(updatedProfile)
+            );
+        } catch {
+            return false;
+        }
+
         setProfile(updatedProfile);
         setShowEditProfile(false);
-        setNotice("Profile changes saved.");
+        setNotice(
+            "Profile changes saved in this browser (demo)."
+        );
         return true;
-    };
-
-    const changePhoto = async (event) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (!file) return;
-        setUploadingPhoto(true);
-        setPhotoError("");
-        try {
-            const image = await uploadPhoto(file);
-            await saveProfile({ ...profile, image });
-        } catch (error) {
-            setPhotoError(error.message);
-        } finally {
-            setUploadingPhoto(false);
-        }
     };
 
     // Settings page
@@ -178,11 +182,8 @@ function Profile({
             }
 
             if (event.key === "Tab") {
-                const controls = [...avatarCloseButtonRef.current.closest('[role="dialog"]').querySelectorAll('button:not(:disabled)')];
-                const first = controls[0];
-                const last = controls[controls.length - 1];
-                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                event.preventDefault();
+                avatarCloseButtonRef.current?.focus();
             }
         };
 
@@ -199,36 +200,56 @@ function Profile({
         };
     }, [showAvatarPreview]);
 
-    const hasSellerAccess = sellerVerified;
-    const canPreviewSeller = isGuest;
+    // Remember whether this browser completed demo signup.
+    const [demoSellerRegistered, setDemoSellerRegistered] =
+        useState(() => {
+            return (
+                typeof window !== "undefined" &&
+                window.localStorage.getItem(DEMO_SELLER_KEY) ===
+                    "true"
+            );
+        });
+
+    // Real verification OR temporary demo registration.
+    const hasSellerAccess =
+        sellerVerified || demoSellerRegistered;
 
     const [savedIds, setSavedIds] = useState(() =>
-        sellerVerified ? [] : sellerSavedItems.map((item) => item.id)
+        sellerSavedItems.map((item) => item.id)
     );
 
     const tabs =
         mode === "seller"
-            ? ["Posts", "Listings", "Appointments", "Saved"]
+            ? ["Listings", "Appointments", "Saved"]
             : ["Pickups", "Purchases", "Saved"];
 
-    const activeTab = tabs.includes(selectedTab) ? selectedTab : tabs[0];
-
-    // Guests can preview the account layouts.
+    // Switch between Buyer and Seller profiles.
     const changeMode = (newMode) => {
-        if (newMode === "seller" && !canPreviewSeller) {
+        if (newMode === "seller" && !hasSellerAccess) {
             return;
         }
 
-        setPreviewMode(newMode);
+        setMode(newMode);
         setActiveTab(
-            newMode === "seller" ? "Posts" : "Pickups"
+            newMode === "seller" ? "Listings" : "Pickups"
         );
         setNotice("");
     };
 
+    // Called when the demo seller form is submitted.
     const completeDemoSellerSignup = () => {
+        setDemoSellerRegistered(true);
+
+        window.localStorage.setItem(DEMO_SELLER_KEY, "true");
+
         setShowSellerSignup(false);
-        setNotice('Seller access requires a confirmed .edu email on your signed-in account.');
+        setMode("seller");
+        setActiveTab("Listings");
+
+        setNotice(
+            "Seller preview enabled! Student verification " +
+                "will be added when the backend is connected."
+        );
     };
 
     const showDemoNotice = (action) => {
@@ -318,7 +339,6 @@ function Profile({
         return (
             <div className="profile-page">
                 <Settings
-                    email={user.email}
                     profile={profile}
                     onBack={() => setShowSettings(false)}
                 />
@@ -338,17 +358,6 @@ function Profile({
         );
     }
 
-    if (showComposer && hasSellerAccess) {
-        return <div className="profile-page"><PostComposer user={user}
-            onCancel={() => setShowComposer(false)}
-            onPublished={post => {
-                onPublished(post);
-                setShowComposer(false);
-                setActiveTab("Posts");
-                setNotice("Your post is published on Explore.");
-            }} /></div>;
-    }
-
     // R03: Create and edit listings on a separate screen.
     if (showListingForm) {
         return (
@@ -366,7 +375,7 @@ function Profile({
     return (
         <div className="profile-page">
             {/* BUYER / SELLER MODE SWITCH */}
-            {canPreviewSeller && (
+            {hasSellerAccess && (
                 <div className="profile-mode-switch">
                     <button
                         type="button"
@@ -402,7 +411,6 @@ function Profile({
                         onClick={() => {
                             setNotice("");
                             setSelectedConversation(null);
-                            if (isGuest) { goToLogin(); return; }
                             setShowMessages(true);
                         }}>
                         ✉
@@ -415,7 +423,6 @@ function Profile({
                         title="Settings"
                         onClick={() => {
                             setNotice("");
-                            if (isGuest) { goToLogin(); return; }
                             setShowSettings(true);
                         }}>
                         ⚙
@@ -444,10 +451,24 @@ function Profile({
                     )}
                 </button>
 
-                <div className="profile-social-stats" aria-label="Profile statistics">
-                    <div><strong>{postsError ? '—' : myPosts.length}</strong><span>Posts</span></div>
-                    <div><strong>0</strong><span>Following</span></div>
-                    <div><strong>0</strong><span>Followers</span></div>
+                {/* PROFILE STATISTICS */}
+                <div
+                    className="profile-social-stats"
+                    aria-label="Profile statistics">
+                    <div>
+                        <strong>—</strong>
+                        <span>Posts</span>
+                    </div>
+
+                    <div>
+                        <strong>—</strong>
+                        <span>Followers</span>
+                    </div>
+
+                    <div>
+                        <strong>—</strong>
+                        <span>Following</span>
+                    </div>
                 </div>
             </div>
 
@@ -460,7 +481,7 @@ function Profile({
                 </p>
 
                 <p className="profile-description">
-                    {profile.bio || <button type="button" className="login-text-button" onClick={() => setShowEditProfile(true)}>Add bio</button>}
+                    {profile.bio}
                 </p>
             </div>
 
@@ -470,21 +491,13 @@ function Profile({
                 className="profile-edit-button"
                 onClick={() => {
                     setNotice("");
-                    if (isGuest) { goToLogin(); return; }
                     setShowEditProfile(true);
                 }}>
                 Edit Profile
             </button>
 
-            {mode === "seller" && <div className="profile-appointment-actions">
-                <button type="button" className="profile-action-button profile-action-primary"
-                    onClick={() => isGuest ? goToLogin() : setShowComposer(true)}>+ Create post</button>
-                <button type="button" className="profile-action-button"
-                    onClick={() => setActiveTab("Appointments")}>Manage appointments</button>
-            </div>}
-
             {/* BECOME A SELLER */}
-            {!isGuest && !hasSellerAccess && (
+            {!hasSellerAccess && (
                 <section className="profile-seller-invite">
                     <div>
                         <h3>
@@ -538,28 +551,11 @@ function Profile({
                 ))}
             </div>
 
-            {isGuest ? (
-                <section className="profile-empty-tab" aria-label={`${activeTab} empty`}>
-                    <h3>Nothing here yet</h3>
-                    <p><a href="#login">Log in</a> to start exploring your Campus Makers.</p>
-                </section>
-            ) : <>
-            {mode === "seller" && activeTab === "Posts" && <section className="profile-panel seller-panel">
-                <div className="profile-panel-heading"><h3>Your posts</h3><span className="profile-count">{postsError ? "—" : myPosts.length} posts</span></div>
-                <p className="seller-section-description">Share your latest work with your campus.</p>
-                <button type="button" className="profile-action-button profile-action-primary seller-section-action" onClick={() => setShowComposer(true)}>+ Create post</button>
-                {postsError ? <p role="alert">{postsError}</p> : myPosts.length ? <div className="profile-card-stack">
-                    {myPosts.map(post => <article className="profile-appointment-card" key={post.id}>
-                        {post.image && <img className="seller-post-photo" src={post.image} alt={post.caption} />}
-                        <p>{post.caption}</p><a href={`#explore/${post.id}`}>View on Explore →</a>
-                    </article>)}
-                </div> : <p className="seller-empty-state">No posts yet. Create your first post to share your work.</p>}
-            </section>}
             {/* SELLER: LISTINGS */}
             {mode === "seller" &&
                 hasSellerAccess &&
                 activeTab === "Listings" && (
-                    <section className="profile-listings seller-panel">
+                    <section className="profile-listings">
                         <div className="profile-panel-heading">
                             <h3>Your Listings</h3>
 
@@ -568,10 +564,9 @@ function Profile({
                             </span>
                         </div>
 
-                        <p className="seller-section-description">Manage the items you offer to your campus.</p>
                         <button
                             type="button"
-                            className="profile-action-button profile-action-primary seller-section-action"
+                            className="profile-add-listing-button"
                             onClick={openCreateListing}>
                             + Add Listing
                         </button>
@@ -629,7 +624,7 @@ function Profile({
                         </div>
 
                         {myListings.length === 0 && (
-                            <p className="seller-empty-state">
+                            <p className="profile-listings-empty">
                                 No listings yet. Click + Add
                                 Listing to get started.
                             </p>
@@ -641,16 +636,21 @@ function Profile({
             {mode === "seller" &&
                 hasSellerAccess &&
                 activeTab === "Appointments" && (
-                    <AppointmentManager user={user} />
+                    <SellerAppointments
+                        onDemoAction={showDemoNotice}
+                    />
                 )}
 
             {/* SELLER: SAVED */}
             {mode === "seller" &&
                 hasSellerAccess &&
                 activeTab === "Saved" && (
-                    <section className="profile-empty-tab">
-                        <h3>No saved items to display</h3>
-                    </section>
+                    <SellerSaved
+                        savedItems={sellerSavedItems}
+                        savedIds={savedIds}
+                        onToggleSaved={toggleSaved}
+                        onDemoAction={showDemoNotice}
+                    />
                 )}
 
             {/* BUYER: PICKUPS */}
@@ -672,8 +672,6 @@ function Profile({
                     onDemoAction={showDemoNotice}
                 />
             )}
-
-            </>}
 
             {/* ENLARGED PROFILE PICTURE PREVIEW */}
             {showAvatarPreview && (
@@ -717,9 +715,6 @@ function Profile({
                         </div>
 
                         <p>Profile Picture</p>
-                        <input ref={photoInputRef} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={changePhoto} />
-                        <button type="button" className="profile-edit-button" disabled={uploadingPhoto} onClick={() => isGuest ? goToLogin() : photoInputRef.current?.click()}>{uploadingPhoto ? "Uploading…" : "Change profile picture"}</button>
-                        {photoError && <p role="alert">{photoError}</p>}
                     </div>
                 </div>
             )}
