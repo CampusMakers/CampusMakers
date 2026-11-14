@@ -4,24 +4,73 @@ import {
     useRef,
     useState
 } from "react";
+import PasswordRecovery from "./pages/PasswordRecovery";
 import "./App.css";
+import { previewStore } from "./services/previewStore";
+import { sellerListings } from "./pages/mockProfileData";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import { usePreviewUser } from "./services/usePreviewUser";
+import calendarIcon from "./assets/nav-icons/Calendar.svg";
+import exploreIcon from "./assets/nav-icons/Explore.svg";
+import homeIcon from "./assets/nav-icons/Home.svg";
+import mapIcon from "./assets/nav-icons/Map.svg";
+import profileIcon from "./assets/nav-icons/Profile.svg";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
+import ProductDetail from "./pages/ProductDetail";
 import {
     ExplorePage,
     PostDetail,
-    SellerProfilePage
-} from "./Explore Page/Explore";
+    SellerProfilePage,
+    TagPage
+} from "./pages/Explore Page/Explore";
 import {
     createExploreFeed,
+    currentProfileFeedUsername,
     currentExplorePostId,
     currentPostSource,
     currentSellerUsername,
+    currentTagName,
+    exploreListings,
     explorePosts
-} from "./Explore Page/exploreData";
+} from "./pages/Explore Page/exploreData";
+
+const asExplorePost = (post) => ({
+    ...post,
+    id: `post-${post.id}`,
+    type: post.post_type || (post.image ? "image" : "text"),
+    tags: post.tags?.length ? post.tags : ["Campus makers"],
+    layout: "standard",
+    tone: "peach"
+});
+
+// R04 frontend preview only: registrations are not sent to the backend.
+// Keys are scoped by the signed-in user's ID, not shared across accounts.
+const EVENT_JOINS_STORAGE_KEY =
+    "campus-makers-r04-event-joins-preview";
+
+function readPreviewEventJoins() {
+    try {
+        const saved = window.localStorage.getItem(
+            EVENT_JOINS_STORAGE_KEY
+        );
+        const parsed = saved ? JSON.parse(saved) : {};
+        return parsed &&
+            typeof parsed === "object" &&
+            !Array.isArray(parsed)
+            ? parsed
+            : {};
+    } catch {
+        return {};
+    }
+}
+
+const eventPostId = (id) => {
+    const value = String(id);
+    return value.startsWith("post-") ? value : `post-${value}`;
+};
 
 const pages = ["Home", "Map", "Calendar", "Explore", "Profile"];
 const currentPage = () => {
@@ -32,8 +81,10 @@ const currentPage = () => {
     if (slug === "login") return "Login";
     return slug === "seller"
         ? "Seller"
-        : pages.find((page) => page.toLowerCase() === slug) ||
-              "Home";
+        : slug === "tag"
+          ? "Tag"
+          : pages.find((page) => page.toLowerCase() === slug) ||
+            "Home";
 };
 
 const currentMessageRecipient = () => {
@@ -51,58 +102,199 @@ const currentMessageRecipient = () => {
 };
 
 function Icon({ name }) {
-    const shapes = {
-        Home: <path d="M4 12 16 2l12 10v18H4Z" />,
-        Map: (
-            <path
-                fillRule="evenodd"
-                d="M16 1a11 11 0 0 0-11 11c0 8 11 20 11 20s11-12 11-20A11 11 0 0 0 16 1Zm0 7a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"
-            />
-        ),
-        Calendar: (
-            <>
-                <path d="M3 3h26v27H3z" />
-                <path d="M3 8h26v3H3z" fill="var(--paper)" />
-            </>
-        ),
-        Explore: (
-            <g
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2">
-                <circle cx="13" cy="13" r="10" />
-                <path d="m21 21 10 10" />
-            </g>
-        ),
-        Profile: (
-            <>
-                <circle cx="16" cy="5" r="4" />
-                <path d="m16 11 11 19H5Z" />
-            </>
-        )
+    const icons = {
+        Home: homeIcon,
+        Map: mapIcon,
+        Calendar: calendarIcon,
+        Explore: exploreIcon,
+        Profile: profileIcon
     };
+
     return (
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-            {shapes[name]}
-        </svg>
+        <img
+            className="nav-icon"
+            src={icons[name]}
+            alt=""
+            aria-hidden="true"
+        />
     );
 }
 
 function App() {
+    const { user, loading } = usePreviewUser();
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
         ),
+        [eventDetailsOpen, setEventDetailsOpen] = useState(() =>
+            /\/event-details(?:\?|$)/i.test(
+                window.location.hash
+            )
+        ),
         [postSource, setPostSource] = useState(
             currentPostSource
+        ),
+        [profileFeedUser, setProfileFeedUser] = useState(
+            currentProfileFeedUsername
         ),
         [selectedSeller, setSelectedSeller] = useState(
             currentSellerUsername
         ),
+        [selectedTag, setSelectedTag] =
+            useState(currentTagName),
         [exploreFeed, setExploreFeed] = useState(
             createExploreFeed
         );
-    const lastPage = useRef(currentPage());
+
+    const [publishedPosts, setPublishedPosts] = useState([]);
+    const [listingsByUser, setListingsByUser] = useState(() => ({ "preview-user": sellerListings.map(item => ({ ...item, images: [...(item.images || [])] })) }));
+    const listingOwner = user?.id || "guest";
+    const myListings = listingsByUser[listingOwner] || [];
+    const setMyListings = (value) =>
+        setListingsByUser((current) => ({
+            ...current,
+            [listingOwner]:
+                typeof value === "function"
+                    ? value(current[listingOwner] || [])
+                    : value
+        }));
+
+    const [postsError, setPostsError] = useState("");
+    useEffect(() => {
+        if (!previewStore) return;
+        let active = true;
+        const loadPosts = () =>
+            previewStore
+                .from("maker_posts")
+                .select("*")
+                .order("created_at", { ascending: false })
+                .then(({ data, error }) => {
+                    if (!active) return;
+                    if (error)
+                        setPostsError(
+                            "Posts could not be loaded. Please try again later."
+                        );
+                    else {
+                        setPublishedPosts(
+                            data.map(asExplorePost)
+                        );
+                        setPostsError("");
+                    }
+                });
+        loadPosts();
+        window.addEventListener("campus-makers-preview", loadPosts);
+        const timer = window.setInterval(loadPosts, 30000);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+            window.removeEventListener("campus-makers-preview", loadPosts);
+        };
+    }, []);
+
+    // R04: Share the same real seller-created events with Calendar and Profile.
+    const realEvents = publishedPosts.filter(
+        (post) => post.is_event
+    );
+
+    // R04 FRONTEND PREVIEW: local-only joined events, separated by account.
+    // TODO (backend): replace with authenticated event attendance endpoints.
+    const [joinedEventsByUser, setJoinedEventsByUser] =
+        useState(readPreviewEventJoins);
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(
+                EVENT_JOINS_STORAGE_KEY,
+                JSON.stringify(joinedEventsByUser)
+            );
+        } catch {
+            // Local preview still works in memory if storage is unavailable.
+        }
+    }, [joinedEventsByUser]);
+
+    const joinedEventIds =
+        user?.id && Array.isArray(joinedEventsByUser[user.id])
+            ? joinedEventsByUser[user.id]
+            : [];
+    const joinedEvents = realEvents.filter((event) =>
+        joinedEventIds.includes(event.id)
+    );
+    const hostedEvents = user?.id
+        ? realEvents.filter(
+              (event) => event.seller_id === user.id
+          )
+        : [];
+
+    const joinEvent = (id) => {
+        if (!user?.id) {
+            window.location.hash = "login";
+            return false;
+        }
+
+        const postId = eventPostId(id);
+        // Sample calendar projects must never become real registrations.
+        if (!realEvents.some((event) => event.id === postId)) {
+            return false;
+        }
+
+        setJoinedEventsByUser((current) => {
+            const previous = Array.isArray(current[user.id])
+                ? current[user.id]
+                : [];
+            if (previous.includes(postId)) return current;
+            return {
+                ...current,
+                [user.id]: [...previous, postId]
+            };
+        });
+        return true;
+    };
+
+    const leaveEvent = (id) => {
+        if (!user?.id) return false;
+        const postId = eventPostId(id);
+        setJoinedEventsByUser((current) => ({
+            ...current,
+            [user.id]: (Array.isArray(current[user.id])
+                ? current[user.id]
+                : []
+            ).filter((joinedId) => joinedId !== postId)
+        }));
+        return true;
+    };
+
+    const allPosts = [...publishedPosts, ...explorePosts];
+    const activeListings = myListings
+        .filter((item) => item.status === "Active")
+        .map((item) => ({
+            ...item,
+            id: `listing-${item.id}`,
+            creator: `@${user?.username || user?.email?.split("@")[0] || "maker"}`,
+            image: item.images?.[0] || item.image,
+            type: "listing",
+            caption: item.name,
+            layout: "portrait",
+            tone: "peach"
+        }));
+    const eventListings = allPosts.flatMap((post) =>
+        (post.event_listings || []).map((item) => ({
+            ...item,
+            id: `listing-${item.id}`,
+            creator: item.creator || post.creator,
+            type: "listing",
+            caption: item.name,
+            tags: [],
+            layout: "portrait",
+            tone: "peach"
+        }))
+    );
+    const allListings = [
+        ...activeListings,
+        ...exploreListings,
+        ...eventListings
+    ];
+    const exploreSession = useRef(
+        ["Explore", "Tag"].includes(currentPage())
+    );
 
     const [messageRecipient, setMessageRecipient] = useState(
         currentMessageRecipient
@@ -110,16 +302,19 @@ function App() {
     useEffect(() => {
         const onNavigation = () => {
             const nextPage = currentPage();
-            if (
-                nextPage === "Explore" &&
-                lastPage.current !== "Explore"
-            )
-                setExploreFeed(createExploreFeed());
-            lastPage.current = nextPage;
+            if (nextPage === "Explore" || nextPage === "Tag")
+                exploreSession.current = true;
             setPage(nextPage);
             setSelectedPostId(currentExplorePostId());
+            setEventDetailsOpen(
+                /\/event-details(?:\?|$)/i.test(
+                    window.location.hash
+                )
+            );
             setPostSource(currentPostSource());
+            setProfileFeedUser(currentProfileFeedUsername());
             setSelectedSeller(currentSellerUsername());
+            setSelectedTag(currentTagName());
             setMessageRecipient(currentMessageRecipient());
         };
         window.addEventListener("hashchange", onNavigation);
@@ -135,7 +330,13 @@ function App() {
             left: 0,
             behavior: "instant"
         });
-    }, [page, selectedPostId, selectedSeller]);
+    }, [
+        page,
+        selectedPostId,
+        selectedSeller,
+        selectedTag,
+        eventDetailsOpen
+    ]);
 
     const openPost = (id, source = "explore") => {
             window.location.hash = `explore/${id}${source === "home" ? "?from=home" : ""}`;
@@ -145,10 +346,66 @@ function App() {
                 page === "Home" ? "home" : postSource;
             window.location.hash = `seller/${encodeURIComponent(creator.slice(1))}${source === "home" ? "?from=home" : ""}`;
         },
-        selectedPost = explorePosts.find(
+        openTag = (tag) => {
+            window.location.hash = `tag/${encodeURIComponent(tag)}`;
+        },
+        selectedPost = [...allPosts, ...allListings].find(
             (post) => post.id === selectedPostId
         );
-    return (
+    // R04: Open the existing event details screen, preserving the source
+    // so Back returns to Calendar or Profile.
+    const openEvent = (id, from = "calendar") => {
+        const postId = eventPostId(id);
+        if (!realEvents.some((event) => event.id === postId))
+            return;
+
+        const source =
+            from === "profile" ? "profile" : "calendar";
+        window.location.hash = `explore/${postId}/event-details?from=${source}`;
+    };
+
+    const eventOpenSource = new URLSearchParams(
+        window.location.hash.split("?")[1] || ""
+    ).get("from");
+    const eventBackTarget =
+        eventOpenSource === "calendar" ||
+        eventOpenSource === "profile"
+            ? eventOpenSource
+            : null;
+    const eventReturn = new URLSearchParams(
+        window.location.hash.split("?")[1]
+    ).get("eventReturn");
+    const linkedEventDetails =
+        eventReturn &&
+        /^#explore\/(?:post-)?\d+\/event-details(?:\?.*)?$/i.test(
+            eventReturn
+        )
+            ? eventReturn
+            : null;
+    const profileListingReturn =
+        selectedPost?.type === "listing" && profileFeedUser
+            ? `seller/${encodeURIComponent(profileFeedUser.slice(1))}?tab=listings${new URLSearchParams(window.location.hash.split("?")[1]).get("source") === "home" ? "&from=home" : ""}`
+            : null;
+    const profileFeedPosts = profileFeedUser
+        ? [...publishedPosts, ...exploreFeed].filter(
+              (post) =>
+                  (post.creator === profileFeedUser ||
+                      post.collaborators?.includes(
+                          profileFeedUser
+                      )) &&
+                  post.type !== "listing"
+          )
+        : null;
+
+    if (
+    new URLSearchParams(window.location.search).has(
+        "reset_password"
+    )
+) {
+    return <PasswordRecovery mode="update" />;
+}
+
+        return (
         <div className="app-shell">
             <header className="brand">
                 <a
@@ -160,6 +417,7 @@ function App() {
                     </h1>
                 </a>
             </header>
+            <p className="preview-notice" role="note">Preview mode — changes stay in this browser. Account login and password recovery are not connected.</p>
             <main
                 aria-label={`${page} page`}
                 className={
@@ -167,11 +425,13 @@ function App() {
                         ? "home"
                         : page === "Explore"
                           ? "explore"
-                          : "blank-page"
+                          : page === "Tag"
+                            ? "explore"
+                            : "blank-page"
                 }>
                 {page === "Home" && (
                     <Home
-                        posts={explorePosts}
+                        posts={allPosts}
                         onOpenPost={(id) =>
                             openPost(id, "home")
                         }
@@ -179,34 +439,201 @@ function App() {
                     />
                 )}
                 {page === "Explore" &&
-                    (selectedPost ? (
-                        <PostDetail
-                            key={selectedPost.id}
-                            post={selectedPost}
+                    (selectedPost?.type === "listing" ? (
+                        <ProductDetail
+                            key={`${selectedPost.id}:${user?.id || "guest"}`}
+                            product={selectedPost}
+                            user={user}
+                            viewerId={user?.id}
+                            products={allListings}
                             backLabel={
-                                postSource === "home"
-                                    ? "Back to Home"
-                                    : "Back to Explore"
+                                linkedEventDetails
+                                    ? "Back to Post"
+                                    : profileListingReturn
+                                      ? "Back to Profile"
+                                      : postSource === "home"
+                                        ? "Back to Home"
+                                        : "Back to Explore"
                             }
                             onBack={() => {
                                 window.location.hash =
+                                    linkedEventDetails ||
+                                    profileListingReturn ||
                                     postSource;
+                            }}
+                            onOpenProduct={(id) =>
+                                openPost(id, postSource)
+                            }
+                            onOpenSeller={openSeller}
+                            onOpenTag={openTag}
+                            onMessageUser={(username) => {
+                                window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
+                            }}
+                        />
+                    ) : selectedPost ? (
+                        <PostDetail
+                            key={selectedPost.id}
+                            post={selectedPost}
+                            user={user}
+                            eventListings={myListings}
+                            joinedEventIds={joinedEventIds}
+                            onJoinEvent={joinEvent}
+                            onLeaveEvent={leaveEvent}
+                            eventDetailsBackLabel={
+                                eventBackTarget === "calendar"
+                                    ? "Back to Calendar"
+                                    : eventBackTarget ===
+                                        "profile"
+                                      ? "Back to Profile"
+                                      : "Back to Explore"
+                            }
+                            onEventUpdated={(post) =>
+                                setPublishedPosts((current) =>
+                                    current.map((item) =>
+                                        item.id ===
+                                        `post-${post.id}`
+                                            ? asExplorePost(
+                                                  post
+                                              )
+                                            : item
+                                    )
+                                )
+                            }
+                            eventDetailsOpen={
+                                eventDetailsOpen &&
+                                selectedPost.is_event
+                            }
+                            onOpenEventDetails={(id) => {
+                                const query =
+                                    window.location.hash.split(
+                                        "?"
+                                    )[1];
+                                window.location.hash = `explore/${id}/event-details${query ? `?${query}` : ""}`;
+                            }}
+                            backLabel={
+                                eventDetailsOpen &&
+                                eventBackTarget
+                                    ? eventBackTarget ===
+                                      "calendar"
+                                        ? "Back to Calendar"
+                                        : "Back to Profile"
+                                    : linkedEventDetails
+                                      ? "Back to Post"
+                                      : profileFeedUser
+                                        ? "Back to Profile"
+                                        : postSource === "home"
+                                          ? "Back to Home"
+                                          : "Back to Explore"
+                            }
+                            onBack={() => {
+                                window.location.hash =
+                                    (eventDetailsOpen &&
+                                        eventBackTarget) ||
+                                    linkedEventDetails ||
+                                    (profileFeedUser
+                                        ? `seller/${encodeURIComponent(profileFeedUser.slice(1))}`
+                                        : postSource);
+                            }}
+                            profileFeed={profileFeedPosts}
+                            profileFeedUser={profileFeedUser}
+                            canReply={Boolean(
+                                user?.sellerVerified
+                            )}
+                            onMessageUser={(username) => {
+                                window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
                             }}
                             onOpenPost={(id) =>
                                 openPost(id, postSource)
                             }
+                            onOpenEventPost={(id) => {
+                                const query =
+                                    new URLSearchParams({
+                                        eventReturn:
+                                            window.location.hash
+                                    });
+                                window.location.hash = `explore/${id}?${query}`;
+                            }}
+                            onBackFromEventDetails={() => {
+                                window.location.hash =
+                                    eventBackTarget ||
+                                    "explore";
+                            }}
                             onOpenSeller={openSeller}
+                            onOpenTag={openTag}
+                            relatedPosts={allPosts}
                         />
                     ) : (
                         <ExplorePage
-                            posts={exploreFeed}
+                            posts={[
+                                ...publishedPosts,
+                                ...activeListings,
+                                ...exploreFeed
+                            ]}
                             onOpenPost={openPost}
                             onOpenSeller={openSeller}
                         />
                     ))}
+                {page === "Tag" && selectedTag && (
+                    <TagPage
+                        key={selectedTag.toLowerCase()}
+                        tag={selectedTag}
+                        posts={[
+                            ...allPosts,
+                            ...activeListings,
+                            ...exploreListings
+                        ]}
+                        viewerId={user?.id}
+                        onBack={() => {
+                            window.location.hash = "explore";
+                        }}
+                        onOpenPost={openPost}
+                        onOpenSeller={openSeller}
+                    />
+                )}
                 {page === "Seller" && selectedSeller && (
                     <SellerProfilePage
+                        key={selectedSeller}
                         seller={selectedSeller}
+                        posts={[
+                            ...publishedPosts,
+                            ...exploreFeed.filter(
+                                (post) =>
+                                    post.type !== "listing"
+                            ),
+                            ...allListings.filter(
+                                (item, index) =>
+                                    allListings.findIndex(
+                                        (listing) =>
+                                            listing.id ===
+                                            item.id
+                                    ) === index
+                            )
+                        ]}
+                        initialTab={
+                            new URLSearchParams(
+                                window.location.hash.split(
+                                    "?"
+                                )[1]
+                            ).get("tab") === "listings"
+                                ? "Listings"
+                                : "Posts"
+                        }
+                        canMessage={Boolean(user)}
+                        canFollow={Boolean(user)}
+                        viewerId={user?.id}
+                        onOpenPost={(id) => {
+                            window.location.hash = `explore/${id}?from=profile&profile=${encodeURIComponent(selectedSeller.slice(1))}`;
+                        }}
+                        onOpenListing={(id) => {
+                            const query = new URLSearchParams({
+                                from: "profile",
+                                profile:
+                                    selectedSeller.slice(1),
+                                source: postSource
+                            });
+                            window.location.hash = `explore/${id}?${query}`;
+                        }}
+                        onOpenSeller={openSeller}
                         backLabel={
                             postSource === "home"
                                 ? "Back to Home"
@@ -231,14 +658,77 @@ function App() {
                     />
                 )}
                 {page === "Map" && <MapPage />}
-                {page === "Calendar" && <CalendarPage />}
-                {page === "Profile" && (
-                    <Profile
-                        key={messageRecipient ?? "profile"}
-                        initialConversation={messageRecipient}
+                {page === "Calendar" && (
+                    <CalendarPage
+                        events={realEvents}
+                        user={user}
+                        joinedEventIds={joinedEventIds}
+                        onJoinEvent={joinEvent}
+                        onLeaveEvent={leaveEvent}
+                        onOpenEvent={openEvent}
                     />
                 )}
-                {page === "Login" && <Login />}
+                {page === "Profile" && !loading && (
+                    <Profile
+                        key={`${user?.id ?? "guest"}:${messageRecipient ?? "profile"}`}
+                        user={user}
+                        posts={publishedPosts}
+                        myListings={myListings}
+                        setMyListings={setMyListings}
+                        postsError={postsError}
+                        onPublished={(post) => {
+                            setPublishedPosts((current) => [
+                                asExplorePost(post),
+                                ...current.filter(item => item.id !== `post-${post.id}`)
+                            ]);
+                            setPostsError("");
+                        }}
+                        onPostUpdated={(post) => {
+                            const updatedPost =
+                                asExplorePost(post);
+
+                            setPublishedPosts((current) =>
+                                current.map((item) =>
+                                    item.id === updatedPost.id
+                                        ? updatedPost
+                                        : item
+                                )
+                            );
+                        }}
+                        onPostDeleted={(postId) => {
+                            setPublishedPosts((current) =>
+                                current.filter(
+                                    (item) =>
+                                        item.id !==
+                                            `post-${postId}` &&
+                                        item.id !== postId
+                                )
+                            );
+                        }}
+                        sellerVerified={user?.sellerVerified}
+                        initialConversation={
+                            user ? messageRecipient : null
+                        }
+                        joinedEvents={joinedEvents}
+                        hostedEvents={hostedEvents}
+                        onLeaveEvent={leaveEvent}
+                        onOpenEvent={(id) =>
+                            openEvent(id, "profile")
+                        }
+                    />
+                )}
+                {page === "Profile" && loading && (
+                    <p role="status">Checking your session…</p>
+                )}
+                {page === "Login" &&
+                    (loading ? (
+                        <p role="status">
+                            Checking your session…
+                        </p>
+                    ) : (
+                        <Login />
+                    ))}
+
             </main>
             <nav
                 className="bottom-nav"
@@ -248,6 +738,15 @@ function App() {
                         key={item}
                         href={`#${item.toLowerCase()}`}
                         onClick={() => {
+                            if (
+                                item !== "Explore" &&
+                                exploreSession.current
+                            ) {
+                                setExploreFeed(
+                                    createExploreFeed()
+                                );
+                                exploreSession.current = false;
+                            }
                             setPage(item);
                             setSelectedPostId(null);
                         }}
@@ -256,7 +755,6 @@ function App() {
                             page === item ? "page" : undefined
                         }>
                         <Icon name={item} />
-                        <span>{item}</span>
                     </a>
                 ))}
             </nav>

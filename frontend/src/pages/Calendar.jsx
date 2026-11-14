@@ -2,7 +2,15 @@ import { useMemo, useState } from "react";
 
 import "./Calendar.css";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
+];
 const MAX_MONTHS_AHEAD = 6;
 const VISIBLE_PER_DAY = 3;
 
@@ -141,8 +149,13 @@ function seededRandom(seed) {
     let state = seed >>> 0;
     return () => {
         state += 0x6d2b79f5;
-        let value = Math.imul(state ^ (state >>> 15), 1 | state);
-        value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+        let value = Math.imul(
+            state ^ (state >>> 15),
+            1 | state
+        );
+        value ^=
+            value +
+            Math.imul(value ^ (value >>> 7), 61 | value);
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
 }
@@ -193,7 +206,10 @@ function buildMonthCells(month) {
         0
     ).getDate();
 
-    const cells = Array.from({ length: firstWeekday }, () => null);
+    const cells = Array.from(
+        { length: firstWeekday },
+        () => null
+    );
     for (let day = 1; day <= daysInMonth; day += 1) {
         cells.push(
             new Date(month.getFullYear(), month.getMonth(), day)
@@ -208,7 +224,14 @@ function prefersReducedMotion() {
         .matches;
 }
 
-function CalendarPage() {
+function CalendarPage({
+    events = [],
+    user,
+    joinedEventIds = [],
+    onJoinEvent,
+    onLeaveEvent,
+    onOpenEvent
+}) {
     const [today] = useState(() => {
         const now = new Date();
         return new Date(
@@ -239,13 +262,59 @@ function CalendarPage() {
 
     const projectsByDay = useMemo(() => {
         const byDay = {};
+
+        // Keep the existing sample calendar projects.
         cells.forEach((date) => {
             if (date && date >= today) {
-                byDay[dateKey(date)] = sampleProjectsForDay(date);
+                byDay[dateKey(date)] =
+                    sampleProjectsForDay(date);
             }
         });
+
+        // Add real events created by Campus Makers sellers.
+        events.forEach((event) => {
+            if (!event.is_event || !event.event_starts_at) {
+                return;
+            }
+
+            const startDate = new Date(event.event_starts_at);
+
+            if (Number.isNaN(startDate.getTime())) {
+                return;
+            }
+
+            const key = dateKey(startDate);
+
+            // Only include events within the displayed dates.
+            if (!byDay[key]) {
+                return;
+            }
+
+            const time = startDate.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true
+            });
+
+            byDay[key].push({
+                id: `calendar-event-${event.id}`,
+                postId: event.id,
+                sellerId: event.seller_id,
+                isRealEvent: true,
+                title: event.event_title || "Campus Event",
+                short: "Event",
+                creator: event.creator || "@campusmaker",
+                tag: "Event",
+                tone: "peach",
+                location:
+                    event.event_location || "Location TBD",
+                time,
+                itemsLeft: 0
+            });
+        });
+
         return byDay;
-    }, [cells, today]);
+    }, [cells, today, events]);
 
     const selectedDate = cells.find(
         (date) => date && dateKey(date) === selectedKey
@@ -295,7 +364,9 @@ function CalendarPage() {
                     &#10094;
                 </button>
 
-                <h2 className="calendar-month-title" aria-live="polite">
+                <h2
+                    className="calendar-month-title"
+                    aria-live="polite">
                     {monthLabel}
                 </h2>
 
@@ -311,13 +382,18 @@ function CalendarPage() {
 
             {/* MONTH GRID */}
             <div className="calendar-grid-panel">
-                <div className="calendar-weekdays" aria-hidden="true">
+                <div
+                    className="calendar-weekdays"
+                    aria-hidden="true">
                     {WEEKDAYS.map((weekday) => (
                         <span key={weekday}>{weekday}</span>
                     ))}
                 </div>
 
-                <div className="calendar-grid" role="group" aria-label={monthLabel}>
+                <div
+                    className="calendar-grid"
+                    role="group"
+                    aria-label={monthLabel}>
                     {cells.map((date, index) => {
                         if (!date) {
                             return (
@@ -332,16 +408,16 @@ function CalendarPage() {
                         const key = dateKey(date);
                         const isPast = date < today;
                         const isToday = key === dateKey(today);
-                        const projects = projectsByDay[key] || [];
-                        const extra = projects.length - VISIBLE_PER_DAY;
-                        const fullLabel = date.toLocaleDateString(
-                            "en-US",
-                            {
+                        const projects =
+                            projectsByDay[key] || [];
+                        const extra =
+                            projects.length - VISIBLE_PER_DAY;
+                        const fullLabel =
+                            date.toLocaleDateString("en-US", {
                                 weekday: "long",
                                 month: "long",
                                 day: "numeric"
-                            }
-                        );
+                            });
 
                         return (
                             <button
@@ -349,7 +425,9 @@ function CalendarPage() {
                                 key={key}
                                 className={`calendar-day${isToday ? " calendar-day-today" : ""}`}
                                 disabled={isPast}
-                                aria-pressed={selectedKey === key}
+                                aria-pressed={
+                                    selectedKey === key
+                                }
                                 aria-label={
                                     isPast
                                         ? fullLabel
@@ -365,12 +443,19 @@ function CalendarPage() {
                                         className="calendar-day-events"
                                         aria-hidden="true">
                                         {projects
-                                            .slice(0, VISIBLE_PER_DAY)
+                                            .slice(
+                                                0,
+                                                VISIBLE_PER_DAY
+                                            )
                                             .map((project) => (
                                                 <span
                                                     className={`calendar-chip ${project.tone}`}
-                                                    key={project.id}>
-                                                    {project.short}
+                                                    key={
+                                                        project.id
+                                                    }>
+                                                    {
+                                                        project.short
+                                                    }
                                                 </span>
                                             ))}
                                         {extra > 0 && (
@@ -419,52 +504,140 @@ function CalendarPage() {
                                 key={selectedKey}
                                 tabIndex="0"
                                 aria-label="Available projects">
-                                {selectedProjects.map((project) => {
-                                    const [clock, period] =
-                                        project.time.split(" ");
-                                    return (
-                                        <article
-                                            className="calendar-project-card"
-                                            key={project.id}>
-                                            <div className={`calendar-project-time ${project.tone}`}>
-                                                <strong>{clock}</strong>
-                                                <span>{period}</span>
-                                            </div>
+                                {selectedProjects.map(
+                                    (project) => {
+                                        const [clock, period] =
+                                            project.time.split(
+                                                " "
+                                            );
+                                        return (
+                                            <article
+                                                className="calendar-project-card"
+                                                key={
+                                                    project.id
+                                                }>
+                                                <div
+                                                    className={`calendar-project-time ${project.tone}`}>
+                                                    <strong>
+                                                        {clock}
+                                                    </strong>
+                                                    <span>
+                                                        {period}
+                                                    </span>
+                                                </div>
 
-                                            <div className="calendar-project-info">
-                                                <h4>{project.title}</h4>
-                                                <p className="calendar-project-creator">
-                                                    {project.creator}
-                                                </p>
-                                                <p className="calendar-project-location">
-                                                    <svg
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="2"
-                                                        aria-hidden="true">
-                                                        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
-                                                        <circle cx="12" cy="10" r="2.5" />
-                                                    </svg>
-                                                    {project.location}
-                                                </p>
+                                                <div className="calendar-project-info">
+                                                    <h4>
+                                                        {
+                                                            project.title
+                                                        }
+                                                    </h4>
+                                                    <p className="calendar-project-creator">
+                                                        {
+                                                            project.creator
+                                                        }
+                                                    </p>
+                                                    <p className="calendar-project-location">
+                                                        <svg
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            aria-hidden="true">
+                                                            <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+                                                            <circle
+                                                                cx="12"
+                                                                cy="10"
+                                                                r="2.5"
+                                                            />
+                                                        </svg>
+                                                        {
+                                                            project.location
+                                                        }
+                                                    </p>
 
-                                                <p className="calendar-project-items">
-                                                    {project.itemsLeft}{" "}
-                                                    {project.itemsLeft === 1
-                                                        ? "item"
-                                                        : "items"}{" "}
-                                                    left
-                                                </p>
-                                            </div>
-                                        </article>
-                                    );
-                                })}
+                                                    <p className="calendar-project-items">
+                                                        {project.isRealEvent
+                                                            ? "Campus Makers Event"
+                                                            : `${project.itemsLeft} ${
+                                                                  project.itemsLeft ===
+                                                                  1
+                                                                      ? "item"
+                                                                      : "items"
+                                                              } left`}
+                                                    </p>
+
+                                                    {project.isRealEvent && (
+                                                        <div className="calendar-event-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="calendar-event-view"
+                                                                onClick={() =>
+                                                                    onOpenEvent?.(
+                                                                        project.postId
+                                                                    )
+                                                                }>
+                                                                View
+                                                                Event
+                                                            </button>
+
+                                                            {user?.id &&
+                                                            project.sellerId ===
+                                                                user.id ? (
+                                                                <span className="calendar-event-host-label">
+                                                                    Hosted
+                                                                    by
+                                                                    you
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    className="calendar-event-join"
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            joinedEventIds.includes(
+                                                                                project.postId
+                                                                            )
+                                                                        ) {
+                                                                            onLeaveEvent?.(
+                                                                                project.postId
+                                                                            );
+                                                                        } else {
+                                                                            onJoinEvent?.(
+                                                                                project.postId
+                                                                            );
+                                                                        }
+                                                                    }}>
+                                                                    {joinedEventIds.includes(
+                                                                        project.postId
+                                                                    )
+                                                                        ? "Leave Event"
+                                                                        : "Join Event"}
+                                                                </button>
+                                                            )}
+
+                                                            <p className="calendar-project-items">
+                                                                Registration
+                                                                preview
+                                                                only
+                                                                —
+                                                                no
+                                                                RSVP
+                                                                is
+                                                                submitted.
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        );
+                                    }
+                                )}
                             </div>
                         ) : (
                             <p className="calendar-empty">
-                                No projects are scheduled for this
-                                day yet.
+                                No projects are scheduled for
+                                this day yet.
                             </p>
                         )}
                     </>

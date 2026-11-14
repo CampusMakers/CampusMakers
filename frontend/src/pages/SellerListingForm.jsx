@@ -1,3 +1,4 @@
+import { uploadPhoto } from "../services/previewPhotos";
 import { useRef, useState } from "react";
 import "./SellerListingForm.css";
 
@@ -16,15 +17,6 @@ const CATEGORIES = [
     "Other Handmade Goods"
 ];
 const CONDITIONS = ["New", "Like New", "Good", "Fair"];
-
-function readPhoto(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("Unable to read the photo."));
-        reader.readAsDataURL(file);
-    });
-}
 
 function initialPhotoList(listing) {
     return (listing?.images || [])
@@ -46,6 +38,7 @@ export default function SellerListingForm({
     const [condition, setCondition] = useState(initialListing?.condition || "New");
     const [color, setColor] = useState(initialListing?.color || "");
     const [quantity, setQuantity] = useState(String(initialListing?.quantity ?? 1));
+    const [maxPerOrder, setMaxPerOrder] = useState(String(initialListing?.maxPerOrder ?? 5));
     const [tags, setTags] = useState(
         Array.isArray(initialListing?.tags) ? initialListing.tags.join(", ") : ""
     );
@@ -89,13 +82,13 @@ export default function SellerListingForm({
             const added = await Promise.all(
                 files.map(async (file) => ({
                     id: crypto.randomUUID(),
-                    src: await readPhoto(file)
+                    src: await uploadPhoto(file)
                 }))
             );
             setPhotos((current) => [...current, ...added]);
             setCoverId((current) => current ?? added[0]?.id ?? null);
-        } catch {
-            setError("The selected photos could not be opened. Please try again.");
+        } catch (error) {
+            setError(error.message);
         } finally {
             setProcessingPhotos(false);
         }
@@ -113,6 +106,7 @@ export default function SellerListingForm({
         const enteredPrice = price.trim();
         const amount = Number(enteredPrice);
         const count = Number(quantity);
+        const orderLimit = Number(maxPerOrder);
         const parsedTags = [
             ...new Set(
                 tags.split(",")
@@ -155,6 +149,10 @@ export default function SellerListingForm({
             setError("Quantity must be a whole number of at least 1.");
             return;
         }
+        if (!Number.isInteger(orderLimit) || orderLimit < 1 || orderLimit > 1000) {
+            setError("The maximum per order must be a whole number between 1 and 1,000.");
+            return;
+        }
         if (parsedTags.length > 5) {
             setError("Use five tags or fewer, separated by commas.");
             return;
@@ -174,6 +172,7 @@ export default function SellerListingForm({
             condition,
             color: color.trim(),
             quantity: count,
+            maxPerOrder: orderLimit,
             tags: parsedTags,
             price: enteredPrice ? amount : 0,
             pickupLocation: pickupLocation.trim(),
@@ -303,10 +302,15 @@ export default function SellerListingForm({
                         <input id="seller-color" value={color} onChange={(event) => setColor(event.target.value)} placeholder="e.g. Cream" />
                     </div>
                     <div>
-                        <label htmlFor="seller-quantity">Quantity</label>
+                        <label htmlFor="seller-quantity">Quantity in stock</label>
                         <input id="seller-quantity" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
                     </div>
+                    <div>
+                        <label htmlFor="seller-max-per-order">Maximum per order</label>
+                        <input id="seller-max-per-order" type="number" min="1" max="1000" step="1" value={maxPerOrder} onChange={(event) => setMaxPerOrder(event.target.value)} />
+                    </div>
                 </div>
+                <p className="seller-listing-helper">Buyers can select up to this many per order, limited by the quantity in stock.</p>
                 <label htmlFor="seller-tags">Tags</label>
                 <input id="seller-tags" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="ceramics, handmade, pottery" />
                 <p className="seller-listing-helper">Up to five comma-separated tags.</p>
