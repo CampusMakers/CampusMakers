@@ -12,6 +12,9 @@ export const auth = betterAuth({
     secret: config.auth.secret,
     database: pool,
     trustedOrigins: config.clientOrigins,
+    // The startup schema check queries the database at module load, which
+    // Cloudflare Workers forbid outside a request. Migrations own the schema.
+    advanced: { database: { validateSchema: false } },
     emailAndPassword: {
         enabled: true,
         minPasswordLength: config.auth.minPasswordLength

@@ -417,7 +417,6 @@ function App() {
                     </h1>
                 </a>
             </header>
-            <p className="preview-notice" role="note">Backend not connected. Login and account services are currently unavailable.</p>
             <main
                 aria-label={`${page} page`}
                 className={

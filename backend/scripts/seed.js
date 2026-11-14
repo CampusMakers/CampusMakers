@@ -1,5 +1,8 @@
-import { auth } from "../src/auth.js";
-import pool, { transaction } from "../src/db/pool.js";
+// Settings must be in process.env before config.js is evaluated, so app modules
+// are imported dynamically after env.js has finished loading them.
+await import("./env.js");
+const { auth } = await import("../src/auth.js");
+const { default: pool, transaction } = await import("../src/db/pool.js");
 
 const PASSWORD = "campusmakers123";
 
