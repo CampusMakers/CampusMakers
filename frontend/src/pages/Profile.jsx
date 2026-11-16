@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
     AppointmentManager,
@@ -22,8 +22,17 @@ import "./Profile.css";
 import "./SellerWorkspace.css";
 import { previewStore } from "../services/previewStore";
 import { uploadPhoto } from "../services/previewPhotos";
+import {
+    updateMyProfile,
+    uploadProfilePhoto
+} from "../services/profileApi";
+import { AUTH_CHANGE_EVENT } from "../services/authApi";
 import { useFollows } from "../services/useFollows";
-
+import {
+    createListing,
+    updateListing,
+    deleteListing as deleteListingRequest
+} from "../services/listingApi";
 const newestFirst = (items) =>
     [...items].sort((a, b) => {
         const timeDifference =
@@ -74,20 +83,25 @@ function Profile({
     const goToLogin = () => {
         window.location.hash = "login";
     };
-    const initialProfile = isGuest
-        ? {
-              name: "Your Name",
-              username: "username",
-              bio: "Your bio goes here.",
-              image: ""
-          }
-        : {
-              name: user.name || user.email,
-              username:
-                  user.username || user.email.split("@")[0],
-              bio: user.bio || "",
-              image: user.image || ""
-          };
+    const initialProfile = useMemo(
+        () =>
+            isGuest
+                ? {
+                      name: "Your Name",
+                      username: "username",
+                      bio: "Your bio goes here.",
+                      image: ""
+                  }
+                : {
+                      name: user.name || user.email,
+                      username:
+                          user.username ||
+                          user.email.split("@")[0],
+                      bio: user.bio || "",
+                      image: user.image || ""
+                  },
+        [user, isGuest]
+    );
     const [previewMode, setPreviewMode] = useState(() => {
         const requestedMode = window.sessionStorage.getItem(
             "campus-makers-login-mode"
@@ -167,7 +181,9 @@ function Profile({
 
         try {
             if (!previewStore) {
-                throw new Error("Preview storage is unavailable.");
+                throw new Error(
+                    "Preview storage is unavailable."
+                );
             }
 
             const { data, error } = await previewStore
@@ -224,64 +240,156 @@ function Profile({
         setEditingListing(null);
     };
 
-    const saveListing = (listingData) => {
+    // Publish a listing using the existing backend.
+    const saveListing = async (listingData) => {
+        if (listingData.status === "Draft") {
+            throw new Error(
+                "Saving drafts is not supported by the backend yet."
+            );
+        }
+
+        if (!listingData.categoryId) {
+            throw new Error("Select a valid listing category.");
+        }
+
+        // Prevent silently discarding fields the backend cannot store.
+        const unsupported = [];
+
+        if (listingData.condition !== "New") {
+            unsupported.push("condition");
+        }
+        if (listingData.color) unsupported.push("color");
+        if (listingData.tags?.length) unsupported.push("tags");
+        if (listingData.pickupLocation) {
+            unsupported.push("pickup location");
+        }
+        if (listingData.maxPerOrder !== 1) {
+            unsupported.push("maximum per order");
+        }
+
+        if (unsupported.length) {
+            throw new Error(
+                `Cannot save these details yet: ${unsupported.join(", ")}.`
+            );
+        }
+
+        // Persist the fields supported by the listings API.
+
+        const listingPayload = {
+            title: listingData.name,
+            description: listingData.description,
+            categoryId: listingData.categoryId,
+            type: "product",
+            quantity: listingData.quantity,
+            price: listingData.price
+        };
+
         if (editingListing) {
+            // The existing PATCH endpoint cannot update photos yet.
+            if (
+                JSON.stringify(listingData.images) !==
+                JSON.stringify(editingListing.images || [])
+            ) {
+                throw new Error(
+                    "Editing listing photos is not supported yet."
+                );
+            }
+
+            const updated = await updateListing(
+                editingListing.id,
+                {
+                    ...listingPayload,
+                    active: true
+                }
+            );
+
             setMyListings((current) =>
                 current.map((item) =>
                     item.id === editingListing.id
-                        ? {
-                              ...item,
-                              ...listingData,
-                              id: item.id
-                          }
+                        ? updated
                         : item
                 )
             );
-            setNotice("Listing updated for this preview.");
+
+            setNotice("Listing updated successfully.");
         } else {
-            setMyListings((current) => [
-                { ...listingData, id: crypto.randomUUID() },
-                ...current
-            ]);
-            setNotice(
-                listingData.status === "Draft"
-                    ? "Draft saved for this preview."
-                    : "Listing created for this preview."
-            );
+            const saved = await createListing({
+                ...listingPayload,
+                imageUrls: listingData.images
+            });
+
+            setMyListings((current) => [saved, ...current]);
+            setNotice("Listing published successfully.");
         }
 
         closeListingForm();
     };
 
-    const deleteListing = (listing) => {
-        if (
-            !window.confirm(
-                `Delete "${listing.name}"? This cannot be undone in this preview.`
-            )
-        ) {
+    const deleteListing = async (listing) => {
+        if (!window.confirm(`Delete "${listing.name}"?`)) {
             return;
         }
 
-        setMyListings((current) =>
-            current.filter((item) => item.id !== listing.id)
-        );
-        setNotice("Listing deleted from this preview.");
+        try {
+            await deleteListingRequest(listing.id);
+
+            setMyListings((current) =>
+                current.filter((item) => item.id !== listing.id)
+            );
+
+            setNotice("Listing deleted successfully.");
+        } catch (error) {
+            setNotice(
+                error.message || "Unable to delete listing."
+            );
+        }
     };
 
     const [showEditProfile, setShowEditProfile] =
         useState(false);
 
     const [profile, setProfile] = useState(initialProfile);
+
+    // Reflect account changes reloaded from the server after a refresh or save.
+    useEffect(() => {
+        setProfile(initialProfile);
+    }, [initialProfile]);
+
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [photoError, setPhotoError] = useState("");
     const photoInputRef = useRef(null);
 
     const saveProfile = async (updatedProfile) => {
-        window.localStorage.setItem("campusMakersDemoProfile", JSON.stringify(updatedProfile));
-        window.dispatchEvent(new Event("campus-makers-preview"));
-        setProfile(updatedProfile);
+        if (!user?.id) {
+            throw new Error("Sign in to edit your account.");
+        }
+
+        let image = updatedProfile.image || null;
+        if (
+            image instanceof Blob ||
+            (typeof image === "string" &&
+                image.startsWith("data:"))
+        ) {
+            // Upload the photo first, then save its public URL in the user record.
+            image = await uploadProfilePhoto(image);
+        }
+
+        const saved = await updateMyProfile({
+            name: updatedProfile.name,
+            username: updatedProfile.username,
+            bio: updatedProfile.bio,
+            image
+        });
+
+        setProfile({
+            name: saved.name,
+            username: saved.username,
+            bio: saved.bio || "",
+            image: saved.image || ""
+        });
         setShowEditProfile(false);
-        setNotice("Profile changes saved in this browser.");
+        setNotice("Profile saved to your account.");
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
         return true;
     };
 
@@ -409,10 +517,19 @@ function Profile({
     };
 
     const completeSellerSignup = () => {
-        window.localStorage.setItem("campusMakersDemoSeller", "true");
-        window.dispatchEvent(new Event("campus-makers-preview"));
+        // Only a backend-verified store can enter the real Seller Mode.
+        if (!sellerVerified) return;
         setShowSellerSignup(false);
         setPreviewMode("seller");
+        setActiveTab("Posts");
+    };
+
+    const handleStoreCreated = () => {
+        setShowSellerSignup(false);
+        setNotice(
+            "Your store has been registered. Seller Mode will remain locked until your university email is verified."
+        );
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
     };
 
     const showDemoNotice = (action) => {
@@ -520,6 +637,7 @@ function Profile({
                     sellerVerified={sellerVerified}
                     onBack={() => setShowSellerSignup(false)}
                     onRegistered={completeSellerSignup}
+                    onStoreCreated={handleStoreCreated}
                 />
             </div>
         );
@@ -835,7 +953,9 @@ function Profile({
                             setNotice("");
                             setShowSellerSignup(true);
                         }}>
-                        Become a Seller →
+                        {user?.store
+                            ? "View Seller Registration →"
+                            : "Become a Seller →"}
                     </button>
                 </section>
             )}
