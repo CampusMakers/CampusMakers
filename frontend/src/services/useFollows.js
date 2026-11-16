@@ -1,54 +1,70 @@
 import { useCallback, useEffect, useState } from "react";
-import { previewStore } from "./previewStore";
-
+import { api } from "./api";
+const empty = {
+    profileId: null,
+    following: [],
+    followers: [],
+    followingCount: 0,
+    followerCount: 0,
+    isFollowing: false,
+    error: ""
+};
 export function useFollows(profileId, viewerId) {
-    const [state, setState] = useState({ profileId: null, following: [], followers: [], followingCount: 0, followerCount: 0, isFollowing: false, error: "" });
-    const [busy, setBusy] = useState(false);
-
-    const load = useCallback(async () => {
-        if (!previewStore || !profileId) return;
-        const [followingResult, followersResult, followingCountResult, followerCountResult, viewerResult] = await Promise.all([
-            previewStore.from("maker_follows").select("followee_id, followee:messaging_profiles!maker_follows_followee_id_fkey(id, username, name)").eq("follower_id", profileId),
-            previewStore.from("maker_follows").select("follower_id, follower:messaging_profiles!maker_follows_follower_id_fkey(id, username, name)").eq("followee_id", profileId),
-            previewStore.from("maker_follows").select("follower_id", { count: "exact", head: true }).eq("follower_id", profileId),
-            previewStore.from("maker_follows").select("followee_id", { count: "exact", head: true }).eq("followee_id", profileId),
-            viewerId ? previewStore.from("maker_follows").select("follower_id").eq("follower_id", viewerId).eq("followee_id", profileId).maybeSingle() : Promise.resolve({ data: null, error: null })
-        ]);
-        const failure = [followingResult, followersResult, followingCountResult, followerCountResult, viewerResult].find(result => result.error)?.error;
-        if (failure) throw failure;
-        return {
-            profileId,
-            following: followingResult.data.map(row => row.followee).filter(Boolean),
-            followers: followersResult.data.map(row => row.follower).filter(Boolean),
-            followingCount: followingCountResult.count,
-            followerCount: followerCountResult.count,
-            isFollowing: Boolean(viewerResult.data),
-            error: ""
-        };
-    }, [profileId, viewerId]);
-
+    const [state, setState] = useState(empty),
+        [busy, setBusy] = useState(false);
+    const load = useCallback(
+        async () =>
+            profileId
+                ? {
+                      ...(await api(
+                          `/users/by-id/${encodeURIComponent(profileId)}/connections`
+                      )),
+                      error: ""
+                  }
+                : empty,
+        [profileId]
+    );
     useEffect(() => {
         let active = true;
-        load().then(result => { if (active && result) setState(result); }).catch(() => {
-            if (active) setState({ profileId, following: [], followers: [], followingCount: 0, followerCount: 0, isFollowing: false, error: "Follow information could not be loaded." });
-        });
-        return () => { active = false; };
-    }, [load, profileId]);
-
-    const toggleFollow = async () => {
-        if (!previewStore || !profileId || !viewerId || profileId === viewerId || busy || state.profileId !== profileId) return;
+        load()
+            .then((data) => {
+                if (active) setState(data);
+            })
+            .catch((e) => {
+                if (active)
+                    setState({ ...empty, error: e.message });
+            });
+        return () => {
+            active = false;
+        };
+    }, [load, viewerId]);
+    async function toggleFollow() {
+        if (
+            !viewerId ||
+            !state.username ||
+            busy ||
+            profileId === viewerId
+        )
+            return;
         setBusy(true);
         try {
-            const result = state.isFollowing
-                ? await previewStore.from("maker_follows").delete().eq("follower_id", viewerId).eq("followee_id", profileId)
-                : await previewStore.from("maker_follows").insert({ follower_id: viewerId, followee_id: profileId });
-            if (result.error) throw result.error;
-            const next = await load();
-            if (next) setState(next);
-        } catch {
-            setState(current => ({ ...current, error: "Could not update follow status. Please try again." }));
-        } finally { setBusy(false); }
+            await api(
+                `/follows/${encodeURIComponent(state.username)}`,
+                { method: state.isFollowing ? "DELETE" : "PUT" }
+            );
+            setState(await load());
+        } catch (e) {
+            setState((s) => ({ ...s, error: e.message }));
+        } finally {
+            setBusy(false);
+        }
+    }
+    return {
+        ...state,
+        ready: Boolean(
+            profileId && state.profileId === profileId
+        ),
+        busy,
+        toggleFollow
     };
-
-    return { ...state, ready: Boolean(profileId && state.profileId === profileId), busy, toggleFollow };
 }
