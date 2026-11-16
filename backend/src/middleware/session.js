@@ -17,9 +17,13 @@ export const requireAuth = (req, res, next) => {
     next();
 };
 
-export const requireAdmin = (req, res, next) => {
+export const requireAdmin = async (req, res, next) => {
     if (!req.user) throw unauthorized();
-    if (req.user.role !== "admin")
+    const account = await one(
+        "select role from users where id=$1",
+        [req.user.id]
+    );
+    if (account?.role !== "admin")
         throw forbidden("Administrator access required");
     next();
 };

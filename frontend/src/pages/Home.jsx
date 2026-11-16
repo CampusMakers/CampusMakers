@@ -33,6 +33,9 @@ function ProductCard({ product, onOpen }) {
                 />
             )}
             <div className="home-product-info">
+                {product.demo && (
+                    <small>Demo listing · preview only</small>
+                )}
                 <p>{product.creator}</p>
                 <h3>{product.name}</h3>
                 <span>${product.price.toFixed(2)}</span>
@@ -80,14 +83,41 @@ export default function Home({
                 </h2>
                 <p role="status">
                     Marketplace listings are loaded from Campus
-                    Makers. Some creator posts are still preview
-                    content.
+                    Makers. Sample creator posts are labeled as
+                    previews.
                 </p>
                 <p>
                     Find your next favorite creation and the
                     makers behind it.
                 </p>
             </section>
+            {posts.some((post) => post.pinned) && (
+                <section
+                    className="home-panel"
+                    aria-label="Pinned community announcements">
+                    <h2>Community announcements</h2>
+                    {posts
+                        .filter((post) => post.pinned)
+                        .map((post) => (
+                            <article key={post.id}>
+                                <h3>
+                                    📌{" "}
+                                    {post.announcement
+                                        ? "Community announcement"
+                                        : "Pinned post"}
+                                </h3>
+                                <p>{post.caption}</p>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onOpenPost(post.id)
+                                    }>
+                                    View post
+                                </button>
+                            </article>
+                        ))}
+                </section>
+            )}
             <section
                 className="home-panel"
                 aria-labelledby="home-products-heading">

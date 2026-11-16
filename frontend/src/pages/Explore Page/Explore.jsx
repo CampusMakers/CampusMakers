@@ -1,3 +1,5 @@
+import { api } from "../../services/api";
+import { requestLogin } from "../../services/loginFlow";
 import { useEffect, useState } from "react";
 import "./Explore.css";
 
@@ -443,6 +445,9 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                 }
             }}>
             <div className="explore-card-body">
+                {post.demo && (
+                    <small>Demo · preview only</small>
+                )}
                 {isAdminPost ? (
                     <div className="admin-card-bar">
                         <PinIcon />
@@ -856,9 +861,11 @@ export function PostDetail({
     onLeaveEvent,
     eventDetailsBackLabel = "Back to Explore"
 }) {
-    const [liked, setLiked] = useState(false),
+    const [liked, setLiked] = useState(Boolean(post.likedByMe)),
         [likeCount, setLikeCount] = useState(
-            post.seller_id ? 0 : 18 + post.id * 3
+            post.seller_id
+                ? post.likeCount || 0
+                : 18 + post.id * 3
         ),
         [commentCount, setCommentCount] = useState(
             post.seller_id ? 0 : 4
@@ -1090,11 +1097,28 @@ export function PostDetail({
                             aria-label={
                                 liked ? "Unlike" : "Like"
                             }
-                            onClick={() => {
-                                setLiked(!liked);
-                                setLikeCount(
-                                    likeCount + (liked ? -1 : 1)
-                                );
+                            onClick={async () => {
+                                if (!user)
+                                    return requestLogin(
+                                        "like this post"
+                                    );
+                                if (!post.seller_id) return;
+                                try {
+                                    const saved = await api(
+                                        `/posts/${String(post.id).replace(/^post-/, "")}/like`,
+                                        {
+                                            method: liked
+                                                ? "DELETE"
+                                                : "PUT"
+                                        }
+                                    );
+                                    setLiked(saved.likedByMe);
+                                    setLikeCount(
+                                        saved.likeCount
+                                    );
+                                } catch (error) {
+                                    window.alert(error.message);
+                                }
                             }}>
                             <span className="explore-heart">
                                 {liked ? "♥" : "♡"}
@@ -1317,15 +1341,18 @@ export function SellerProfilePage({
     useEffect(() => {
         if (!previewStore) return;
         let active = true;
-        previewStore
-            .from("messaging_profiles")
-            .select(
-                "id, name, username, image, seller_verified"
-            )
-            .ilike("username", username)
-            .maybeSingle()
-            .then(({ data }) => {
-                if (active) setProfile(data);
+        api(`/users/${encodeURIComponent(username)}`)
+            .then((data) => {
+                if (active)
+                    setProfile({
+                        ...data,
+                        seller_verified:
+                            data.store?.verified &&
+                            data.store?.active
+                    });
+            })
+            .catch(() => {
+                if (active) setProfile(null);
             });
         return () => {
             active = false;

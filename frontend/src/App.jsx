@@ -1,3 +1,4 @@
+import { requestLogin } from "./services/loginFlow";
 import {
     useEffect,
     useLayoutEffect,
@@ -32,16 +33,33 @@ import {
     TagPage
 } from "./pages/Explore Page/Explore";
 import {
-    createExploreFeed,
+    explorePosts,
+    exploreListings,
     currentProfileFeedUsername,
     currentExplorePostId,
     currentPostSource,
     currentSellerUsername,
-    currentTagName,
-    explorePosts
+    currentTagName
 } from "./pages/Explore Page/exploreData";
 import { getStoreListings } from "./services/listingApi";
 import { getPublicListings } from "./services/listingApi";
+
+const demoPosts = explorePosts
+    .filter((post) => [1, 2, 4].includes(post.id))
+    .map((post) => ({
+        ...post,
+        demo: true,
+        caption: `Demo — ${post.caption}`
+    }));
+const demoListings = exploreListings
+    .slice(0, 2)
+    .map((listing, index) => ({
+        ...listing,
+        id: `listing-demo-${index + 1}`,
+        demo: true,
+        name: `Demo — ${listing.name}`,
+        caption: `Demo — ${listing.name}`
+    }));
 
 const asExplorePost = (post) => ({
     ...post,
@@ -84,7 +102,8 @@ const currentPage = () => {
         .slice(1)
         .toLowerCase()
         .split(/[/?]/)[0];
-    if (!slug || slug === "login") return "Login";
+    if (!slug) return "Home";
+    if (slug === "login") return "Login";
     if (slug === "cart") return "Cart";
     if (slug === "checkout") return "Checkout";
     if (slug === "seller-demo") return "SellerDemo";
@@ -132,6 +151,23 @@ function Icon({ name }) {
 
 function App() {
     const { user, loading } = usePreviewUser();
+    useEffect(() => {
+        const guardLoginLink = (event) => {
+            const link = event.target.closest?.(
+                'a[href="#login"]'
+            );
+            if (!user && link) {
+                event.preventDefault();
+                requestLogin("continue");
+            }
+        };
+        document.addEventListener("click", guardLoginLink);
+        return () =>
+            document.removeEventListener(
+                "click",
+                guardLoginLink
+            );
+    }, [user]);
     const {
         items: cartItems,
         add: addToCart,
@@ -167,9 +203,7 @@ function App() {
         ),
         [selectedTag, setSelectedTag] =
             useState(currentTagName),
-        [exploreFeed, setExploreFeed] = useState(
-            createExploreFeed
-        );
+        [exploreFeed, setExploreFeed] = useState(demoPosts);
 
     const [publishedPosts, setPublishedPosts] = useState([]);
     const [listingsByUser, setListingsByUser] = useState(
@@ -302,7 +336,9 @@ function App() {
 
     // R04: Share the same real seller-created events with Calendar and Profile.
     const realEvents = publishedPosts.filter(
-        (post) => post.is_event
+        (post) =>
+            post.is_event &&
+            post.moderationStatus === "approved"
     );
 
     // R04 FRONTEND PREVIEW: local-only joined events, separated by account.
@@ -335,7 +371,7 @@ function App() {
 
     const joinEvent = (id) => {
         if (!user?.id) {
-            window.location.hash = "login";
+            requestLogin("join this event");
             return false;
         }
 
@@ -371,29 +407,19 @@ function App() {
         return true;
     };
 
-    const allPosts = [...publishedPosts, ...explorePosts];
-
-    const eventListings = allPosts.flatMap((post) =>
-        (post.event_listings || []).map((item) => ({
-            ...item,
-            id: `listing-${item.id}`,
-            creator: item.creator || post.creator,
-            type: "listing",
-            caption: item.name,
-            tags: [],
-            layout: "portrait",
-            tone: "peach"
-        }))
+    const visiblePublishedPosts = publishedPosts.filter(
+        (post) => post.moderationStatus === "approved"
     );
-    const allListings = [
-        ...publicListings,
-        ...eventListings.filter(
-            (item) =>
-                !publicListings.some(
-                    (listing) => listing.id === item.id
-                )
-        )
-    ];
+    const allPosts = [
+        ...visiblePublishedPosts,
+        ...demoPosts
+    ].sort(
+        (a, b) =>
+            Number(Boolean(b.pinned)) -
+            Number(Boolean(a.pinned))
+    );
+
+    const allListings = [...publicListings, ...demoListings];
     const exploreSession = useRef(
         ["Explore", "Tag"].includes(currentPage())
     );
@@ -451,9 +477,13 @@ function App() {
         openTag = (tag) => {
             window.location.hash = `tag/${encodeURIComponent(tag)}`;
         },
-        selectedPost = [...allPosts, ...allListings].find(
-            (post) => post.id === selectedPostId
-        );
+        selectedPost = [
+            ...allPosts,
+            ...allListings,
+            ...publishedPosts.filter(
+                (post) => user && post.seller_id === user.id
+            )
+        ].find((post) => post.id === selectedPostId);
     // R04: Open the existing event details screen, preserving the source
     // so Back returns to Calendar or Profile.
     const openEvent = (id, from = "calendar") => {
@@ -565,6 +595,11 @@ function App() {
                         onQuantity={setCartQuantity}
                         onRemove={removeFromCart}
                         onCheckout={(id) => {
+                            if (!user)
+                                return requestLogin(
+                                    "purchase",
+                                    true
+                                );
                             window.location.hash = `checkout/${encodeURIComponent(id)}`;
                         }}
                         onContinue={() => {
@@ -574,6 +609,10 @@ function App() {
                 )}
                 {page === "Checkout" && (
                     <CheckoutPage
+                        user={user}
+                        onPurchased={() =>
+                            removeFromCart(checkoutItemId)
+                        }
                         key={window.location.hash}
                         item={cartItems.find(
                             (item) => item.id === checkoutItemId
@@ -586,7 +625,7 @@ function App() {
                 {page === "Home" && (
                     <Home
                         posts={allPosts}
-                        listings={publicListings}
+                        listings={allListings}
                         listingsLoading={publicListingsLoading}
                         listingsError={publicListingsError}
                         onOpenPost={(id) =>
@@ -726,8 +765,8 @@ function App() {
                     ) : (
                         <ExplorePage
                             posts={[
-                                ...publishedPosts,
-                                ...publicListings,
+                                ...visiblePublishedPosts,
+                                ...allListings,
                                 ...exploreFeed
                             ]}
                             onOpenPost={openPost}
@@ -752,7 +791,7 @@ function App() {
                         key={selectedSeller}
                         seller={selectedSeller}
                         posts={[
-                            ...publishedPosts,
+                            ...visiblePublishedPosts,
                             ...exploreFeed.filter(
                                 (post) =>
                                     post.type !== "listing"
@@ -902,9 +941,7 @@ function App() {
                                 item !== "Explore" &&
                                 exploreSession.current
                             ) {
-                                setExploreFeed(
-                                    createExploreFeed()
-                                );
+                                setExploreFeed(demoPosts);
                                 exploreSession.current = false;
                             }
                             setPage(item);

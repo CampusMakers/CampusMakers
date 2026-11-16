@@ -8,10 +8,9 @@
  * `Authorization: Bearer <token>` on requests that require auth.
  */
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(
-    /\/$/,
-    ""
-);
+const API_ORIGIN = (
+    import.meta.env?.VITE_API_URL || ""
+).replace(/\/$/, "");
 
 const TOKEN_STORAGE_KEY = "campus-makers-auth-token";
 export const AUTH_CHANGE_EVENT = "campus-makers-auth-change";

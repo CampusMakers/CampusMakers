@@ -2,7 +2,10 @@ import { Router } from "express";
 import { z } from "zod";
 import { many } from "../db/pool.js";
 import { id } from "../lib/schemas.js";
-import { activeListing, listingSelect } from "../lib/selects.js";
+import {
+    activeListing,
+    listingSelect
+} from "../lib/selects.js";
 import { Params, withoutTotal } from "../lib/sql.js";
 import validate from "../middleware/validate.js";
 
@@ -11,7 +14,9 @@ const router = Router();
 const recentListings = (viewerId, campusId, limit) => {
     const params = new Params();
     const select = listingSelect(params, viewerId);
-    const campus = campusId ? `and s.campus_id = ${params.add(campusId)}` : "";
+    const campus = campusId
+        ? `and s.campus_id = ${params.add(campusId)}`
+        : "";
     return many(
         `${select} where ${activeListing} ${campus}
          order by l.created_at desc limit ${params.add(limit)}`,
@@ -41,7 +46,7 @@ const suggestedCreators = (viewerId, campusId, limit) =>
              json_build_object('id', s.id, 'name', s.name) as store,
              (select count(*) from follows f where f.followee_id = u.id)::int as "followerCount",
              (select i.url from listing_images i join listings l on l.id = i.listing_id
-              where l.store_id = s.id and l.inactive_since is null
+              where l.store_id = s.id and l.inactive_since is null and l.moderation_status = 'approved'
               order by l.created_at desc, i.position limit 1) as "coverImage"
          from users u
          join stores s on s.owner_id = u.id and s.inactive_since is null
@@ -60,22 +65,34 @@ router.get(
     validate({
         query: z.object({
             campusId: id.optional(),
-            limit: z.coerce.number().int().min(1).max(30).default(12)
+            limit: z.coerce
+                .number()
+                .int()
+                .min(1)
+                .max(30)
+                .default(12)
         })
     }),
     async (req, res) => {
         const viewerId = req.user?.id ?? null;
-        const campusId = req.data.query.campusId ?? req.user?.campusId ?? null;
+        const campusId =
+            req.data.query.campusId ??
+            req.user?.campusId ??
+            null;
         const { limit } = req.data.query;
-        const [listings, fromCreators, creators] = await Promise.all([
-            recentListings(viewerId, campusId, limit),
-            viewerId ? followedListings(viewerId, limit) : [],
-            suggestedCreators(viewerId, campusId, limit)
-        ]);
+        const [listings, fromCreators, creators] =
+            await Promise.all([
+                recentListings(viewerId, campusId, limit),
+                viewerId
+                    ? followedListings(viewerId, limit)
+                    : [],
+                suggestedCreators(viewerId, campusId, limit)
+            ]);
         res.json({
             data: {
                 listings: listings.map(withoutTotal),
-                fromYourCreators: fromCreators.map(withoutTotal),
+                fromYourCreators:
+                    fromCreators.map(withoutTotal),
                 suggestedCreators: creators
             }
         });

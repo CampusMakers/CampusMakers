@@ -1,3 +1,4 @@
+import { finishLogin } from "../services/loginFlow";
 import { useRef, useState } from "react";
 import "./Login.css";
 import PasswordRecovery from "./PasswordRecovery";
@@ -111,9 +112,13 @@ export default function Login() {
             }
             setErrors({});
             setComplete(true);
+            finishLogin();
         } catch (error) {
             setComplete(false);
-            if (isSignup && /username/i.test(error.code || error.message)) {
+            if (
+                isSignup &&
+                /username/i.test(error.code || error.message)
+            ) {
                 setErrors({ username: error.message });
                 form.elements.username?.focus();
             } else {
@@ -127,7 +132,6 @@ export default function Login() {
         } finally {
             setBusy(false);
         }
-
     };
 
     const fieldFeedback = (name, hint) => ({
@@ -525,7 +529,13 @@ export default function Login() {
                     </form>
                 )}
             </div>
-            <a className="login-back" href="#home">
+            <a
+                className="login-back"
+                href="#home"
+                onClick={(event) => {
+                    event.preventDefault();
+                    finishLogin(true);
+                }}>
                 ← Back to Home
             </a>
         </section>

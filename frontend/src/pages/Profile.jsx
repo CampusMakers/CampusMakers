@@ -1,3 +1,5 @@
+import AdminPanel from "./AdminPanel";
+import { requestLogin } from "../services/loginFlow";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -5,8 +7,8 @@ import {
     PostComposer
 } from "./SellerTools";
 import ListingGallery from "./ListingGallery";
-import BuyerPickups from "./BuyerPickups";
-import BuyerPurchases from "./BuyerPurchases";
+
+import OrderHistory from "./OrderHistory";
 import BuyerSaved from "./BuyerSaved";
 import BecomeSeller from "./BecomeSeller";
 import Settings from "./Settings";
@@ -20,6 +22,7 @@ import { sellerSavedItems } from "./mockProfileData";
 
 import "./Profile.css";
 import "./SellerWorkspace.css";
+import "./ProfileSections.css";
 import { previewStore } from "../services/previewStore";
 import { uploadPhoto } from "../services/previewPhotos";
 import {
@@ -81,7 +84,7 @@ function Profile({
 }) {
     const isGuest = !user;
     const goToLogin = () => {
-        window.location.hash = "login";
+        requestLogin("access your account");
     };
     const initialProfile = useMemo(
         () =>
@@ -116,7 +119,11 @@ function Profile({
             : "buyer";
     });
     const mode =
-        sellerVerified && !isGuest ? previewMode : "buyer";
+        previewMode === "admin" && user?.role === "admin"
+            ? "admin"
+            : sellerVerified && !isGuest
+              ? previewMode
+              : "buyer";
     const [selectedTab, setActiveTab] = useState(null);
     const [notice, setNotice] = useState("");
     const [connectionPanel, setConnectionPanel] =
@@ -311,7 +318,9 @@ function Profile({
                 )
             );
 
-            setNotice("Listing updated successfully.");
+            setNotice(
+                "Listing updated and submitted for admin approval."
+            );
         } else {
             const saved = await createListing({
                 ...listingPayload,
@@ -319,7 +328,7 @@ function Profile({
             });
 
             setMyListings((current) => [saved, ...current]);
-            setNotice("Listing published successfully.");
+            setNotice("Listing submitted for admin approval.");
         }
 
         closeListingForm();
@@ -505,7 +514,12 @@ function Profile({
 
     // Guests can preview the account layouts.
     const changeMode = (newMode) => {
+        if (isGuest)
+            return requestLogin("sell on Campus Makers");
+        if (newMode === "admin" && user?.role !== "admin")
+            return;
         if (newMode === "seller" && !canPreviewSeller) {
+            setShowSellerSignup(true);
             return;
         }
 
@@ -604,7 +618,7 @@ function Profile({
     // Display the Edit Profile page.
     if (showEditProfile) {
         return (
-            <div className="profile-page">
+            <div className="profile-page profile-saved-theme">
                 <EditProfile
                     profile={profile}
                     onBack={() => setShowEditProfile(false)}
@@ -617,7 +631,7 @@ function Profile({
     // Display Settings without leaving the Profile page.
     if (showSettings) {
         return (
-            <div className="profile-page">
+            <div className="profile-page profile-saved-theme">
                 <Settings
                     user={user}
                     email={user.email}
@@ -631,7 +645,7 @@ function Profile({
     // Display seller registration.
     if (showSellerSignup) {
         return (
-            <div className="profile-page">
+            <div className="profile-page profile-saved-theme">
                 <BecomeSeller
                     user={user}
                     sellerVerified={sellerVerified}
@@ -645,7 +659,7 @@ function Profile({
 
     if (showComposer && hasSellerAccess) {
         return (
-            <div className="profile-page">
+            <div className="profile-page profile-saved-theme">
                 <PostComposer
                     key={editingPost?.id ?? "create-post"}
                     user={user}
@@ -664,7 +678,7 @@ function Profile({
                         setEditingPost(null);
                         setActiveTab("Posts");
                         setNotice(
-                            "Your post is published on Explore."
+                            "Your post was submitted for admin approval."
                         );
                     }}
                     onUpdated={(post) => {
@@ -684,7 +698,7 @@ function Profile({
     // R03: Create and edit listings on a separate screen.
     if (showListingForm) {
         return (
-            <div className="profile-page">
+            <div className="profile-page profile-saved-theme">
                 <SellerListingForm
                     key={editingListing?.id ?? "create-listing"}
                     initialListing={editingListing}
@@ -696,9 +710,9 @@ function Profile({
     }
 
     return (
-        <div className="profile-page">
+        <div className="profile-page profile-saved-theme">
             {/* BUYER / SELLER MODE SWITCH */}
-            {canPreviewSeller && (
+            {
                 <div className="profile-mode-switch">
                     <button
                         type="button"
@@ -713,8 +727,16 @@ function Profile({
                         onClick={() => changeMode("seller")}>
                         Seller Mode
                     </button>
+                    {user?.role === "admin" && (
+                        <button
+                            type="button"
+                            aria-pressed={mode === "admin"}
+                            onClick={() => changeMode("admin")}>
+                            Admin Mode
+                        </button>
+                    )}
                 </div>
-            )}
+            }
 
             {/* PROFILE HEADER ACTIONS */}
             <div className="profile-toolbar">
@@ -859,6 +881,8 @@ function Profile({
                 Edit Profile
             </button>
 
+            {mode === "admin" && <AdminPanel />}
+
             {connectionPanel && (
                 <section
                     className="profile-panel profile-connections"
@@ -976,7 +1000,7 @@ function Profile({
 
             {/* PROFILE TABS */}
             <div className="profile-tabs">
-                {tabs.map((tab) => (
+                {(mode === "admin" ? [] : tabs).map((tab) => (
                     <button
                         key={tab}
                         type="button"
@@ -1281,17 +1305,13 @@ function Profile({
                     {/* BUYER: PICKUPS */}
                     {mode === "buyer" &&
                         activeTab === "Pickups" && (
-                            <BuyerPickups
-                                onDemoAction={showDemoNotice}
-                            />
+                            <OrderHistory active />
                         )}
 
                     {/* BUYER: PURCHASES */}
                     {mode === "buyer" &&
                         activeTab === "Purchases" && (
-                            <BuyerPurchases
-                                onDemoAction={showDemoNotice}
-                            />
+                            <OrderHistory />
                         )}
 
                     {/* BUYER: JOINED EVENTS */}
