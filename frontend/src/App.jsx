@@ -6,6 +6,7 @@ import {
 } from "react";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import "./App.css";
+import VerifySeller from "./pages/VerifySeller";
 import { previewStore } from "./services/previewStore";
 import { sellerListings } from "./pages/mockProfileData";
 import Profile from "./pages/Profile";
@@ -20,6 +21,10 @@ import profileIcon from "./assets/nav-icons/Profile.svg";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import ProductDetail from "./pages/ProductDetail";
+import { CartPage, CheckoutPage } from "./pages/Cart";
+import SellerDemo from "./pages/SellerDemo";
+import { useCart } from "./services/useCart";
+import { cartItemCount } from "./services/cartModel";
 import {
     ExplorePage,
     PostDetail,
@@ -33,9 +38,10 @@ import {
     currentPostSource,
     currentSellerUsername,
     currentTagName,
-    exploreListings,
     explorePosts
 } from "./pages/Explore Page/exploreData";
+import { getStoreListings } from "./services/listingApi";
+import { getPublicListings } from "./services/listingApi";
 
 const asExplorePost = (post) => ({
     ...post,
@@ -77,8 +83,12 @@ const currentPage = () => {
     const slug = window.location.hash
         .slice(1)
         .toLowerCase()
-        .split("/")[0];
+        .split(/[/?]/)[0];
     if (!slug || slug === "login") return "Login";
+    if (slug === "cart") return "Cart";
+    if (slug === "checkout") return "Checkout";
+    if (slug === "seller-demo") return "SellerDemo";
+    if (slug === "verify-seller") return "VerifySeller";
     return slug === "seller"
         ? "Seller"
         : slug === "tag"
@@ -122,6 +132,21 @@ function Icon({ name }) {
 
 function App() {
     const { user, loading } = usePreviewUser();
+    const {
+        items: cartItems,
+        add: addToCart,
+        setQuantity: setCartQuantity,
+        remove: removeFromCart
+    } = useCart(user?.id ? `user:${user.id}` : "guest");
+    const cartCount = cartItemCount(cartItems);
+    let checkoutItemId = "";
+    try {
+        checkoutItemId = decodeURIComponent(
+            window.location.hash.split("/")[1] || ""
+        );
+    } catch {
+        // Invalid route encoding must not break the application.
+    }
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
@@ -147,7 +172,14 @@ function App() {
         );
 
     const [publishedPosts, setPublishedPosts] = useState([]);
-    const [listingsByUser, setListingsByUser] = useState(() => ({ "preview-user": sellerListings.map(item => ({ ...item, images: [...(item.images || [])] })) }));
+    const [listingsByUser, setListingsByUser] = useState(
+        () => ({
+            "preview-user": sellerListings.map((item) => ({
+                ...item,
+                images: [...(item.images || [])]
+            }))
+        })
+    );
     const listingOwner = user?.id || "guest";
     const myListings = listingsByUser[listingOwner] || [];
     const setMyListings = (value) =>
@@ -158,6 +190,77 @@ function App() {
                     ? value(current[listingOwner] || [])
                     : value
         }));
+
+    // Shared marketplace listings for Home and Explore.
+    const [publicListings, setPublicListings] = useState([]);
+    const [publicListingsLoading, setPublicListingsLoading] =
+        useState(false);
+    const [publicListingsError, setPublicListingsError] =
+        useState("");
+
+    useEffect(() => {
+        if (
+            !["Home", "Explore", "Seller", "Tag"].includes(page)
+        ) {
+            return;
+        }
+
+        let cancelled = false;
+        setPublicListingsLoading(true);
+
+        getPublicListings()
+            .then((listings) => {
+                if (cancelled) return;
+                setPublicListings(listings);
+                setPublicListingsError("");
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setPublicListingsError(
+                    "Published listings could not be loaded."
+                );
+            })
+            .finally(() => {
+                if (!cancelled) setPublicListingsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [page]);
+
+    // Load the signed-in seller's listings from PostgreSQL.
+    useEffect(() => {
+        const ownerId = user?.id;
+        const storeId = user?.sellerVerified
+            ? user?.store?.id
+            : null;
+
+        if (!ownerId || !storeId) return;
+
+        let cancelled = false;
+
+        getStoreListings(storeId)
+            .then((listings) => {
+                if (cancelled) return;
+
+                setListingsByUser((current) => ({
+                    ...current,
+                    [ownerId]: listings
+                }));
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    console.error(
+                        "Unable to load seller listings."
+                    );
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id, user?.store?.id, user?.sellerVerified]);
 
     const [postsError, setPostsError] = useState("");
     useEffect(() => {
@@ -182,12 +285,18 @@ function App() {
                     }
                 });
         loadPosts();
-        window.addEventListener("campus-makers-preview", loadPosts);
+        window.addEventListener(
+            "campus-makers-preview",
+            loadPosts
+        );
         const timer = window.setInterval(loadPosts, 30000);
         return () => {
             active = false;
             window.clearInterval(timer);
-            window.removeEventListener("campus-makers-preview", loadPosts);
+            window.removeEventListener(
+                "campus-makers-preview",
+                loadPosts
+            );
         };
     }, []);
 
@@ -263,18 +372,7 @@ function App() {
     };
 
     const allPosts = [...publishedPosts, ...explorePosts];
-    const activeListings = myListings
-        .filter((item) => item.status === "Active")
-        .map((item) => ({
-            ...item,
-            id: `listing-${item.id}`,
-            creator: `@${user?.username || user?.email?.split("@")[0] || "maker"}`,
-            image: item.images?.[0] || item.image,
-            type: "listing",
-            caption: item.name,
-            layout: "portrait",
-            tone: "peach"
-        }));
+
     const eventListings = allPosts.flatMap((post) =>
         (post.event_listings || []).map((item) => ({
             ...item,
@@ -288,9 +386,13 @@ function App() {
         }))
     );
     const allListings = [
-        ...activeListings,
-        ...exploreListings,
-        ...eventListings
+        ...publicListings,
+        ...eventListings.filter(
+            (item) =>
+                !publicListings.some(
+                    (listing) => listing.id === item.id
+                )
+        )
     ];
     const exploreSession = useRef(
         ["Explore", "Tag"].includes(currentPage())
@@ -398,14 +500,14 @@ function App() {
         : null;
 
     if (
-    new URLSearchParams(window.location.search).has(
-        "reset_password"
-    )
-) {
-    return <PasswordRecovery mode="update" />;
-}
+        new URLSearchParams(window.location.search).has(
+            "reset_password"
+        )
+    ) {
+        return <PasswordRecovery mode="update" />;
+    }
 
-        return (
+    return (
         <div className="app-shell">
             <header className="brand">
                 <a
@@ -416,6 +518,33 @@ function App() {
                         <span>Campus</span> <span>Makers</span>
                     </h1>
                 </a>
+                <button
+                    type="button"
+                    className="brand-cart"
+                    aria-label={`Shopping cart, ${cartCount} items`}
+                    onClick={() => {
+                        window.location.hash = "cart";
+                    }}>
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round">
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path d="M1 1h4l2.7 13.3a2 2 0 0 0 2 1.7h9.7a2 2 0 0 0 2-1.7L23 6H6" />
+                    </svg>
+                    {cartCount > 0 && (
+                        <span
+                            className="brand-cart-count"
+                            aria-hidden="true">
+                            {cartCount > 99 ? "99+" : cartCount}
+                        </span>
+                    )}
+                </button>
             </header>
             <main
                 aria-label={`${page} page`}
@@ -428,9 +557,38 @@ function App() {
                             ? "explore"
                             : "blank-page"
                 }>
+                {page === "SellerDemo" && <SellerDemo />}
+                {page === "VerifySeller" && <VerifySeller />}
+                {page === "Cart" && (
+                    <CartPage
+                        items={cartItems}
+                        onQuantity={setCartQuantity}
+                        onRemove={removeFromCart}
+                        onCheckout={(id) => {
+                            window.location.hash = `checkout/${encodeURIComponent(id)}`;
+                        }}
+                        onContinue={() => {
+                            window.location.hash = "explore";
+                        }}
+                    />
+                )}
+                {page === "Checkout" && (
+                    <CheckoutPage
+                        key={window.location.hash}
+                        item={cartItems.find(
+                            (item) => item.id === checkoutItemId
+                        )}
+                        onBack={() => {
+                            window.location.hash = "cart";
+                        }}
+                    />
+                )}
                 {page === "Home" && (
                     <Home
                         posts={allPosts}
+                        listings={publicListings}
+                        listingsLoading={publicListingsLoading}
+                        listingsError={publicListingsError}
                         onOpenPost={(id) =>
                             openPost(id, "home")
                         }
@@ -465,6 +623,10 @@ function App() {
                             }
                             onOpenSeller={openSeller}
                             onOpenTag={openTag}
+                            onAddToCart={addToCart}
+                            onViewCart={() => {
+                                window.location.hash = "cart";
+                            }}
                             onMessageUser={(username) => {
                                 window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
                             }}
@@ -565,7 +727,7 @@ function App() {
                         <ExplorePage
                             posts={[
                                 ...publishedPosts,
-                                ...activeListings,
+                                ...publicListings,
                                 ...exploreFeed
                             ]}
                             onOpenPost={openPost}
@@ -576,11 +738,7 @@ function App() {
                     <TagPage
                         key={selectedTag.toLowerCase()}
                         tag={selectedTag}
-                        posts={[
-                            ...allPosts,
-                            ...activeListings,
-                            ...exploreListings
-                        ]}
+                        posts={[...allPosts, ...publicListings]}
                         viewerId={user?.id}
                         onBack={() => {
                             window.location.hash = "explore";
@@ -678,7 +836,11 @@ function App() {
                         onPublished={(post) => {
                             setPublishedPosts((current) => [
                                 asExplorePost(post),
-                                ...current.filter(item => item.id !== `post-${post.id}`)
+                                ...current.filter(
+                                    (item) =>
+                                        item.id !==
+                                        `post-${post.id}`
+                                )
                             ]);
                             setPostsError("");
                         }}
@@ -727,7 +889,6 @@ function App() {
                     ) : (
                         <Login />
                     ))}
-
             </main>
             <nav
                 className="bottom-nav"

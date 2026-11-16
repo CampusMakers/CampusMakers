@@ -19,12 +19,12 @@ function readActivity(key) {
     }
 }
 
-export default function ProductDetail({ product, products = [], user, viewerId, backLabel, onBack, onOpenProduct, onOpenSeller, onOpenTag, onMessageUser }) {
+export default function ProductDetail({ product, products = [], user, viewerId, backLabel, onBack, onOpenProduct, onOpenSeller, onOpenTag, onMessageUser, onAddToCart, onViewCart }) {
     const storageKey = `campus-makers-product-activity:${product.id}`;
     const [activity, setActivity] = useState(() => readActivity(storageKey));
     const [commentCount, setCommentCount] = useState(0);
     const [quantity, setQuantity] = useState(1);
-    const [cartNotice, setCartNotice] = useState(false);
+    const [cartNotice, setCartNotice] = useState("");
     const [storageError, setStorageError] = useState(false);
     const [draftRating, setDraftRating] = useState(null);
     const [editingRating, setEditingRating] = useState(false);
@@ -118,10 +118,13 @@ export default function ProductDetail({ product, products = [], user, viewerId, 
                             <select id="product-quantity" value={selectedQuantity} disabled={quantityLimit === 0} onChange={event => setQuantity(Number(event.target.value))}>
                                 {quantityLimit === 0 ? <option value="0">0</option> : Array.from({ length: quantityLimit }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}
                             </select>
-                            <button type="button" disabled={quantityLimit === 0} onClick={() => setCartNotice(true)}>Add to cart</button>
+                            <button type="button" disabled={quantityLimit === 0} onClick={() => {
+                                const added = onAddToCart?.(product, selectedQuantity) || 0;
+                                setCartNotice(added ? `Added ${added} ${added === 1 ? "item" : "items"} to your cart.` : "Could not add this quantity. Check the stock limit or browser storage.");
+                            }}>Add to cart</button>
                         </div>
                         {quantityLimit === 0 && <p>Out of stock</p>}
-                        {cartNotice && <p role="status">The cart is coming soon. This item has not been added.</p>}
+                        {cartNotice && <div className="product-cart-notice" role="status"><p>{cartNotice}</p><button type="button" onClick={onViewCart}>View Cart →</button></div>}
                     </div>
                     <PostComments post={product} user={user} canReply={Boolean(user?.sellerVerified)} onOpenSeller={onOpenSeller} onMessageUser={onMessageUser} onCountChange={setCommentCount} productStorageKey={storageKey} />
                     {storageError && <p className="explore-comment-error" role="alert">Like could not be saved on this device.</p>}

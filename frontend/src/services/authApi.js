@@ -30,7 +30,10 @@ function setAuthToken(token) {
     memoryToken = token || null;
     try {
         if (token) {
-            window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+            window.localStorage.setItem(
+                TOKEN_STORAGE_KEY,
+                token
+            );
         } else {
             window.localStorage.removeItem(TOKEN_STORAGE_KEY);
         }
@@ -65,20 +68,29 @@ export async function authFetch(url, options = {}) {
     return response;
 }
 
-async function authRequest(path, { method = "POST", body } = {}) {
+async function authRequest(
+    path,
+    { method = "POST", body } = {}
+) {
     let response;
     try {
-        response = await fetch(`${API_ORIGIN}/api/auth${path}`, {
-            method,
-            credentials: "include",
-            headers: {
-                ...authHeaders(),
-                ...(body !== undefined && {
-                    "Content-Type": "application/json"
-                })
-            },
-            body: body !== undefined ? JSON.stringify(body) : undefined
-        });
+        response = await fetch(
+            `${API_ORIGIN}/api/auth${path}`,
+            {
+                method,
+                credentials: "include",
+                headers: {
+                    ...authHeaders(),
+                    ...(body !== undefined && {
+                        "Content-Type": "application/json"
+                    })
+                },
+                body:
+                    body !== undefined
+                        ? JSON.stringify(body)
+                        : undefined
+            }
+        );
     } catch {
         throw new Error(
             "Could not reach the server. Please try again."
@@ -118,6 +130,29 @@ export function signIn({ email, password }) {
     });
 }
 
+// Request a password reset email for an account.
+export function requestPasswordReset(email) {
+    const redirectUrl = new URL(
+        window.location.pathname,
+        window.location.origin
+    );
+    redirectUrl.searchParams.set("reset_password", "1");
+
+    return authRequest("/request-password-reset", {
+        body: {
+            email,
+            redirectTo: redirectUrl.toString()
+        }
+    });
+}
+
+// Set a new password using the recovery token.
+export function resetPassword({ token, newPassword }) {
+    return authRequest("/reset-password", {
+        body: { token, newPassword }
+    });
+}
+
 // Get the current session, or null when signed out.
 export async function getSession() {
     const result = await authRequest("/get-session", {
@@ -134,4 +169,23 @@ export async function signOut() {
     } finally {
         setAuthToken(null);
     }
+}
+
+// Get the signed-in user's profile and seller store information.
+export async function getMyProfile() {
+    const response = await authFetch(
+        `${API_ORIGIN}/api/users/me`
+    );
+
+    if (!response.ok) {
+        throw new Error("Unable to load account profile.");
+    }
+
+    const result = await response.json();
+
+    if (!result?.data) {
+        throw new Error("Account profile was not returned.");
+    }
+
+    return result.data;
 }
