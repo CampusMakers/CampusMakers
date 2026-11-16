@@ -103,6 +103,16 @@ create table if not exists stores (
     updated_at timestamptz not null default now()
 );
 
+
+-- Tracks pending university email verification requests.
+create table if not exists store_email_verifications (
+    store_id bigint primary key references stores (id) on delete cascade,
+    school_email text not null,
+    token_hash text not null unique,
+    expires_at timestamptz not null,
+    created_at timestamptz not null default now()
+);
+
 create table if not exists store_payment_methods (
     store_id bigint not null references stores (id) on delete cascade,
     method payment_method not null,

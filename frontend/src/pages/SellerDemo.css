@@ -1,0 +1,29 @@
+.seller-demo-page { padding: 16px 18px 32px; color: #3f2e20; }
+.seller-demo-page .cart-back { border: 0; background: transparent; color: #805516; font-size: 13px; margin-bottom: 10px; }
+.seller-demo-banner { margin: 0 0 14px; padding: 10px 12px; border: 1px solid #dfc69c; border-radius: 10px; background: #f4e3c3; color: #704b18; font-size: 11px; line-height: 1.5; font-weight: 700; }
+.seller-demo-header { display: flex; align-items: center; gap: 13px; padding: 16px; background: #fff8eb; border: 1px solid #dfcbb0; border-radius: 14px; }
+.seller-demo-avatar { width: 57px; height: 57px; flex: none; display: grid; place-items: center; background: #dcb97c; border-radius: 50%; color: #65420c; font-weight: 800; }
+.seller-demo-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+.seller-demo-header p { margin: 5px 0 0; font-size: 12px; color: #816b4d; }
+.seller-demo-explainer { font-size: 12px; line-height: 1.6; color: #745f46; }
+.seller-demo-tabs { display: flex; gap: 7px; margin: 15px 0; }
+.seller-demo-tabs button { flex: 1; padding: 11px 8px; border: 1px solid #d8c2a0; border-radius: 10px; background: #fff8eb; color: #805516; font-size: 12px; }
+.seller-demo-tabs button[aria-current="page"] { background: #a36500; border-color: #a36500; color: white; }
+.seller-demo-panel { padding: 14px; background: #ebddc5; border: 1px solid #dfcbb0; border-radius: 13px; }
+.seller-demo-panel-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; }
+.seller-demo-panel-title h3 { margin: 0; font-size: 16px; }
+.seller-demo-panel-title button, .seller-demo-calendar { padding: 10px; border: none; border-radius: 9px; background: #805516; color: white; font-size: 12px; font-weight: 700; }
+.seller-demo-card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px; background: #fff8eb; border: 1px solid #dfcbb0; border-radius: 10px; }
+.seller-demo-card > img, .seller-demo-placeholder { width: 58px; height: 60px; object-fit: cover; border-radius: 8px; background: #ead7b6; }
+.seller-demo-placeholder { display: grid; place-items: center; font-size: 11px; }
+.seller-demo-card > div:nth-child(2) { flex: 1; min-width: 0; font-size: 12px; }
+.seller-demo-card p { margin: 5px 0 0; color: #856d4f; }
+.seller-demo-card-actions { display: flex; gap: 8px; }
+.seller-demo-card-actions button { padding: 8px 10px; background: #fff8eb; border: 1px solid #bc9e74; border-radius: 8px; font-size: 12px; }
+.seller-demo-post { margin-bottom: 10px; padding: 12px; border: 1px solid #dfcbb0; border-radius: 9px; background: #fff8eb; font-size: 13px; }
+.seller-demo-post p { overflow-wrap: anywhere; line-height: 1.5; }
+.seller-demo-message { background: #fff8eb; border: 1px solid #ddc59e; border-radius: 9px; padding: 10px; color: #694918; font-size: 12px; }
+.seller-demo-helper { font-size: 12px; line-height: 1.5; color: #755d3b; }
+.seller-demo-calendar { margin-top: 10px; }
+.seller-demo-page .seller-listing-page { padding: 0 0 24px; }
+.seller-demo-page .seller-tool-form { max-width: 100%; }

@@ -34,7 +34,7 @@
         "BETTER_AUTH_URL": "http://localhost:8787",
         "DB_SSL": "false",
         "DB_POOL_MAX": "5",
-        "R2_BUCKET": "campus-makers-media",
+        "R2_BUCKET": "cm-media",
         "R2_PUBLIC_URL": "https://pub-YOUR_PUBLIC_BUCKET_ID.r2.dev",
         "MAX_UPLOAD_MB": "10",
         "PICKUP_PIN_LENGTH": "4",
