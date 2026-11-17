@@ -1,0 +1,42 @@
+.cart-page { padding: 20px 18px 40px; color: #43301e; }
+.cart-back { padding: 5px 0 15px; border: 0; background: transparent; color: #8a5b1a; font-size: 13px; font-weight: 700; }
+.cart-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cart-page h2 { margin: 0; font-size: 23px; font-weight: 700; }
+.cart-count-chip { border: 1px solid #e6cba9; border-radius: 99px; padding: 6px 11px; background: #fff8eb; color: #9a630e; font-size: 12px; white-space: nowrap; }
+.cart-explainer { margin: 9px 0 12px; color: #77604a; line-height: 1.5; font-size: 13px; }
+.cart-demo-label { padding: 10px 12px; border: 1px solid #e1caa5; border-radius: 11px; background: #f7e8cd; color: #725328; line-height: 1.5; font-size: 12px; }
+.cart-items { display: grid; gap: 12px; margin-top: 18px; }
+.cart-item, .cart-empty, .cart-checkout-summary, .cart-pickup-form, .cart-preview-result { padding: 14px; background: #fff8eb; border: 1px solid #e0cbae; border-radius: 15px; }
+.cart-item-main { display: flex; align-items: center; gap: 11px; }
+.cart-product-image { width: 74px; height: 78px; flex: 0 0 74px; border-radius: 10px; object-fit: cover; background: #eddfc9; }
+.cart-placeholder { display: grid; place-items: center; color: #82623c; font-size: 12px; }
+.cart-product-info { display: grid; min-width: 0; flex: 1; gap: 3px; font-size: 12px; }
+.cart-product-info h3 { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.cart-product-info strong, .cart-line-total { color: #965b0e; font-size: 13px; }
+.cart-seller { color: #826d56; font-size: 12px; overflow-wrap: anywhere; }
+.cart-line-total { align-self: center; white-space: nowrap; }
+.cart-item-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.cart-stepper { display: flex; overflow: hidden; align-items: center; border: 1px solid #dac3a7; border-radius: 9px; background: #fffcf6; }
+.cart-stepper button { width: 30px; height: 35px; border: 0; background: transparent; color: #67461d; font-weight: 800; }
+.cart-stepper output { min-width: 22px; text-align: center; font-size: 13px; }
+.cart-stepper button:disabled { opacity: .3; cursor: not-allowed; }
+.cart-checkout-button, .cart-remove-button, .cart-primary, .cart-secondary { border-radius: 9px; padding: 10px 11px; font-size: 12px; font-weight: 700; }
+.cart-checkout-button, .cart-primary { background: #554433; color: #fff; border: 1px solid #554433; }
+.cart-remove-button, .cart-secondary { background: transparent; color: #795023; border: 1px solid #b99566; }
+.cart-checkout-button { flex: 1; min-width: 90px; }
+.cart-limit-text, .cart-footnote { color: #806c56; font-size: 11px; line-height: 1.5; margin: 9px 0 0; }
+.cart-status { font-size: 12px; color: #71521e; }
+.cart-total-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 2px 5px; font-size: 15px; }
+.cart-empty { margin-top: 18px; text-align: center; padding-block: 30px; }
+.cart-empty h3 { margin: 8px 0; }
+.cart-empty p { font-size: 13px; color: #7b6957; }
+.cart-empty-icon { font-size: 32px; }
+.cart-checkout-summary, .cart-pickup-form, .cart-preview-result { margin-top: 15px; }
+.cart-checkout-summary h3, .cart-pickup-form h3, .cart-preview-result h3 { margin: 0 0 14px; font-size: 16px; }
+.cart-pickup-form { display: grid; gap: 10px; }
+.cart-pickup-form label { font-size: 12px; font-weight: 700; }
+.cart-pickup-form input, .cart-pickup-form textarea, .cart-pickup-form select { width: 100%; padding: 11px; border: 1px solid #d8c2a4; border-radius: 9px; background: #fffdf7; color: #382d23; font: inherit; font-size: 13px; }
+.cart-preview-result { background: #f3e4ca; font-size: 13px; line-height: 1.5; }
+.cart-preview-result p { margin: 8px 0; }
+.cart-page button:focus-visible, .cart-page input:focus-visible, .cart-page textarea:focus-visible { outline: 2px solid #a36500; outline-offset: 2px; }
+@media (max-width: 350px) { .cart-page { padding-inline: 12px; } .cart-product-image { width: 58px; flex-basis: 58px; height: 70px; } .cart-item { padding: 10px; } }

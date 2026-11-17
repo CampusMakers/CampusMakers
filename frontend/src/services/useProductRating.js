@@ -1,55 +1,61 @@
-import { useCallback, useEffect, useState } from "react";
-import { previewStore } from "./previewStore";
-
+import { useEffect, useState } from "react";
+import { api } from "./api";
 export function useProductRating(productId, viewerId) {
-    const [summary, setSummary] = useState({ average: null, count: 0, ownRating: null });
-    const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState(false);
-    const [loadError, setLoadError] = useState("");
-    const [error, setError] = useState("");
-
-    const load = useCallback(async () => {
-        if (!previewStore) throw new Error("Ratings are unavailable.");
-        const { data, error: failure } = await previewStore.rpc("maker_product_rating_summary", { p_product_id: productId }).single();
-        if (failure) throw failure;
-        return { average: data.average_rating, count: Number(data.rating_count), ownRating: data.own_rating };
-    }, [productId]);
-
+    const id = String(productId).replace(/^listing-/, "");
+    const real = /^\d+$/.test(id);
+    const [summary, setSummary] = useState({
+        average: null,
+        count: 0,
+        ownRating: null
+    });
+    const [loading, setLoading] = useState(true),
+        [busy, setBusy] = useState(false),
+        [error, setError] = useState("");
     useEffect(() => {
         let active = true;
-        load().then(result => {
-            if (active) { setSummary(result); setLoadError(""); setLoading(false); }
-        }).catch(() => {
-            if (active) { setLoadError("Ratings could not be loaded. Please try again later."); setLoading(false); }
-        });
-        return () => { active = false; };
-    }, [load, viewerId]);
-
-    const submitRating = async (stars) => {
-        if (!previewStore || !viewerId || busy || !Number.isInteger(stars) || stars < 1 || stars > 5) return false;
+        if (!real) return;
+        api(`/listings/${id}/activity`)
+            .then((data) => {
+                if (active) setSummary(data);
+            })
+            .catch((e) => {
+                if (active) setError(e.message);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+        return () => {
+            active = false;
+        };
+    }, [id, real, viewerId]);
+    async function submitRating(rating) {
+        if (!real) {
+            setError("Choose a published listing to rate.");
+            return false;
+        }
+        if (!viewerId || busy) return false;
         setBusy(true);
         setError("");
         try {
-            const { error: failure } = await previewStore.from("maker_product_ratings").upsert(
-                { product_id: productId, user_id: viewerId, rating: stars },
-                { onConflict: "product_id,user_id" }
+            setSummary(
+                await api(`/listings/${id}/activity/rating`, {
+                    method: "PUT",
+                    body: JSON.stringify({ rating })
+                })
             );
-            if (failure) throw failure;
-            try {
-                setSummary(await load());
-                setLoadError("");
-            } catch {
-                setSummary(current => ({ ...current, ownRating: stars }));
-                setLoadError("Your rating was saved, but the average could not be refreshed.");
-            }
             return true;
-        } catch {
-            setError("Your rating could not be saved. Please try again.");
+        } catch (e) {
+            setError(e.message);
             return false;
         } finally {
             setBusy(false);
         }
+    }
+    return {
+        ...summary,
+        loading: real && loading,
+        busy,
+        error,
+        submitRating
     };
-
-    return { ...summary, loading, busy, loadError, error, submitRating };
 }

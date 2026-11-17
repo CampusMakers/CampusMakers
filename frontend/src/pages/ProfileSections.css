@@ -1,0 +1,311 @@
+/* Shared account sections use the existing Saved collection palette and scale.
+   Scope to the signed-in profile shell, including its account subpages. */
+.profile-saved-theme {
+    --collection-panel: #ebddc5;
+    --collection-card: #fff8eb;
+    --collection-border: #dfcbb0;
+    --collection-card-border: #e8d0aa;
+    --collection-text: #3d2c1e;
+    --collection-muted: #69533d;
+    --collection-accent: #a36500;
+    --collection-action: #faf2e3;
+}
+
+.profile-saved-theme
+    :is(
+        .seller-panel,
+        .profile-connections,
+        .profile-events-section,
+        .profile-empty-tab,
+        .profile-order-panel,
+        .profile-seller-invite,
+        .seller-listing-section,
+        .admin-panel > section,
+        .admin-panel > form
+    ) {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--collection-border);
+    border-radius: 16px;
+    background: var(--collection-panel);
+    color: var(--collection-text);
+    box-shadow: none;
+}
+
+.profile-saved-theme
+    :is(.profile-panel-heading, .profile-section-heading) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--collection-border);
+}
+
+.profile-saved-theme
+    :is(.profile-panel-heading, .profile-section-heading)
+    h3,
+.profile-saved-theme
+    :is(
+        .profile-events-section,
+        .profile-empty-tab,
+        .seller-listing-section,
+        .admin-panel > section,
+        .admin-panel > form
+    )
+    > h3 {
+    margin: 0;
+    color: var(--collection-text);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.profile-saved-theme
+    :is(
+        .profile-events-section,
+        .admin-panel > section,
+        .admin-panel > form
+    )
+    > h3 {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--collection-border);
+}
+
+.profile-saved-theme
+    :is(.profile-count, .profile-order-status) {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--collection-border);
+    border-radius: 20px;
+    background: var(--collection-card);
+    color: var(--collection-accent);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.profile-saved-theme .profile-order-status {
+    text-transform: capitalize;
+}
+
+.profile-saved-theme
+    :is(
+        .seller-section-description,
+        .profile-section-description,
+        .profile-events-empty,
+        .seller-empty-state,
+        .profile-empty-tab > p,
+        .admin-panel p
+    ) {
+    color: var(--collection-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.profile-saved-theme
+    :is(
+        .seller-section-description,
+        .profile-section-description
+    ) {
+    margin: 12px 0 16px;
+}
+
+.profile-saved-theme
+    :is(
+        .profile-listing-card,
+        .profile-event-card,
+        .profile-appointment-card,
+        .buyer-purchase-card,
+        .profile-own-post .explore-card,
+        .admin-panel article,
+        .admin-member-search,
+        .profile-connection-list > button
+    ) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--collection-card-border);
+    border-radius: 12px;
+    background: var(--collection-card);
+    color: var(--collection-text);
+    box-shadow: none;
+}
+.profile-saved-theme
+    :is(.profile-listings-grid, .profile-post-feed) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+}
+.profile-saved-theme .profile-own-post {
+    min-width: 0;
+}
+.profile-saved-theme .profile-own-post .explore-card {
+    margin: 0;
+}
+.profile-saved-theme
+    :is(.profile-events-list, .profile-connection-list) {
+    gap: 12px;
+}
+.profile-saved-theme
+    :is(
+        .profile-event-card,
+        .buyer-purchase-card,
+        .admin-panel article
+    ) {
+    padding: 12px;
+}
+.profile-saved-theme
+    :is(
+        .profile-event-card,
+        .buyer-purchase-card,
+        .admin-panel article
+    )
+    h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.profile-saved-theme .buyer-purchase-card h4 {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.profile-saved-theme .buyer-purchase-card p {
+    color: var(--collection-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.profile-saved-theme
+    :is(
+        .profile-section-button,
+        .profile-action-button,
+        .profile-listing-edit,
+        .profile-event-button,
+        .profile-become-seller-button,
+        .admin-panel button,
+        .messages-new-button
+    ) {
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid #cc8000;
+    border-radius: 10px;
+    background: var(--collection-action);
+    color: var(--collection-accent);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    cursor: pointer;
+    box-shadow: none;
+}
+.profile-saved-theme
+    :is(
+        .profile-section-button,
+        .profile-action-button,
+        .profile-listing-edit,
+        .profile-event-button,
+        .profile-become-seller-button,
+        .admin-panel button
+    ):hover:not(:disabled) {
+    background: #ead6ad;
+}
+.profile-saved-theme
+    :is(
+        .profile-section-button,
+        .admin-panel button
+    ):focus-visible {
+    outline: 3px solid #765019;
+    outline-offset: 3px;
+}
+.profile-saved-theme
+    :is(
+        .profile-section-button,
+        .profile-action-button,
+        .admin-panel button
+    ):disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.profile-saved-theme .profile-order-panel {
+    gap: 12px;
+    margin-top: 20px;
+}
+.profile-saved-theme
+    .profile-order-panel
+    .profile-section-description {
+    margin: 0 0 4px;
+}
+.profile-saved-theme .profile-section-button {
+    width: 100%;
+    margin-top: 8px;
+}
+.profile-saved-theme .admin-panel {
+    gap: 16px;
+    margin-top: 20px;
+}
+.profile-saved-theme .admin-panel > form {
+    margin-bottom: 0;
+}
+.profile-saved-theme .admin-member-search {
+    padding: 12px;
+}
+.profile-saved-theme
+    .admin-panel
+    :is(textarea, input[type="search"]) {
+    background: var(--collection-card);
+    border-color: var(--collection-border);
+    color: var(--collection-text);
+    border-radius: 10px;
+}
+.profile-saved-theme .admin-panel label {
+    color: var(--collection-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.profile-saved-theme .profile-empty-tab {
+    margin-top: 20px;
+}
+
+@media (max-width: 540px) {
+    .profile-saved-theme .admin-member {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .profile-saved-theme .admin-actions > button {
+        flex: 1 1 130px;
+    }
+    .profile-saved-theme
+        .admin-panel
+        :is(textarea, input[type="search"]) {
+        font-size: 16px;
+    }
+}
+@media (max-width: 360px) {
+    .profile-saved-theme
+        :is(
+            .seller-panel,
+            .profile-connections,
+            .profile-events-section,
+            .profile-order-panel,
+            .admin-panel > section,
+            .admin-panel > form
+        ) {
+        padding: 12px;
+    }
+    .profile-saved-theme
+        :is(.profile-listings-grid, .profile-post-feed) {
+        gap: 8px;
+    }
+    .profile-saved-theme .profile-post-feed {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
