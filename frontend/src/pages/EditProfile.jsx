@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import "./EditProfile.css";
 
-// Resize pictures before uploading so profile images are small and consistent.
+// Resize uploaded pictures before saving them locally.
+// This also prevents large photos from filling browser storage.
 function resizePhoto(file) {
     return new Promise((resolve, reject) => {
         const url = URL.createObjectURL(file);
@@ -64,7 +65,6 @@ export default function EditProfile({
     const [form, setForm] = useState({ ...profile });
     const [error, setError] = useState("");
     const [uploading, setUploading] = useState(false);
-    const [saving, setSaving] = useState(false);
     const photoInputRef = useRef(null);
     const updateField = (field, value) => {
         setForm((current) => ({
@@ -94,7 +94,7 @@ export default function EditProfile({
         }
     };
 
-    const handleSubmit = async (event) => {
+    const handleSubmit = (event) => {
         event.preventDefault();
         setError("");
 
@@ -124,13 +124,17 @@ export default function EditProfile({
             return;
         }
 
-        setSaving(true);
-        try {
-            await onSave({ name, username, bio, image: form.image });
-        } catch (failure) {
-            setError(failure.message || "Unable to save profile. Please try again.");
-        } finally {
-            setSaving(false);
+        const saved = onSave({
+            name,
+            username,
+            bio,
+            image: form.image
+        });
+
+        if (saved === false) {
+            setError(
+                "Unable to save changes in this browser. Try a smaller photo."
+            );
         }
     };
 
@@ -305,18 +309,16 @@ export default function EditProfile({
                     <button
                         type="submit"
                         className="edit-profile-save"
-                        disabled={uploading || saving}>
-                        {saving
-                            ? "Saving..."
-                            : uploading
-                              ? "Processing..."
-                              : "Save Changes"}
+                        disabled={uploading}>
+                        {uploading
+                            ? "Processing..."
+                            : "Save Changes"}
                     </button>
                 </div>
 
                 <p className="edit-profile-demo-note">
-                    Your profile changes are saved to your account.
-                    Photos require the team's Cloudflare R2 storage.
+                    Demo mode: Changes are saved in this browser
+                    until account integration is connected.
                 </p>
             </form>
         </section>

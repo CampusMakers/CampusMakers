@@ -55,7 +55,3 @@
 .product-comments { margin-top: 24px; }
 .product-comments .explore-comment { margin-bottom: 8px; }
 .product-comments .explore-comments-note { margin: 12px 0 0; }
-
-.product-cart-notice { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 9px; border: 1px solid #e0c9a4; border-radius: 9px; background: #fff8eb; }
-.product-cart-notice p { margin: 0; color: #765423; font-size: 12px; }
-.product-cart-notice button { flex: none; border: 1px solid #a36500; background: transparent; color: #85530b; padding: 8px; border-radius: 8px; font-size: 12px; }

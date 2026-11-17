@@ -1,5 +1,3 @@
-import { authFetch } from "./authApi";
-
 /*
  * Campus Makers Messaging API
  *
@@ -14,7 +12,8 @@ const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(
 
 // Shared helper for backend requests.
 async function apiRequest(path, options = {}) {
-    const response = await authFetch(`${API_ORIGIN}/api${path}`, {
+    const response = await fetch(`${API_ORIGIN}/api${path}`, {
+        credentials: "include",
         ...options,
         headers: {
             "Content-Type": "application/json",
