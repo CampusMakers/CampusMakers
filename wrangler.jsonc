@@ -1,0 +1,52 @@
+{
+    "$schema": "./node_modules/wrangler/config-schema.json",
+    "name": "campus-makers",
+    "main": "backend/src/index.js",
+    "compatibility_date": "2026-11-01",
+    // Node.js APIs (node:http server, net sockets for pg, crypto, streams).
+    "compatibility_flags": ["nodejs_compat"],
+    // Workers have no DOMParser. Use the SDK's server-side XML parser for R2.
+    "alias": {
+        "@aws-sdk/xml-builder": "@aws-sdk/xml-builder/dist-cjs/index.js"
+    },
+
+    // Builds the frontend before `wrangler dev` / `wrangler deploy`, and
+    // rebuilds it during `wrangler dev` whenever these folders change.
+    "build": {
+        "command": "npm run build -w frontend",
+        "watch_dir": ["frontend/src", "frontend/public", "frontend/index.html"]
+    },
+
+    // The built frontend is served as static assets. /api/* always goes to
+    // the Express backend; every other path is a file from frontend/dist,
+    // falling back to index.html.
+    "assets": {
+        "directory": "./frontend/dist",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"]
+    },
+
+    "dev": { "port": 8787 },
+
+    // Non-secret settings. Secrets go in .dev.vars locally and
+    // `npx wrangler secret put NAME` when deployed.
+    // Before deploying, set BETTER_AUTH_URL and CLIENT_ORIGINS to the
+    // deployed site URL, and NODE_ENV to "production".
+    "vars": {
+        "NODE_ENV": "development",
+        "CLIENT_ORIGINS": "http://localhost:8787,http://127.0.0.1:8787,http://localhost:5173,http://127.0.0.1:5173",
+        "BETTER_AUTH_URL": "http://localhost:8787",
+        "DB_SSL": "false",
+        "DB_POOL_MAX": "5",
+        "R2_BUCKET": "cm-media",
+        "R2_PUBLIC_URL": "https://pub-YOUR_PUBLIC_BUCKET_ID.r2.dev",
+        "MAX_UPLOAD_MB": "10",
+        "PICKUP_PIN_LENGTH": "4",
+        "DEFAULT_PAGE_SIZE": "20",
+        "MAX_PAGE_SIZE": "100",
+        "MIN_PASSWORD_LENGTH": "8",
+        "SELLER_EMAIL_SUFFIX": ".edu"
+    },
+
+    "observability": { "enabled": true }
+}
