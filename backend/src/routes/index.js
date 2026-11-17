@@ -1,5 +1,3 @@
-import listingActivity from "./listingActivity.js";
-import admin from "./admin.js";
 import { Router } from "express";
 import availability from "./availability.js";
 import campuses from "./campuses.js";
@@ -28,7 +26,6 @@ import uploads from "./uploads.js";
 import users from "./users.js";
 
 const router = Router();
-router.use("/admin", admin);
 
 router.use("/health", health);
 router.use("/users", users);
@@ -39,7 +36,6 @@ router.use("/stores/:storeId/availability", availability);
 router.use("/stores", stores);
 router.use("/categories", categories);
 router.use("/listings/:listingId/images", listingImages);
-router.use("/listings/:listingId/activity", listingActivity);
 router.use("/listings", listings);
 router.use("/saved-listings", savedListings);
 router.use("/uploads", uploads);

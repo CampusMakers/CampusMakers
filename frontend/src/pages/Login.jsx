@@ -1,11 +1,9 @@
-import { finishLogin } from "../services/loginFlow";
 import { useRef, useState } from "react";
 import "./Login.css";
 import PasswordRecovery from "./PasswordRecovery";
-import { signIn, signUp } from "../services/authApi";
 
 export default function Login() {
-    const [busy, setBusy] = useState(false);
+    const busy = false;
     const [role, setRole] = useState("buyer");
     const [mode, setMode] = useState("login");
     const [forgotPassword, setForgotPassword] = useState(false);
@@ -95,43 +93,8 @@ export default function Login() {
             setStep(2);
             return;
         }
-        setBusy(true);
-        try {
-            if (isSignup) {
-                await signUp({
-                    name: data.get("name").trim(),
-                    email,
-                    password,
-                    username: data
-                        .get("username")
-                        .trim()
-                        .toLowerCase()
-                });
-            } else {
-                await signIn({ email, password });
-            }
-            setErrors({});
-            setComplete(true);
-            finishLogin();
-        } catch (error) {
-            setComplete(false);
-            if (
-                isSignup &&
-                /username/i.test(error.code || error.message)
-            ) {
-                setErrors({ username: error.message });
-                form.elements.username?.focus();
-            } else {
-                setErrors({
-                    form:
-                        error.status === 401
-                            ? "Incorrect email or password."
-                            : error.message
-                });
-            }
-        } finally {
-            setBusy(false);
-        }
+        setErrors({ form: "Backend not connected. Login and account creation are currently unavailable. No account was created and no password was saved." });
+
     };
 
     const fieldFeedback = (name, hint) => ({
@@ -251,15 +214,12 @@ export default function Login() {
                             aria-hidden="true">
                             ✓
                         </span>
-                        <h3>
-                            {isSignup
-                                ? "Account created"
-                                : "You're logged in"}
-                        </h3>
+                        <h3>Check your email</h3>
                         <p>
-                            {isSignup
-                                ? "Welcome to Campus Makers. You're signed in to your new account."
-                                : "Welcome back to Campus Makers."}
+                            If signup is available for this
+                            address, the service would send a
+                            confirmation link. Confirm your
+                            email, then return here to log in.
                         </p>
                         <a
                             className="login-submit"
@@ -526,16 +486,14 @@ export default function Login() {
                                   : `${isSignup ? "Create" : "Log in to"} ${isSeller ? "seller" : "buyer"} account`}{" "}
                             <span aria-hidden="true">→</span>
                         </button>
+                        <p className="login-demo-note">
+                            Backend not connected. Login and account creation
+                            are unavailable. No passwords are saved.
+                        </p>
                     </form>
                 )}
             </div>
-            <a
-                className="login-back"
-                href="#home"
-                onClick={(event) => {
-                    event.preventDefault();
-                    finishLogin(true);
-                }}>
+            <a className="login-back" href="#home">
                 ← Back to Home
             </a>
         </section>
