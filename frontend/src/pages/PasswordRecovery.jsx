@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+    requestPasswordReset,
+    resetPassword
+} from "../services/authApi";
 import "./Login.css";
 import "./PasswordRecovery.css";
 
@@ -7,15 +11,23 @@ export default function PasswordRecovery({
     onBack
 }) {
     const isUpdate = mode === "update";
+    // Check whether the password reset link is valid enough to display.
+    const resetParams = new URLSearchParams(
+        window.location.search
+    );
+
+    const invalidResetLink =
+        isUpdate &&
+        (!resetParams.get("token") || resetParams.has("error"));
 
     const [email, setEmail] = useState("");
     const accountEmail = "";
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    const busy = false;
+    const [busy, setBusy] = useState(false);
     const checking = false;
-    const complete = false;
+    const [complete, setComplete] = useState(false);
     const [error, setError] = useState("");
 
     const backToLogin = () => {
@@ -32,7 +44,47 @@ export default function PasswordRecovery({
         event.preventDefault();
         if (busy) return;
 
-        setError("Backend not connected. Password recovery is unavailable. No email was sent and no password was changed.");
+        setError("");
+
+        try {
+            setBusy(true);
+
+            if (isUpdate) {
+                const params = new URLSearchParams(
+                    window.location.search
+                );
+                const token = params.get("token");
+
+                if (!token || params.has("error")) {
+                    setError(
+                        "This reset link is invalid or expired."
+                    );
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    setError("Passwords do not match.");
+                    return;
+                }
+
+                await resetPassword({
+                    token,
+                    newPassword: password
+                });
+            } else {
+                await requestPasswordReset(email.trim());
+            }
+
+            setComplete(true);
+        } catch {
+            setError(
+                isUpdate
+                    ? "Unable to reset your password. The link may have expired."
+                    : "Unable to process your request right now. Please try again."
+            );
+        } finally {
+            setBusy(false);
+        }
     }
 
     return (
@@ -55,10 +107,15 @@ export default function PasswordRecovery({
                 <p className="login-intro">
                     {isUpdate
                         ? "Choose a new password for your Campus Makers account."
-                        : "Backend not connected. Password reset emails cannot be sent yet."}
+                        : "Enter your account email to request a password reset link."}
                 </p>
 
-                {checking ? (
+                {invalidResetLink ? (
+                    <p className="login-error" role="alert">
+                        This password reset link is invalid or
+                        expired. Please request a new one.
+                    </p>
+                ) : checking ? (
                     <p className="login-hint" role="status">
                         Verifying your reset link...
                     </p>
@@ -110,7 +167,10 @@ export default function PasswordRecovery({
                             </p>
                         )}
 
-                        {(!isUpdate || accountEmail) && (
+                        {(!isUpdate ||
+                            new URLSearchParams(
+                                window.location.search
+                            ).get("token")) && (
                             <form
                                 className="login-form"
                                 onSubmit={handleSubmit}>

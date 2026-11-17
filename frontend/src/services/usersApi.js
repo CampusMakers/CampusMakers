@@ -16,6 +16,8 @@
  * }
  */
 
+import { authFetch } from "./authApi";
+
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(
     /\/$/,
     ""
@@ -33,12 +35,9 @@ export async function searchUsers(query, signal) {
         limit: "8"
     });
 
-    const response = await fetch(
+    const response = await authFetch(
         `${API_ORIGIN}/api/users?${params}`,
-        {
-            credentials: "include",
-            signal
-        }
+        { signal }
     );
 
     if (!response.ok) {
