@@ -1,26 +1,14 @@
 import { usePreviewUser } from "../services/usePreviewUser";
 import { useState } from "react";
+import { sellerSavedItems } from "./mockProfileData";
 import { PostCard } from "./Explore Page/Explore";
 import "./Home.css";
 
 function ProductCard({ product, onOpen }) {
     const [imageFailed, setImageFailed] = useState(false);
     return (
-        <article
-            className="home-product-card"
-            role="link"
-            tabIndex="0"
-            onClick={onOpen}
-            onKeyDown={(event) => {
-                if (
-                    event.key === "Enter" ||
-                    event.key === " "
-                ) {
-                    event.preventDefault();
-                    onOpen();
-                }
-            }}>
-            {imageFailed || !product.image ? (
+        <article className="home-product-card" role="link" tabIndex="0" onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }}>
+            {imageFailed ? (
                 <div className="home-product-placeholder">
                     Product image
                 </div>
@@ -33,9 +21,6 @@ function ProductCard({ product, onOpen }) {
                 />
             )}
             <div className="home-product-info">
-                {product.demo && (
-                    <small>Demo listing · preview only</small>
-                )}
                 <p>{product.creator}</p>
                 <h3>{product.name}</h3>
                 <span>${product.price.toFixed(2)}</span>
@@ -46,9 +31,6 @@ function ProductCard({ product, onOpen }) {
 
 export default function Home({
     posts,
-    listings = [],
-    listingsLoading = false,
-    listingsError = "",
     onOpenPost,
     onOpenSeller
 }) {
@@ -57,8 +39,8 @@ export default function Home({
         useState(false);
     const [showAllPosts, setShowAllPosts] = useState(false);
     const visibleProducts = showAllProducts
-        ? listings
-        : listings.slice(0, 2);
+        ? sellerSavedItems
+        : sellerSavedItems.slice(0, 2);
     const visiblePosts = showAllPosts
         ? posts
         : posts.slice(0, 4);
@@ -68,56 +50,14 @@ export default function Home({
                 className="home-intro"
                 aria-labelledby="home-title">
                 <h2 id="home-title">
-                    {user ? (
-                        <>
-                            Welcome back,{" "}
-                            <span>
-                                @
-                                {user.username ||
-                                    user.email.split("@")[0]}
-                            </span>
-                        </>
-                    ) : (
-                        "Welcome"
-                    )}
+                    {user ? <>Welcome back, <span>@{user.username || user.email.split("@")[0]}</span></> : "Welcome"}
                 </h2>
-                <p role="status">
-                    Marketplace listings are loaded from Campus
-                    Makers. Sample creator posts are labeled as
-                    previews.
-                </p>
+                <p role="status">Backend not connected. Listings and creator posts shown here are sample content.</p>
                 <p>
                     Find your next favorite creation and the
                     makers behind it.
                 </p>
             </section>
-            {posts.some((post) => post.pinned) && (
-                <section
-                    className="home-panel"
-                    aria-label="Pinned community announcements">
-                    <h2>Community announcements</h2>
-                    {posts
-                        .filter((post) => post.pinned)
-                        .map((post) => (
-                            <article key={post.id}>
-                                <h3>
-                                    📌{" "}
-                                    {post.announcement
-                                        ? "Community announcement"
-                                        : "Pinned post"}
-                                </h3>
-                                <p>{post.caption}</p>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        onOpenPost(post.id)
-                                    }>
-                                    View post
-                                </button>
-                            </article>
-                        ))}
-                </section>
-            )}
             <section
                 className="home-panel"
                 aria-labelledby="home-products-heading">
@@ -126,24 +66,9 @@ export default function Home({
                         Product listings
                     </h2>
                     <span className="home-count">
-                        {listings.length} items
+                        {sellerSavedItems.length} items
                     </span>
                 </div>
-
-                {listingsLoading && (
-                    <p role="status">Loading listings...</p>
-                )}
-
-                {listingsError && (
-                    <p role="alert">{listingsError}</p>
-                )}
-
-                {!listingsLoading &&
-                    !listingsError &&
-                    listings.length === 0 && (
-                        <p>No published listings yet.</p>
-                    )}
-
                 <div
                     className="home-product-grid"
                     id="home-products">
@@ -151,9 +76,7 @@ export default function Home({
                         <ProductCard
                             key={product.id}
                             product={product}
-                            onOpen={() =>
-                                onOpenPost(product.id)
-                            }
+                            onOpen={() => onOpenPost(`listing-${product.id}`)}
                         />
                     ))}
                 </div>
@@ -228,22 +151,14 @@ export default function Home({
                 aria-labelledby="home-updates-heading">
                 <div className="home-panel-heading">
                     <h2 id="home-updates-heading">
-                        {user
-                            ? "Follow a creator to see updates"
-                            : "Your creator updates"}
+                        {user ? "Follow a creator to see updates" : "Your creator updates"}
                     </h2>
                 </div>
                 <p>
-                    {user
-                        ? "Follow a creator to see their updates here."
-                        : "Log in or create an account to follow your favorite creators and see their updates here."}
+                    {user ? "Follow a creator to see their updates here." : "Log in or create an account to follow your favorite creators and see their updates here."}
                 </p>
-                <a
-                    className="home-login-link"
-                    href={user ? "#explore" : "#login"}>
-                    {user
-                        ? "Explore creators"
-                        : "Log in / Create an account"}{" "}
+                <a className="home-login-link" href={user ? "#explore" : "#login"}>
+                    {user ? "Explore creators" : "Log in / Create an account"}{" "}
                     <span aria-hidden="true">→</span>
                 </a>
             </section>

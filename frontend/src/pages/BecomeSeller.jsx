@@ -1,81 +1,73 @@
 import { useState } from "react";
-import { createSellerStore } from "../services/sellerApi";
-import { validateSellerRegistration } from "../services/sellerRegistration";
 import "./Login.css";
 import "./BecomeSeller.css";
-import { requestSellerVerification } from "../services/sellerVerificationApi";
 
 function BecomeSeller({
     onBack,
     onRegistered,
-    onStoreCreated,
+    onRequestVerification,
     user,
     sellerVerified = false
 }) {
-    const [storeName, setStoreName] = useState("");
     const [schoolEmail, setSchoolEmail] = useState("");
-    const [registeredStore, setRegisteredStore] =
-        useState(null);
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
     const [busy, setBusy] = useState(false);
-    const [verificationSent, setVerificationSent] =
-        useState(false);
-    const existingStore = registeredStore || user?.store;
-    const needsRegistration = !sellerVerified && !existingStore;
 
-    async function handleRegistration(event) {
+    const accountEmail = user?.email || "";
+    const schoolEmailPattern = /^[^\s@]+@[^\s@]+\.edu$/i;
+
+    async function handleVerification(event) {
         event.preventDefault();
-        if (busy || !needsRegistration) return;
 
-        const validationError = validateSellerRegistration({
-            name: storeName,
-            schoolEmail
-        });
-        if (validationError) {
-            setError(validationError);
+        setError("");
+        setMessage("");
+
+        const email = schoolEmail.trim().toLowerCase();
+
+        if (!schoolEmailPattern.test(email)) {
+            setError(
+                "Enter a valid university email ending in .edu."
+            );
+            return;
+        }
+
+        // The Profile currently does not provide this callback.
+        // We'll connect it to the backend verification endpoint
+        // once that endpoint is available.
+        if (!onRequestVerification) {
+            setMessage(
+                "Your school email format looks valid. " +
+                    "Verification is not connected yet, " +
+                    "so no email has been sent."
+            );
             return;
         }
 
         setBusy(true);
-        setError("");
+
         try {
-            const store = await createSellerStore({
-                name: storeName,
-                schoolEmail
-            });
-            setRegisteredStore(store);
-            onStoreCreated?.(store);
+            await onRequestVerification(email);
+
+            setMessage(
+                "Verification requested. Check your school " +
+                    "inbox for the confirmation instructions."
+            );
         } catch (failure) {
             setError(
                 failure.message ||
-                    "Unable to create your seller account."
+                    "Could not request verification."
             );
         } finally {
             setBusy(false);
         }
     }
-    async function handleRequestVerification() {
-        if (busy || !existingStore || sellerVerified) return;
 
-        setBusy(true);
-        setError("");
-
-        try {
-            await requestSellerVerification();
-            setVerificationSent(true);
-        } catch (failure) {
-            setError(
-                failure.message ||
-                    "Unable to send verification email."
-            );
-        } finally {
-            setBusy(false);
-        }
-    }
     return (
         <section
             className="login-page seller-onboarding"
             aria-labelledby="seller-onboarding-heading">
+            <p className="preview-notice">Backend not connected. Student verification is unavailable.</p>
             <div className="seller-onboarding-top">
                 <span>CAMPUS MAKERS</span>
                 <span className="seller-onboarding-step">
@@ -87,6 +79,7 @@ function BecomeSeller({
                 <h2 id="seller-onboarding-heading">
                     Start selling on campus.
                 </h2>
+
                 <p>
                     Turn your creativity into something students
                     can discover, love, and buy.
@@ -100,11 +93,12 @@ function BecomeSeller({
                         aria-hidden="true">
                         🎓
                     </span>
+
                     <div>
-                        <h3>University seller registration</h3>
+                        <h3>Verify your student status</h3>
                         <p>
-                            Use your existing Campus Makers
-                            account.
+                            Use your school email to unlock
+                            seller features.
                         </p>
                     </div>
                 </div>
@@ -112,107 +106,38 @@ function BecomeSeller({
                 <div className="seller-onboarding-account">
                     <span>YOUR CURRENT ACCOUNT</span>
                     <strong>
-                        {user?.email || "Not signed in"}
+                        {accountEmail || "Not signed in"}
                     </strong>
                 </div>
 
                 {sellerVerified ? (
-                    <>
-                        <div
-                            className="seller-onboarding-verified"
-                            role="status">
-                            <span aria-hidden="true">✓</span>
-                            <div>
-                                <h3>
-                                    You're eligible to sell!
-                                </h3>
-                                <p>
-                                    Your store is active and
-                                    verified.
-                                </p>
-                            </div>
+                    <div className="seller-onboarding-verified">
+                        <span aria-hidden="true">✓</span>
+
+                        <div>
+                            <h3>You're eligible to sell!</h3>
+                            <p>
+                                Your school email is verified.
+                                No additional verification or
+                                password is needed.
+                            </p>
                         </div>
-                        <button
-                            type="button"
-                            className="login-submit"
-                            onClick={onRegistered}>
-                            Continue to Seller Mode →
-                        </button>
-                    </>
-                ) : existingStore ? (
-                    <div className="seller-onboarding-message">
-                        <strong>
-                            {existingStore.name || "Your store"}{" "}
-                            has been registered.
-                        </strong>
-
-                        <p>
-                            Verify your university email to
-                            unlock Seller Mode.
-                        </p>
-
-                        {verificationSent ? (
-                            <p role="status">
-                                Verification email requested!
-                                Check your university inbox.
-                            </p>
-                        ) : (
-                            <button
-                                type="button"
-                                className="login-submit"
-                                onClick={
-                                    handleRequestVerification
-                                }
-                                disabled={busy}>
-                                {busy
-                                    ? "Sending verification email..."
-                                    : "Send Verification Email"}
-                            </button>
-                        )}
-
-                        {error && (
-                            <p
-                                className="seller-onboarding-error"
-                                role="alert">
-                                {error}
-                            </p>
-                        )}
                     </div>
                 ) : (
                     <>
                         <p className="seller-onboarding-description">
-                            Register your store using your
-                            university email. Registration does
-                            not verify email ownership or unlock
-                            Seller Mode.
+                            Add your university email below.
+                            You'll use your existing Campus
+                            Makers account and password.
                         </p>
 
                         <form
                             className="seller-onboarding-form"
-                            onSubmit={handleRegistration}>
-                            <label htmlFor="seller-store-name">
-                                Store name
-                            </label>
-                            <input
-                                id="seller-store-name"
-                                type="text"
-                                minLength={2}
-                                maxLength={80}
-                                placeholder="Your creative shop"
-                                value={storeName}
-                                onChange={(event) => {
-                                    setStoreName(
-                                        event.target.value
-                                    );
-                                    setError("");
-                                }}
-                                required
-                                disabled={busy}
-                            />
-
+                            onSubmit={handleVerification}>
                             <label htmlFor="seller-school-email">
                                 University email
                             </label>
+
                             <input
                                 id="seller-school-email"
                                 type="email"
@@ -224,16 +149,18 @@ function BecomeSeller({
                                         event.target.value
                                     );
                                     setError("");
+                                    setMessage("");
                                 }}
                                 required
                                 disabled={busy}
                             />
+
                             <p className="seller-onboarding-hint">
-                                Enter your university email
-                                address. You'll receive a
-                                verification link after
-                                registering your store.
+                                A verification link will be sent
+                                to your school inbox once
+                                verification is available.
                             </p>
+
                             {error && (
                                 <p
                                     className="seller-onboarding-error"
@@ -241,22 +168,39 @@ function BecomeSeller({
                                     {error}
                                 </p>
                             )}
+
+                            {message && (
+                                <p
+                                    className="seller-onboarding-message"
+                                    role="status">
+                                    {message}
+                                </p>
+                            )}
+
                             <button
                                 type="submit"
                                 className="login-submit"
                                 disabled={busy}>
                                 {busy
-                                    ? "Registering store…"
-                                    : "Register Store (Pending Verification) →"}
+                                    ? "Requesting verification..."
+                                    : "Continue with School Email →"}
                             </button>
                         </form>
                     </>
                 )}
 
+                {sellerVerified && (
+                    <button
+                        type="button"
+                        className="login-submit"
+                        onClick={onRegistered}>
+                        Continue to Seller Mode →
+                    </button>
+                )}
+
                 <div className="seller-onboarding-footer">
                     <span aria-hidden="true">🔒</span>
-                    One account. Seller privileges require
-                    server verification.
+                    One account. One password. Both modes.
                 </div>
             </div>
 
