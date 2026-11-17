@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import config from "./config.js";
+import { dbContext } from "./db/pool.js";
 import { errorHandler, notFoundHandler } from "./middleware/errors.js";
 import { loadSession } from "./middleware/session.js";
 import authRoutes from "./routes/auth.js";
@@ -11,6 +12,7 @@ const app = express();
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+app.use(dbContext);
 app.use(helmet());
 app.use(
     cors({
