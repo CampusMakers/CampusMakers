@@ -2,23 +2,16 @@
   "name": "CampusMakers",
   "version": "0.1.0",
   "description": "",
+  "main": "index.js",
   "license": "ISC",
   "type": "module",
   "workspaces": [
-    "frontend",
-    "backend"
+    "packages/*"
   ],
   "scripts": {
-    "start": "wrangler dev",
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "build": "npm run build -w frontend",
-    "db:migrate": "npm run db:migrate -w backend",
-    "db:seed": "npm run db:seed -w backend",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "devDependencies": {
-    "prettier": "^3.9.7",
-    "wrangler": "^4.162.0"
+    "prettier": "^3.9.7"
   }
 }

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import {
     getConversation,
@@ -39,8 +40,8 @@ export default function Conversation({ username, onBack }) {
     useEffect(() => {
         let cancelled = false;
 
-        async function loadConversation(background = false) {
-            if (!background) setLoading(true);
+        async function loadConversation() {
+            setLoading(true);
             setError("");
 
             try {
@@ -76,14 +77,8 @@ export default function Conversation({ username, onBack }) {
             setError("No conversation was selected.");
         }
 
-        const poll = window.setInterval(
-            () => loadConversation(true),
-            5000
-        );
-
         return () => {
             cancelled = true;
-            window.clearInterval(poll);
         };
     }, [username, refreshCount]);
 
@@ -119,7 +114,10 @@ export default function Conversation({ username, onBack }) {
                 content
             );
 
-            setMessages((current) => [...current, newMessage]);
+            setMessages((current) => [
+                ...current,
+                newMessage
+            ]);
 
             setDraft("");
         } catch (err) {
@@ -172,7 +170,8 @@ export default function Conversation({ username, onBack }) {
                     type="button"
                     className="conversation-back"
                     aria-label="Back to messages"
-                    onClick={onBack}>
+                    onClick={onBack}
+                >
                     ←
                 </button>
 
@@ -181,9 +180,7 @@ export default function Conversation({ username, onBack }) {
                         <img src={partner.image} alt="" />
                     ) : (
                         <span>
-                            {displayName
-                                .charAt(0)
-                                .toUpperCase()}
+                            {displayName.charAt(0).toUpperCase()}
                         </span>
                     )}
                 </div>
@@ -203,7 +200,8 @@ export default function Conversation({ username, onBack }) {
                     disabled={loading}
                     onClick={() =>
                         setRefreshCount((count) => count + 1)
-                    }>
+                    }
+                >
                     ↻
                 </button>
             </header>
@@ -211,11 +209,13 @@ export default function Conversation({ username, onBack }) {
             {/* MESSAGE HISTORY */}
             <div
                 className="conversation-thread"
-                aria-label={`Messages with ${displayName}`}>
+                aria-label={`Messages with ${displayName}`}
+            >
                 {loading && (
                     <div
                         className="conversation-feedback"
-                        role="status">
+                        role="status"
+                    >
                         Loading messages...
                     </div>
                 )}
@@ -223,7 +223,8 @@ export default function Conversation({ username, onBack }) {
                 {!loading && error && (
                     <div
                         className="conversation-feedback"
-                        role="alert">
+                        role="alert"
+                    >
                         <h3>Couldn't load conversation</h3>
                         <p>{error}</p>
 
@@ -233,7 +234,8 @@ export default function Conversation({ username, onBack }) {
                                 setRefreshCount(
                                     (count) => count + 1
                                 )
-                            }>
+                            }
+                        >
                             Try Again
                         </button>
                     </div>
@@ -273,7 +275,8 @@ export default function Conversation({ username, onBack }) {
                                     isMine
                                         ? "conversation-message-mine"
                                         : "conversation-message-theirs"
-                                }`}>
+                                }`}
+                            >
                                 <div className="conversation-bubble">
                                     <p>{message.content}</p>
                                 </div>
@@ -283,7 +286,8 @@ export default function Conversation({ username, onBack }) {
                                         dateTime={
                                             message.createdAt ||
                                             undefined
-                                        }>
+                                        }
+                                    >
                                         {formatTime(
                                             message.createdAt
                                         )}
@@ -301,7 +305,8 @@ export default function Conversation({ username, onBack }) {
                                                 handleDelete(
                                                     message.id
                                                 )
-                                            }>
+                                            }
+                                        >
                                             {deletingId ===
                                             message.id
                                                 ? "Deleting..."
@@ -320,7 +325,8 @@ export default function Conversation({ username, onBack }) {
             {actionError && (
                 <p
                     className="conversation-action-error"
-                    role="alert">
+                    role="alert"
+                >
                     {actionError}
                 </p>
             )}
@@ -328,7 +334,8 @@ export default function Conversation({ username, onBack }) {
             {/* MESSAGE INPUT */}
             <form
                 className="conversation-composer"
-                onSubmit={handleSend}>
+                onSubmit={handleSend}
+            >
                 <textarea
                     value={draft}
                     onChange={(event) =>
@@ -349,7 +356,8 @@ export default function Conversation({ username, onBack }) {
                         loading ||
                         Boolean(error)
                     }
-                    aria-label="Send message">
+                    aria-label="Send message"
+                >
                     {sending ? "Sending..." : "Send →"}
                 </button>
             </form>
