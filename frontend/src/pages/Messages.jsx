@@ -61,8 +61,8 @@ export default function Messages({
     useEffect(() => {
         let cancelled = false;
 
-        const loadMessages = async (background = false) => {
-            if (!background) setLoading(true);
+        const loadMessages = async () => {
+            setLoading(true);
             setError("");
 
             try {
@@ -93,14 +93,8 @@ export default function Messages({
 
         loadMessages();
 
-        const poll = window.setInterval(
-            () => loadMessages(true),
-            5000
-        );
-
         return () => {
             cancelled = true;
-            window.clearInterval(poll);
         };
     }, [refreshCount]);
 

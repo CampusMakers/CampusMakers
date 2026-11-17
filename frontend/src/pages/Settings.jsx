@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import "./Settings.css";
 import { previewStore } from "../services/previewStore";
-import { signOut } from "../services/authApi";
 
 const sections = [
     {
@@ -91,7 +90,7 @@ function Settings({ onBack, profile, email, user }) {
     const [reportPreview, setReportPreview] = useState(false);
 
     const [logoutError, setLogoutError] = useState("");
-    const [logoutBusy, setLogoutBusy] = useState(false);
+    const logoutBusy = false;
 
     const refresh = useCallback(async () => {
         if (!previewStore || !viewerId) {
@@ -315,16 +314,7 @@ function Settings({ onBack, profile, email, user }) {
     }
 
     async function logout() {
-        setLogoutError("");
-        setLogoutBusy(true);
-        try {
-            await signOut();
-        } catch {
-            // The local token is cleared either way, so this browser is signed out.
-        } finally {
-            setLogoutBusy(false);
-        }
-        window.location.hash = "login";
+        setLogoutError("This is a browser preview; there is no signed-in account to log out of.");
     }
 
     const sellerRoots = sellerComments.filter(
