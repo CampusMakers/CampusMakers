@@ -1,11 +1,7 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-dotenv.config({ path: path.join(root, ".env"), quiet: true });
-dotenv.config({ path: path.join(root, "config.env"), quiet: true });
+// Settings come from process.env. On Cloudflare Workers that is filled from
+// the "vars" in wrangler.jsonc plus secrets (.dev.vars locally, or
+// `wrangler secret put` when deployed). The Node scripts load the same values
+// through scripts/env.js.
 
 const required = (name) => {
     const value = process.env[name];
@@ -26,7 +22,6 @@ const list = (name) =>
 
 const config = {
     env: process.env.NODE_ENV ?? "development",
-    port: int("PORT", 4000),
     clientOrigins: list("CLIENT_ORIGINS"),
     auth: {
         url: required("BETTER_AUTH_URL"),
@@ -36,7 +31,8 @@ const config = {
     db: {
         url: required("DATABASE_URL"),
         ssl: process.env.DB_SSL === "true",
-        poolMax: int("DB_POOL_MAX", 10)
+        // Workers allow 6 open connections per request, so keep this at 5 or less.
+        poolMax: int("DB_POOL_MAX", 5)
     },
     r2: {
         endpoint:

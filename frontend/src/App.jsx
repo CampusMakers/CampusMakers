@@ -1,3 +1,4 @@
+import { requestLogin } from "./services/loginFlow";
 import {
     useEffect,
     useLayoutEffect,
@@ -6,6 +7,7 @@ import {
 } from "react";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import "./App.css";
+import VerifySeller from "./pages/VerifySeller";
 import { previewStore } from "./services/previewStore";
 import { sellerListings } from "./pages/mockProfileData";
 import Profile from "./pages/Profile";
@@ -20,6 +22,10 @@ import profileIcon from "./assets/nav-icons/Profile.svg";
 import MapPage from "./pages/Map";
 import CalendarPage from "./pages/Calendar";
 import ProductDetail from "./pages/ProductDetail";
+import { CartPage, CheckoutPage } from "./pages/Cart";
+import SellerDemo from "./pages/SellerDemo";
+import { useCart } from "./services/useCart";
+import { cartItemCount } from "./services/cartModel";
 import {
     ExplorePage,
     PostDetail,
@@ -27,15 +33,33 @@ import {
     TagPage
 } from "./pages/Explore Page/Explore";
 import {
-    createExploreFeed,
+    explorePosts,
+    exploreListings,
     currentProfileFeedUsername,
     currentExplorePostId,
     currentPostSource,
     currentSellerUsername,
-    currentTagName,
-    exploreListings,
-    explorePosts
+    currentTagName
 } from "./pages/Explore Page/exploreData";
+import { getStoreListings } from "./services/listingApi";
+import { getPublicListings } from "./services/listingApi";
+
+const demoPosts = explorePosts
+    .filter((post) => [1, 2, 4].includes(post.id))
+    .map((post) => ({
+        ...post,
+        demo: true,
+        caption: `Demo — ${post.caption}`
+    }));
+const demoListings = exploreListings
+    .slice(0, 2)
+    .map((listing, index) => ({
+        ...listing,
+        id: `listing-demo-${index + 1}`,
+        demo: true,
+        name: `Demo — ${listing.name}`,
+        caption: `Demo — ${listing.name}`
+    }));
 
 const asExplorePost = (post) => ({
     ...post,
@@ -77,8 +101,13 @@ const currentPage = () => {
     const slug = window.location.hash
         .slice(1)
         .toLowerCase()
-        .split("/")[0];
-    if (!slug || slug === "login") return "Login";
+        .split(/[/?]/)[0];
+    if (!slug) return "Home";
+    if (slug === "login") return "Login";
+    if (slug === "cart") return "Cart";
+    if (slug === "checkout") return "Checkout";
+    if (slug === "seller-demo") return "SellerDemo";
+    if (slug === "verify-seller") return "VerifySeller";
     return slug === "seller"
         ? "Seller"
         : slug === "tag"
@@ -122,6 +151,38 @@ function Icon({ name }) {
 
 function App() {
     const { user, loading } = usePreviewUser();
+    useEffect(() => {
+        const guardLoginLink = (event) => {
+            const link = event.target.closest?.(
+                'a[href="#login"]'
+            );
+            if (!user && link) {
+                event.preventDefault();
+                requestLogin("continue");
+            }
+        };
+        document.addEventListener("click", guardLoginLink);
+        return () =>
+            document.removeEventListener(
+                "click",
+                guardLoginLink
+            );
+    }, [user]);
+    const {
+        items: cartItems,
+        add: addToCart,
+        setQuantity: setCartQuantity,
+        remove: removeFromCart
+    } = useCart(user?.id ? `user:${user.id}` : "guest");
+    const cartCount = cartItemCount(cartItems);
+    let checkoutItemId = "";
+    try {
+        checkoutItemId = decodeURIComponent(
+            window.location.hash.split("/")[1] || ""
+        );
+    } catch {
+        // Invalid route encoding must not break the application.
+    }
     const [page, setPage] = useState(currentPage),
         [selectedPostId, setSelectedPostId] = useState(
             currentExplorePostId
@@ -142,12 +203,17 @@ function App() {
         ),
         [selectedTag, setSelectedTag] =
             useState(currentTagName),
-        [exploreFeed, setExploreFeed] = useState(
-            createExploreFeed
-        );
+        [exploreFeed, setExploreFeed] = useState(demoPosts);
 
     const [publishedPosts, setPublishedPosts] = useState([]);
-    const [listingsByUser, setListingsByUser] = useState(() => ({ "preview-user": sellerListings.map(item => ({ ...item, images: [...(item.images || [])] })) }));
+    const [listingsByUser, setListingsByUser] = useState(
+        () => ({
+            "preview-user": sellerListings.map((item) => ({
+                ...item,
+                images: [...(item.images || [])]
+            }))
+        })
+    );
     const listingOwner = user?.id || "guest";
     const myListings = listingsByUser[listingOwner] || [];
     const setMyListings = (value) =>
@@ -158,6 +224,77 @@ function App() {
                     ? value(current[listingOwner] || [])
                     : value
         }));
+
+    // Shared marketplace listings for Home and Explore.
+    const [publicListings, setPublicListings] = useState([]);
+    const [publicListingsLoading, setPublicListingsLoading] =
+        useState(false);
+    const [publicListingsError, setPublicListingsError] =
+        useState("");
+
+    useEffect(() => {
+        if (
+            !["Home", "Explore", "Seller", "Tag"].includes(page)
+        ) {
+            return;
+        }
+
+        let cancelled = false;
+        setPublicListingsLoading(true);
+
+        getPublicListings()
+            .then((listings) => {
+                if (cancelled) return;
+                setPublicListings(listings);
+                setPublicListingsError("");
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setPublicListingsError(
+                    "Published listings could not be loaded."
+                );
+            })
+            .finally(() => {
+                if (!cancelled) setPublicListingsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [page]);
+
+    // Load the signed-in seller's listings from PostgreSQL.
+    useEffect(() => {
+        const ownerId = user?.id;
+        const storeId = user?.sellerVerified
+            ? user?.store?.id
+            : null;
+
+        if (!ownerId || !storeId) return;
+
+        let cancelled = false;
+
+        getStoreListings(storeId)
+            .then((listings) => {
+                if (cancelled) return;
+
+                setListingsByUser((current) => ({
+                    ...current,
+                    [ownerId]: listings
+                }));
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    console.error(
+                        "Unable to load seller listings."
+                    );
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id, user?.store?.id, user?.sellerVerified]);
 
     const [postsError, setPostsError] = useState("");
     useEffect(() => {
@@ -182,18 +319,26 @@ function App() {
                     }
                 });
         loadPosts();
-        window.addEventListener("campus-makers-preview", loadPosts);
+        window.addEventListener(
+            "campus-makers-preview",
+            loadPosts
+        );
         const timer = window.setInterval(loadPosts, 30000);
         return () => {
             active = false;
             window.clearInterval(timer);
-            window.removeEventListener("campus-makers-preview", loadPosts);
+            window.removeEventListener(
+                "campus-makers-preview",
+                loadPosts
+            );
         };
     }, []);
 
     // R04: Share the same real seller-created events with Calendar and Profile.
     const realEvents = publishedPosts.filter(
-        (post) => post.is_event
+        (post) =>
+            post.is_event &&
+            post.moderationStatus === "approved"
     );
 
     // R04 FRONTEND PREVIEW: local-only joined events, separated by account.
@@ -226,7 +371,7 @@ function App() {
 
     const joinEvent = (id) => {
         if (!user?.id) {
-            window.location.hash = "login";
+            requestLogin("join this event");
             return false;
         }
 
@@ -262,36 +407,19 @@ function App() {
         return true;
     };
 
-    const allPosts = [...publishedPosts, ...explorePosts];
-    const activeListings = myListings
-        .filter((item) => item.status === "Active")
-        .map((item) => ({
-            ...item,
-            id: `listing-${item.id}`,
-            creator: `@${user?.username || user?.email?.split("@")[0] || "maker"}`,
-            image: item.images?.[0] || item.image,
-            type: "listing",
-            caption: item.name,
-            layout: "portrait",
-            tone: "peach"
-        }));
-    const eventListings = allPosts.flatMap((post) =>
-        (post.event_listings || []).map((item) => ({
-            ...item,
-            id: `listing-${item.id}`,
-            creator: item.creator || post.creator,
-            type: "listing",
-            caption: item.name,
-            tags: [],
-            layout: "portrait",
-            tone: "peach"
-        }))
+    const visiblePublishedPosts = publishedPosts.filter(
+        (post) => post.moderationStatus === "approved"
     );
-    const allListings = [
-        ...activeListings,
-        ...exploreListings,
-        ...eventListings
-    ];
+    const allPosts = [
+        ...visiblePublishedPosts,
+        ...demoPosts
+    ].sort(
+        (a, b) =>
+            Number(Boolean(b.pinned)) -
+            Number(Boolean(a.pinned))
+    );
+
+    const allListings = [...publicListings, ...demoListings];
     const exploreSession = useRef(
         ["Explore", "Tag"].includes(currentPage())
     );
@@ -349,9 +477,13 @@ function App() {
         openTag = (tag) => {
             window.location.hash = `tag/${encodeURIComponent(tag)}`;
         },
-        selectedPost = [...allPosts, ...allListings].find(
-            (post) => post.id === selectedPostId
-        );
+        selectedPost = [
+            ...allPosts,
+            ...allListings,
+            ...publishedPosts.filter(
+                (post) => user && post.seller_id === user.id
+            )
+        ].find((post) => post.id === selectedPostId);
     // R04: Open the existing event details screen, preserving the source
     // so Back returns to Calendar or Profile.
     const openEvent = (id, from = "calendar") => {
@@ -398,14 +530,14 @@ function App() {
         : null;
 
     if (
-    new URLSearchParams(window.location.search).has(
-        "reset_password"
-    )
-) {
-    return <PasswordRecovery mode="update" />;
-}
+        new URLSearchParams(window.location.search).has(
+            "reset_password"
+        )
+    ) {
+        return <PasswordRecovery mode="update" />;
+    }
 
-        return (
+    return (
         <div className="app-shell">
             <header className="brand">
                 <a
@@ -416,8 +548,34 @@ function App() {
                         <span>Campus</span> <span>Makers</span>
                     </h1>
                 </a>
+                <button
+                    type="button"
+                    className="brand-cart"
+                    aria-label={`Shopping cart, ${cartCount} items`}
+                    onClick={() => {
+                        window.location.hash = "cart";
+                    }}>
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round">
+                        <circle cx="9" cy="21" r="1" />
+                        <circle cx="20" cy="21" r="1" />
+                        <path d="M1 1h4l2.7 13.3a2 2 0 0 0 2 1.7h9.7a2 2 0 0 0 2-1.7L23 6H6" />
+                    </svg>
+                    {cartCount > 0 && (
+                        <span
+                            className="brand-cart-count"
+                            aria-hidden="true">
+                            {cartCount > 99 ? "99+" : cartCount}
+                        </span>
+                    )}
+                </button>
             </header>
-            <p className="preview-notice" role="note">Backend not connected. Login and account services are currently unavailable.</p>
             <main
                 aria-label={`${page} page`}
                 className={
@@ -429,9 +587,47 @@ function App() {
                             ? "explore"
                             : "blank-page"
                 }>
+                {page === "SellerDemo" && <SellerDemo />}
+                {page === "VerifySeller" && <VerifySeller />}
+                {page === "Cart" && (
+                    <CartPage
+                        items={cartItems}
+                        onQuantity={setCartQuantity}
+                        onRemove={removeFromCart}
+                        onCheckout={(id) => {
+                            if (!user)
+                                return requestLogin(
+                                    "purchase",
+                                    true
+                                );
+                            window.location.hash = `checkout/${encodeURIComponent(id)}`;
+                        }}
+                        onContinue={() => {
+                            window.location.hash = "explore";
+                        }}
+                    />
+                )}
+                {page === "Checkout" && (
+                    <CheckoutPage
+                        user={user}
+                        onPurchased={() =>
+                            removeFromCart(checkoutItemId)
+                        }
+                        key={window.location.hash}
+                        item={cartItems.find(
+                            (item) => item.id === checkoutItemId
+                        )}
+                        onBack={() => {
+                            window.location.hash = "cart";
+                        }}
+                    />
+                )}
                 {page === "Home" && (
                     <Home
                         posts={allPosts}
+                        listings={allListings}
+                        listingsLoading={publicListingsLoading}
+                        listingsError={publicListingsError}
                         onOpenPost={(id) =>
                             openPost(id, "home")
                         }
@@ -466,6 +662,10 @@ function App() {
                             }
                             onOpenSeller={openSeller}
                             onOpenTag={openTag}
+                            onAddToCart={addToCart}
+                            onViewCart={() => {
+                                window.location.hash = "cart";
+                            }}
                             onMessageUser={(username) => {
                                 window.location.hash = `profile/messages/${encodeURIComponent(username.replace(/^@/, ""))}?from=post&source=${postSource}`;
                             }}
@@ -565,8 +765,8 @@ function App() {
                     ) : (
                         <ExplorePage
                             posts={[
-                                ...publishedPosts,
-                                ...activeListings,
+                                ...visiblePublishedPosts,
+                                ...allListings,
                                 ...exploreFeed
                             ]}
                             onOpenPost={openPost}
@@ -577,11 +777,7 @@ function App() {
                     <TagPage
                         key={selectedTag.toLowerCase()}
                         tag={selectedTag}
-                        posts={[
-                            ...allPosts,
-                            ...activeListings,
-                            ...exploreListings
-                        ]}
+                        posts={[...allPosts, ...publicListings]}
                         viewerId={user?.id}
                         onBack={() => {
                             window.location.hash = "explore";
@@ -595,7 +791,7 @@ function App() {
                         key={selectedSeller}
                         seller={selectedSeller}
                         posts={[
-                            ...publishedPosts,
+                            ...visiblePublishedPosts,
                             ...exploreFeed.filter(
                                 (post) =>
                                     post.type !== "listing"
@@ -679,7 +875,11 @@ function App() {
                         onPublished={(post) => {
                             setPublishedPosts((current) => [
                                 asExplorePost(post),
-                                ...current.filter(item => item.id !== `post-${post.id}`)
+                                ...current.filter(
+                                    (item) =>
+                                        item.id !==
+                                        `post-${post.id}`
+                                )
                             ]);
                             setPostsError("");
                         }}
@@ -728,7 +928,6 @@ function App() {
                     ) : (
                         <Login />
                     ))}
-
             </main>
             <nav
                 className="bottom-nav"
@@ -742,9 +941,7 @@ function App() {
                                 item !== "Explore" &&
                                 exploreSession.current
                             ) {
-                                setExploreFeed(
-                                    createExploreFeed()
-                                );
+                                setExploreFeed(demoPosts);
                                 exploreSession.current = false;
                             }
                             setPage(item);
