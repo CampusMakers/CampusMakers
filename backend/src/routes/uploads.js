@@ -31,6 +31,16 @@ import {
 
 const router = Router();
 
+// Vite and the API use different ports during development. Photo responses
+// may be embedded across those same-site origins; route authorization below
+// still controls access to pending posts and unlisted listing photos.
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        res.set("Cross-Origin-Resource-Policy", "same-site");
+    }
+    next();
+});
+
 const extensions = {
     "image/jpeg": "jpg",
     "image/png": "png",
@@ -112,7 +122,9 @@ router.get(
             fileName
         );
 
-        const isOwner = req.user?.id === ownerId;
+        const isOwner =
+            req.user?.id === ownerId ||
+            req.user?.role === "admin";
 
         if (!isOwner) {
             // Never expose an unlisted photo to other users.
@@ -123,6 +135,7 @@ router.get(
                  join stores s on s.id = l.store_id
                  where i.url = $1
                    and s.owner_id = $2
+                   and l.moderation_status = 'approved'
                    and l.inactive_since is null
                    and s.inactive_since is null
                  limit 1`,
@@ -151,6 +164,41 @@ router.get(
             isOwner ? "private, no-store" : "public, max-age=60"
         );
 
+        res.send(Buffer.from(bytes));
+    }
+);
+
+// Private post media is visible only after approval, or to its owner/admin.
+router.get(
+    "/post-media/:ownerId/:fileName",
+    async (req, res) => {
+        const { ownerId, fileName } = req.params;
+        if (
+            !/^[a-zA-Z0-9_-]+$/.test(ownerId) ||
+            !/^[a-f0-9-]+\.(jpg|png|webp|gif|heic|mp4|mov|webm)$/.test(
+                fileName
+            )
+        )
+            throw notFound("Media not found");
+        const url = `${config.auth.url.replace(/\/$/, "")}/api/uploads/post-media/${ownerId}/${fileName}`;
+        const visible =
+            req.user?.id === ownerId ||
+            req.user?.role === "admin" ||
+            (await one(
+                "select 1 from posts where author_id=$1 and media_url=$2 and moderation_status='approved'",
+                [ownerId, url]
+            ));
+        if (!visible) throw notFound("Media not found");
+        const bytes = await getObject(`${ownerId}/${fileName}`);
+        const type = Object.entries(extensions).find(
+            ([, ext]) => fileName.endsWith(`.${ext}`)
+        )?.[0];
+        res.set(
+            "Content-Type",
+            type || "application/octet-stream"
+        );
+        res.set("Cache-Control", "private, no-store");
+        res.set("X-Content-Type-Options", "nosniff");
         res.send(Buffer.from(bytes));
     }
 );
@@ -245,21 +293,16 @@ router.post("/", upload.single("file"), async (req, res) => {
     const key = profileUpload
         ? profilePhotoKey(req.user.id, fileName)
         : `${req.user.id}/${fileName}`;
-    const generalUrl = await putObject(
-        key,
-        req.file.buffer,
-        req.file.mimetype,
-        {
-            publicUrl: !profileUpload
-        }
-    );
+    await putObject(key, req.file.buffer, req.file.mimetype, {
+        publicUrl: false
+    });
     const url = profileUpload
         ? profilePhotoUrl(
               config.auth.url,
               req.user.id,
               fileName
           )
-        : generalUrl;
+        : `${config.auth.url.replace(/\/$/, "")}/api/uploads/post-media/${req.user.id}/${fileName}`;
 
     res.status(201).json({
         data: {

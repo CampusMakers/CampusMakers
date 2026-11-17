@@ -5,6 +5,10 @@
     "compatibility_date": "2026-11-01",
     // Node.js APIs (node:http server, net sockets for pg, crypto, streams).
     "compatibility_flags": ["nodejs_compat"],
+    // Workers have no DOMParser. Use the SDK's server-side XML parser for R2.
+    "alias": {
+        "@aws-sdk/xml-builder": "@aws-sdk/xml-builder/dist-cjs/index.js"
+    },
 
     // Builds the frontend before `wrangler dev` / `wrangler deploy`, and
     // rebuilds it during `wrangler dev` whenever these folders change.
@@ -30,7 +34,7 @@
     // deployed site URL, and NODE_ENV to "production".
     "vars": {
         "NODE_ENV": "development",
-        "CLIENT_ORIGINS": "http://localhost:8787,http://127.0.0.1:8787",
+        "CLIENT_ORIGINS": "http://localhost:8787,http://127.0.0.1:8787,http://localhost:5173,http://127.0.0.1:5173",
         "BETTER_AUTH_URL": "http://localhost:8787",
         "DB_SSL": "false",
         "DB_POOL_MAX": "5",

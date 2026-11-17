@@ -35,11 +35,15 @@ export function toSellerListing(listing) {
             (image) => image.url
         ),
         status:
-            listing.status === "active"
-                ? "Active"
-                : listing.status === "sold_out"
-                  ? "Sold Out"
-                  : "Inactive"
+            listing.moderationStatus !== "approved"
+                ? listing.moderationStatus === "rejected"
+                    ? "Rejected"
+                    : "Pending approval"
+                : listing.status === "active"
+                  ? "Active"
+                  : listing.status === "sold_out"
+                    ? "Sold Out"
+                    : "Inactive"
     };
 }
 

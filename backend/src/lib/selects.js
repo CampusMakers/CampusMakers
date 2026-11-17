@@ -4,6 +4,7 @@ const userJson = (alias) =>
 export const listingSelect = (params, viewerId) => `
     select
         l.id,
+        l.moderation_status as "moderationStatus",
         l.title,
         l.description,
         l.type,
@@ -30,11 +31,14 @@ export const listingSelect = (params, viewerId) => `
     join users u on u.id = s.owner_id
     left join categories c on c.id = l.category_id`;
 
-export const activeListing = "l.inactive_since is null and s.inactive_since is null";
+export const activeListing =
+    "l.inactive_since is null and s.inactive_since is null and l.moderation_status = 'approved'";
 
 export const postSelect = (params, viewerId) => `
     select
         po.id,
+        po.moderation_status as "moderationStatus",
+        po.pinned, po.announcement, po.metadata,
         po.type,
         po.caption,
         po.media_url as "mediaUrl",
@@ -121,13 +125,17 @@ export const eventSelect = (params, viewerId) => {
             where ev.event_id = e.id
         ), '[]'::json) as vendors,
         ${viewer ? `(select r.status from event_rsvps r where r.event_id = e.id and r.user_id = ${viewer})` : "null"} as "myRsvp",
-        ${viewer ? `case
+        ${
+            viewer
+                ? `case
             when hs.owner_id = ${viewer} then 'host'
             when exists (
                 select 1 from event_vendors ev join stores vs on vs.id = ev.store_id
                 where ev.event_id = e.id and vs.owner_id = ${viewer}
             ) then 'vendor'
-        end` : "null"} as "myRole",
+        end`
+                : "null"
+        } as "myRole",
         count(*) over ()::int as "totalCount"
     from events e
     left join locations loc on loc.id = e.location_id
