@@ -1,39 +1,16 @@
 import { Router } from "express";
 import { z } from "zod";
 import { many, one, transaction } from "../db/pool.js";
-import {
-    badRequest,
-    forbidden,
-    notFound
-} from "../lib/httpError.js";
-import {
-    id,
-    idParam,
-    money,
-    pagination
-} from "../lib/schemas.js";
-import {
-    activeListing,
-    listingSelect
-} from "../lib/selects.js";
-import {
-    Params,
-    escapeLike,
-    paginated,
-    whereClause,
-    withoutTotal
-} from "../lib/sql.js";
+import { badRequest, forbidden, notFound } from "../lib/httpError.js";
+import { id, idParam, money, pagination } from "../lib/schemas.js";
+import { activeListing, listingSelect } from "../lib/selects.js";
+import { Params, escapeLike, paginated, whereClause, withoutTotal } from "../lib/sql.js";
 import { requireSeller } from "../middleware/session.js";
 import validate from "../middleware/validate.js";
 
 const router = Router();
 
-const listingTypes = [
-    "product",
-    "commission",
-    "service",
-    "digital"
-];
+const listingTypes = ["product", "commission", "service", "digital"];
 
 const sorts = {
     recent: "l.created_at desc, l.id desc",
@@ -44,33 +21,19 @@ const sorts = {
 export const getListing = async (listingId, viewerId) => {
     const params = new Params();
     const select = listingSelect(params, viewerId);
-    return withoutTotal(
-        await one(
-            `${select} where l.id = ${params.add(listingId)}`,
-            params.values
-        )
-    );
+    return withoutTotal(await one(`${select} where l.id = ${params.add(listingId)}`, params.values));
 };
 
 const assertCategory = async (categoryId) => {
-    if (
-        categoryId &&
-        !(await one("select id from categories where id = $1", [
-            categoryId
-        ]))
-    ) {
+    if (categoryId && !(await one("select id from categories where id = $1", [categoryId]))) {
         throw badRequest("Unknown category");
     }
 };
 
 const assertOwnership = async (listingId, storeId) => {
-    const listing = await one(
-        "select store_id from listings where id = $1",
-        [listingId]
-    );
+    const listing = await one("select store_id from listings where id = $1", [listingId]);
     if (!listing) throw notFound("Listing not found");
-    if (listing.store_id !== storeId)
-        throw forbidden("You do not own this listing");
+    if (listing.store_id !== storeId) throw forbidden("You do not own this listing");
 };
 
 router.get(
@@ -95,46 +58,22 @@ router.get(
         const select = listingSelect(params, req.user?.id);
         const conditions = [];
 
-        const ownsStore =
-            query.storeId &&
-            req.user &&
-            (await one(
-                "select 1 from stores where id = $1 and owner_id = $2",
-                [query.storeId, req.user.id]
-            ));
-        if (query.status === "active" || !ownsStore)
-            conditions.push(activeListing);
+        const ownsStore = query.storeId && req.user && (await one(
+            "select 1 from stores where id = $1 and owner_id = $2",
+            [query.storeId, req.user.id]
+        ));
+        if (query.status === "active" || !ownsStore) conditions.push(activeListing);
 
         if (query.q) {
             const like = params.add(`%${escapeLike(query.q)}%`);
-            conditions.push(
-                `(l.title ilike ${like} or l.description ilike ${like} or s.name ilike ${like})`
-            );
+            conditions.push(`(l.title ilike ${like} or l.description ilike ${like} or s.name ilike ${like})`);
         }
-        if (query.categoryId)
-            conditions.push(
-                `l.category_id = ${params.add(query.categoryId)}`
-            );
-        if (query.storeId)
-            conditions.push(
-                `l.store_id = ${params.add(query.storeId)}`
-            );
-        if (query.campusId)
-            conditions.push(
-                `s.campus_id = ${params.add(query.campusId)}`
-            );
-        if (query.type)
-            conditions.push(
-                `l.type = ${params.add(query.type)}`
-            );
-        if (query.minPrice !== undefined)
-            conditions.push(
-                `l.price >= ${params.add(query.minPrice)}`
-            );
-        if (query.maxPrice !== undefined)
-            conditions.push(
-                `l.price <= ${params.add(query.maxPrice)}`
-            );
+        if (query.categoryId) conditions.push(`l.category_id = ${params.add(query.categoryId)}`);
+        if (query.storeId) conditions.push(`l.store_id = ${params.add(query.storeId)}`);
+        if (query.campusId) conditions.push(`s.campus_id = ${params.add(query.campusId)}`);
+        if (query.type) conditions.push(`l.type = ${params.add(query.type)}`);
+        if (query.minPrice !== undefined) conditions.push(`l.price >= ${params.add(query.minPrice)}`);
+        if (query.maxPrice !== undefined) conditions.push(`l.price <= ${params.add(query.maxPrice)}`);
 
         const rows = await many(
             `${select} ${whereClause(conditions)}
@@ -146,29 +85,12 @@ router.get(
     }
 );
 
-router.get(
-    "/:id",
-    validate({ params: idParam }),
-    async (req, res) => {
-        const listing = await getListing(
-            req.data.params.id,
-            req.user?.id
-        );
-        if (!listing) throw notFound("Listing not found");
-        if (
-            listing.moderationStatus !== "approved" &&
-            listing.store.owner.id !== req.user?.id &&
-            req.user?.role !== "admin"
-        )
-            throw notFound("Listing not found");
-        if (
-            listing.status === "inactive" &&
-            listing.store.owner.id !== req.user?.id
-        )
-            throw notFound("Listing not found");
-        res.json({ data: listing });
-    }
-);
+router.get("/:id", validate({ params: idParam }), async (req, res) => {
+    const listing = await getListing(req.data.params.id, req.user?.id);
+    if (!listing) throw notFound("Listing not found");
+    if (listing.status === "inactive" && listing.store.owner.id !== req.user?.id) throw notFound("Listing not found");
+    res.json({ data: listing });
+});
 
 router.post(
     "/",
@@ -176,30 +98,17 @@ router.post(
     validate({
         body: z.object({
             title: z.string().trim().min(2).max(120),
-            description: z
-                .string()
-                .trim()
-                .max(4000)
-                .nullable()
-                .optional(),
+            description: z.string().trim().max(4000).nullable().optional(),
             categoryId: id.nullable().optional(),
             type: z.enum(listingTypes).default("product"),
-            quantity: z
-                .number()
-                .int()
-                .min(0)
-                .max(100000)
-                .default(1),
+            quantity: z.number().int().min(0).max(100000).default(1),
             price: money,
             imageUrls: z.array(z.url()).max(10).default([])
         })
     }),
     async (req, res) => {
         const body = req.data.body;
-        if (req.store.inactiveSince)
-            throw badRequest(
-                "Reactivate your store before adding listings"
-            );
+        if (req.store.inactiveSince) throw badRequest("Reactivate your store before adding listings");
         await assertCategory(body.categoryId);
 
         const listingId = await transaction(async (client) => {
@@ -229,11 +138,7 @@ router.post(
             return newId;
         });
 
-        res.status(201)
-            .location(`/api/listings/${listingId}`)
-            .json({
-                data: await getListing(listingId, req.user.id)
-            });
+        res.status(201).location(`/api/listings/${listingId}`).json({ data: await getListing(listingId, req.user.id) });
     }
 );
 
@@ -244,33 +149,15 @@ router.patch(
         params: idParam,
         body: z
             .object({
-                title: z
-                    .string()
-                    .trim()
-                    .min(2)
-                    .max(120)
-                    .optional(),
-                description: z
-                    .string()
-                    .trim()
-                    .max(4000)
-                    .nullable()
-                    .optional(),
+                title: z.string().trim().min(2).max(120).optional(),
+                description: z.string().trim().max(4000).nullable().optional(),
                 categoryId: id.nullable().optional(),
                 type: z.enum(listingTypes).optional(),
-                quantity: z
-                    .number()
-                    .int()
-                    .min(0)
-                    .max(100000)
-                    .optional(),
+                quantity: z.number().int().min(0).max(100000).optional(),
                 price: money.optional(),
                 active: z.boolean().optional()
             })
-            .refine(
-                (body) => Object.keys(body).length > 0,
-                "Provide at least one field to update"
-            )
+            .refine((body) => Object.keys(body).length > 0, "Provide at least one field to update")
     }),
     async (req, res) => {
         const listingId = req.data.params.id;
@@ -280,7 +167,6 @@ router.patch(
 
         await one(
             `update listings set
-                 moderation_status = 'pending',
                  title = coalesce($2, title),
                  description = case when $3::boolean then $4 else description end,
                  category_id = case when $5::boolean then $6::bigint else category_id end,
@@ -307,35 +193,22 @@ router.patch(
                 body.active ?? null
             ]
         );
-        res.json({
-            data: await getListing(listingId, req.user.id)
-        });
+        res.json({ data: await getListing(listingId, req.user.id) });
     }
 );
 
-router.delete(
-    "/:id",
-    requireSeller,
-    validate({ params: idParam }),
-    async (req, res) => {
-        const listingId = req.data.params.id;
-        await assertOwnership(listingId, req.store.id);
-        const ordered = await one(
-            "select 1 from order_items where listing_id = $1 limit 1",
-            [listingId]
-        );
-        if (ordered) {
-            await one(
-                "update listings set inactive_since = coalesce(inactive_since, now()), updated_at = now() where id = $1",
-                [listingId]
-            );
-        } else {
-            await one("delete from listings where id = $1", [
-                listingId
-            ]);
-        }
-        res.status(204).end();
+router.delete("/:id", requireSeller, validate({ params: idParam }), async (req, res) => {
+    const listingId = req.data.params.id;
+    await assertOwnership(listingId, req.store.id);
+    const ordered = await one("select 1 from order_items where listing_id = $1 limit 1", [listingId]);
+    if (ordered) {
+        await one("update listings set inactive_since = coalesce(inactive_since, now()), updated_at = now() where id = $1", [
+            listingId
+        ]);
+    } else {
+        await one("delete from listings where id = $1", [listingId]);
     }
-);
+    res.status(204).end();
+});
 
 export default router;

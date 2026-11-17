@@ -1,21 +1,26 @@
-import {
-    getListingCategories,
-    uploadListingPhoto
-} from "../services/listingApi";
-import { validateStockAndOrderLimit } from "../services/sellerListingValidation";
-import { useEffect, useRef, useState } from "react";
+import { uploadPhoto } from "../services/previewPhotos";
+import { useRef, useState } from "react";
 import "./SellerListingForm.css";
 
 const MAX_PHOTOS = 8;
 const MAX_PHOTO_SIZE = 4 * 1024 * 1024;
 
+const CATEGORIES = [
+    "Ceramics & Pottery",
+    "Jewelry",
+    "Art & Prints",
+    "Clothing",
+    "Accessories",
+    "Home Decor",
+    "Crochet & Textiles",
+    "Stationery",
+    "Other Handmade Goods"
+];
 const CONDITIONS = ["New", "Like New", "Good", "Fair"];
 
 function initialPhotoList(listing) {
     return (listing?.images || [])
-        .filter(
-            (src) => typeof src === "string" && src.length > 0
-        )
+        .filter((src) => typeof src === "string" && src.length > 0)
         .map((src) => ({ id: crypto.randomUUID(), src }));
 }
 
@@ -27,38 +32,18 @@ export default function SellerListingForm({
     const isEditing = Boolean(initialListing);
     const fileInputRef = useRef(null);
 
-    const [name, setName] = useState(
-        initialListing?.name || ""
-    );
-    const [description, setDescription] = useState(
-        initialListing?.description || ""
-    );
-    const [category, setCategory] = useState(
-        initialListing?.category || ""
-    );
-    const [condition, setCondition] = useState(
-        initialListing?.condition || "New"
-    );
-    const [color, setColor] = useState(
-        initialListing?.color || ""
-    );
-    const [quantity, setQuantity] = useState(
-        String(initialListing?.quantity ?? 1)
-    );
-    const [maxPerOrder, setMaxPerOrder] = useState(
-        String(
-            initialListing?.maxPerOrder ??
-                Math.min(5, initialListing?.quantity ?? 1)
-        )
-    );
+    const [name, setName] = useState(initialListing?.name || "");
+    const [description, setDescription] = useState(initialListing?.description || "");
+    const [category, setCategory] = useState(initialListing?.category || "");
+    const [condition, setCondition] = useState(initialListing?.condition || "New");
+    const [color, setColor] = useState(initialListing?.color || "");
+    const [quantity, setQuantity] = useState(String(initialListing?.quantity ?? 1));
+    const [maxPerOrder, setMaxPerOrder] = useState(String(initialListing?.maxPerOrder ?? 5));
     const [tags, setTags] = useState(
-        Array.isArray(initialListing?.tags)
-            ? initialListing.tags.join(", ")
-            : ""
+        Array.isArray(initialListing?.tags) ? initialListing.tags.join(", ") : ""
     );
     const [price, setPrice] = useState(
-        initialListing?.price != null &&
-            initialListing.price !== 0
+        initialListing?.price != null && initialListing.price !== 0
             ? String(initialListing.price)
             : ""
     );
@@ -66,50 +51,10 @@ export default function SellerListingForm({
         initialListing?.pickupLocation || ""
     );
 
-    const [photos, setPhotos] = useState(() =>
-        initialPhotoList(initialListing)
-    );
-    const [coverId, setCoverId] = useState(
-        () => photos[0]?.id ?? null
-    );
-    const [processingPhotos, setProcessingPhotos] =
-        useState(false);
-    const [saving, setSaving] = useState(false);
+    const [photos, setPhotos] = useState(() => initialPhotoList(initialListing));
+    const [coverId, setCoverId] = useState(() => photos[0]?.id ?? null);
+    const [processingPhotos, setProcessingPhotos] = useState(false);
     const [error, setError] = useState("");
-
-    // Load available categories from the Campus Makers database.
-    const [categories, setCategories] = useState([]);
-    const [categoriesError, setCategoriesError] = useState("");
-
-    useEffect(() => {
-        let active = true;
-
-        getListingCategories()
-            .then((data) => {
-                if (!active) return;
-                setCategories(data);
-
-                if (!data.length) {
-                    setCategoriesError(
-                        "No listing categories are available."
-                    );
-                }
-            })
-            .catch(() => {
-                if (active) {
-                    setCategoriesError(
-                        "Unable to load listing categories."
-                    );
-                }
-            });
-
-        return () => {
-            active = false;
-        };
-    }, []);
-
-    // Keep the current stock count available to the form.
-    const count = Number(quantity);
 
     const handlePhotos = async (event) => {
         const files = Array.from(event.target.files || []);
@@ -117,25 +62,12 @@ export default function SellerListingForm({
         if (!files.length || processingPhotos) return;
 
         if (photos.length + files.length > MAX_PHOTOS) {
-            setError(
-                `You can upload up to ${MAX_PHOTOS} photos.`
-            );
+            setError(`You can upload up to ${MAX_PHOTOS} photos.`);
             return;
         }
 
-        if (
-            files.some(
-                (file) =>
-                    ![
-                        "image/jpeg",
-                        "image/png",
-                        "image/webp"
-                    ].includes(file.type)
-            )
-        ) {
-            setError(
-                "Only JPG, PNG, and WebP photos are supported."
-            );
+        if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
+            setError("Only JPG, PNG, and WebP photos are supported.");
             return;
         }
 
@@ -150,13 +82,11 @@ export default function SellerListingForm({
             const added = await Promise.all(
                 files.map(async (file) => ({
                     id: crypto.randomUUID(),
-                    src: await uploadListingPhoto(file)
+                    src: await uploadPhoto(file)
                 }))
             );
             setPhotos((current) => [...current, ...added]);
-            setCoverId(
-                (current) => current ?? added[0]?.id ?? null
-            );
+            setCoverId((current) => current ?? added[0]?.id ?? null);
         } catch (error) {
             setError(error.message);
         } finally {
@@ -165,25 +95,21 @@ export default function SellerListingForm({
     };
 
     const removePhoto = (id) => {
-        const remaining = photos.filter(
-            (photo) => photo.id !== id
-        );
+        const remaining = photos.filter((photo) => photo.id !== id);
         setPhotos(remaining);
-        if (coverId === id)
-            setCoverId(remaining[0]?.id ?? null);
+        if (coverId === id) setCoverId(remaining[0]?.id ?? null);
     };
 
-    const handleSubmit = async (status) => {
-        if (saving || processingPhotos) return;
+    const handleSubmit = (status) => {
         setError("");
         const title = name.trim();
         const enteredPrice = price.trim();
         const amount = Number(enteredPrice);
+        const count = Number(quantity);
         const orderLimit = Number(maxPerOrder);
         const parsedTags = [
             ...new Set(
-                tags
-                    .split(",")
+                tags.split(",")
                     .map((tag) => tag.trim().replace(/^#/, ""))
                     .filter(Boolean)
             )
@@ -198,21 +124,15 @@ export default function SellerListingForm({
         // Existing sample listings can still be edited without adding missing mock fields.
         if (status === "Active" && !isEditing) {
             if (photos.length === 0) {
-                setError(
-                    "Add at least one product photo before publishing."
-                );
+                setError("Add at least one product photo before publishing.");
                 return;
             }
             if (!description.trim()) {
-                setError(
-                    "Describe your item before publishing."
-                );
+                setError("Describe your item before publishing.");
                 return;
             }
             if (!category) {
-                setError(
-                    "Select a category before publishing."
-                );
+                setError("Select a category before publishing.");
                 return;
             }
         }
@@ -221,40 +141,20 @@ export default function SellerListingForm({
             setError("Enter a price before publishing.");
             return;
         }
-        if (
-            enteredPrice &&
-            (!/^\d+(\.\d{1,2})?$/.test(enteredPrice) ||
-                amount <= 0)
-        ) {
-            setError(
-                "Enter a valid price above $0, with up to two decimal places."
-            );
+        if (enteredPrice && (!/^\d+(\.\d{1,2})?$/.test(enteredPrice) || amount <= 0)) {
+            setError("Enter a valid price above $0, with up to two decimal places.");
             return;
         }
-        const stockError = validateStockAndOrderLimit(
-            quantity,
-            maxPerOrder
-        );
-        if (stockError) {
-            setError(stockError);
+        if (!Number.isInteger(count) || count < 1) {
+            setError("Quantity must be a whole number of at least 1.");
+            return;
+        }
+        if (!Number.isInteger(orderLimit) || orderLimit < 1 || orderLimit > 1000) {
+            setError("The maximum per order must be a whole number between 1 and 1,000.");
             return;
         }
         if (parsedTags.length > 5) {
-            setError(
-                "Use five tags or fewer, separated by commas."
-            );
-            return;
-        }
-
-        // Find the database ID for the selected category.
-        const selectedCategory = categories.find(
-            (item) => item.name === category
-        );
-
-        if (status === "Active" && !selectedCategory) {
-            setError(
-                "Select a valid category before publishing."
-            );
+            setError("Use five tags or fewer, separated by commas.");
             return;
         }
 
@@ -265,50 +165,31 @@ export default function SellerListingForm({
 
         // The parent handles local state now; the backend team can later
         // replace the save handler with its create/update API calls.
-
-        setSaving(true);
-
-        try {
-            await onSave({
-                name: title || "Untitled draft",
-                description: description.trim(),
-                category,
-                categoryId: selectedCategory?.id ?? null,
-                condition,
-                color: color.trim(),
-                quantity: count,
-                maxPerOrder: orderLimit,
-                tags: parsedTags,
-                price: enteredPrice ? amount : 0,
-                pickupLocation: pickupLocation.trim(),
-                status,
-                images: orderedPhotos.map((photo) => photo.src)
-            });
-        } catch (error) {
-            setError(
-                error.message || "Unable to save listing."
-            );
-        } finally {
-            setSaving(false);
-        }
+        onSave({
+            name: title || "Untitled draft",
+            description: description.trim(),
+            category,
+            condition,
+            color: color.trim(),
+            quantity: count,
+            maxPerOrder: orderLimit,
+            tags: parsedTags,
+            price: enteredPrice ? amount : 0,
+            pickupLocation: pickupLocation.trim(),
+            status,
+            images: orderedPhotos.map((photo) => photo.src)
+        });
     };
 
     return (
         <div className="seller-listing-page">
             <header className="seller-listing-page-header">
-                <button
-                    type="button"
-                    className="seller-listing-back"
-                    onClick={onCancel}>
+                <button type="button" className="seller-listing-back" onClick={onCancel}>
                     ← Back to Listings
                 </button>
                 <div className="seller-listing-title">
                     <span>SELLER STUDIO</span>
-                    <h2>
-                        {isEditing
-                            ? "Edit Listing"
-                            : "List an Item"}
-                    </h2>
+                    <h2>{isEditing ? "Edit Listing" : "List an Item"}</h2>
                     <p>
                         {isEditing
                             ? "Update the details of your Campus Makers listing."
@@ -320,13 +201,10 @@ export default function SellerListingForm({
             <section className="seller-listing-section">
                 <div className="seller-listing-section-header">
                     <h3>Photos</h3>
-                    <span>
-                        {photos.length}/{MAX_PHOTOS}
-                    </span>
+                    <span>{photos.length}/{MAX_PHOTOS}</span>
                 </div>
                 <p className="seller-listing-helper">
-                    Add up to 8 photos. Choose the one buyers
-                    will see first.
+                    Add up to 8 photos. Choose the one buyers will see first.
                 </p>
                 <input
                     ref={fileInputRef}
@@ -340,34 +218,21 @@ export default function SellerListingForm({
                 />
                 <div className="seller-listing-photo-grid">
                     {photos.map((photo, index) => (
-                        <div
-                            className="seller-listing-photo-card"
-                            key={photo.id}>
-                            <img
-                                src={photo.src}
-                                alt={`Listing photo ${index + 1}`}
-                            />
+                        <div className="seller-listing-photo-card" key={photo.id}>
+                            <img src={photo.src} alt={`Listing photo ${index + 1}`} />
                             {coverId === photo.id && (
-                                <span className="seller-listing-cover-label">
-                                    Cover
-                                </span>
+                                <span className="seller-listing-cover-label">Cover</span>
                             )}
                             <div className="seller-listing-photo-actions">
                                 {coverId !== photo.id && (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setCoverId(photo.id)
-                                        }>
+                                    <button type="button" onClick={() => setCoverId(photo.id)}>
                                         Set Cover
                                     </button>
                                 )}
                                 <button
                                     type="button"
                                     aria-label={`Remove photo ${index + 1}`}
-                                    onClick={() =>
-                                        removePhoto(photo.id)
-                                    }>
+                                    onClick={() => removePhoto(photo.id)}>
                                     ×
                                 </button>
                             </div>
@@ -378,179 +243,77 @@ export default function SellerListingForm({
                             type="button"
                             className="seller-listing-add-photo"
                             disabled={processingPhotos}
-                            onClick={() =>
-                                fileInputRef.current?.click()
-                            }>
-                            <span className="seller-listing-camera">
-                                +
-                            </span>
-                            <span>
-                                {processingPhotos
-                                    ? "Preparing..."
-                                    : "Add a photo"}
-                            </span>
+                            onClick={() => fileInputRef.current?.click()}>
+                            <span className="seller-listing-camera">+</span>
+                            <span>{processingPhotos ? "Preparing..." : "Add a photo"}</span>
                         </button>
                     )}
                     {Array.from({
-                        length:
-                            MAX_PHOTOS -
-                            photos.length -
-                            (photos.length < MAX_PHOTOS ? 1 : 0)
+                        length: MAX_PHOTOS - photos.length - (photos.length < MAX_PHOTOS ? 1 : 0)
                     }).map((_, index) => (
-                        <div
-                            className="seller-listing-empty-photo"
-                            key={`empty-${index}`}>
+                        <div className="seller-listing-empty-photo" key={`empty-${index}`}>
                             Photo
                         </div>
                     ))}
                 </div>
-                <p className="seller-listing-helper">
-                    JPG, PNG, or WebP. Up to 4 MB each.
-                </p>
+                <p className="seller-listing-helper">JPG, PNG, or WebP. Up to 4 MB each.</p>
             </section>
 
             <section className="seller-listing-section">
                 <h3>Description</h3>
-                <label htmlFor="seller-product-name">
-                    Product Name
-                </label>
+                <label htmlFor="seller-product-name">Product Name</label>
                 <input
                     id="seller-product-name"
                     value={name}
-                    onChange={(event) =>
-                        setName(event.target.value)
-                    }
+                    onChange={(event) => setName(event.target.value)}
                     placeholder="e.g. Handmade Ceramic Mug"
                     maxLength={100}
                 />
-                <label htmlFor="seller-product-description">
-                    Describe your item
-                </label>
+                <label htmlFor="seller-product-description">Describe your item</label>
                 <textarea
                     id="seller-product-description"
                     value={description}
-                    onChange={(event) =>
-                        setDescription(event.target.value)
-                    }
+                    onChange={(event) => setDescription(event.target.value)}
                     placeholder="Share the materials, size, and details that make this special..."
                     rows={5}
                     maxLength={1000}
                 />
-                <div className="seller-listing-character-count">
-                    {description.length}/1000
-                </div>
+                <div className="seller-listing-character-count">{description.length}/1000</div>
             </section>
 
             <section className="seller-listing-section">
                 <h3>Item Information</h3>
                 <div className="seller-listing-field-grid">
                     <div>
-                        <label htmlFor="seller-category">
-                            Category
-                        </label>
-                        <select
-                            id="seller-category"
-                            value={category}
-                            onChange={(event) =>
-                                setCategory(event.target.value)
-                            }>
-                            <option value="">
-                                Select category
-                            </option>
-                            {categories.map((item) => (
-                                <option
-                                    key={item.id}
-                                    value={item.name}>
-                                    {item.name}
-                                </option>
-                            ))}
+                        <label htmlFor="seller-category">Category</label>
+                        <select id="seller-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+                            <option value="">Select category</option>
+                            {CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="seller-condition">
-                            Condition
-                        </label>
-                        <select
-                            id="seller-condition"
-                            value={condition}
-                            onChange={(event) =>
-                                setCondition(event.target.value)
-                            }>
-                            {CONDITIONS.map((item) => (
-                                <option key={item} value={item}>
-                                    {item}
-                                </option>
-                            ))}
+                        <label htmlFor="seller-condition">Condition</label>
+                        <select id="seller-condition" value={condition} onChange={(event) => setCondition(event.target.value)}>
+                            {CONDITIONS.map((item) => <option key={item} value={item}>{item}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="seller-color">
-                            Color
-                        </label>
-                        <input
-                            id="seller-color"
-                            value={color}
-                            onChange={(event) =>
-                                setColor(event.target.value)
-                            }
-                            placeholder="e.g. Cream"
-                        />
+                        <label htmlFor="seller-color">Color</label>
+                        <input id="seller-color" value={color} onChange={(event) => setColor(event.target.value)} placeholder="e.g. Cream" />
                     </div>
                     <div>
-                        <label htmlFor="seller-quantity">
-                            Quantity in stock
-                        </label>
-                        <input
-                            id="seller-quantity"
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={quantity}
-                            onChange={(event) =>
-                                setQuantity(event.target.value)
-                            }
-                        />
+                        <label htmlFor="seller-quantity">Quantity in stock</label>
+                        <input id="seller-quantity" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
                     </div>
                     <div>
-                        <label htmlFor="seller-max-per-order">
-                            Maximum per order
-                        </label>
-                        <input
-                            id="seller-max-per-order"
-                            type="number"
-                            min="1"
-                            max={
-                                Number.isInteger(count) &&
-                                count > 0
-                                    ? Math.min(1000, count)
-                                    : 1000
-                            }
-                            step="1"
-                            value={maxPerOrder}
-                            onChange={(event) =>
-                                setMaxPerOrder(
-                                    event.target.value
-                                )
-                            }
-                        />
+                        <label htmlFor="seller-max-per-order">Maximum per order</label>
+                        <input id="seller-max-per-order" type="number" min="1" max="1000" step="1" value={maxPerOrder} onChange={(event) => setMaxPerOrder(event.target.value)} />
                     </div>
                 </div>
-                <p className="seller-listing-helper">
-                    The maximum per order cannot exceed current
-                    stock. Adjust it when lowering quantity.
-                </p>
+                <p className="seller-listing-helper">Buyers can select up to this many per order, limited by the quantity in stock.</p>
                 <label htmlFor="seller-tags">Tags</label>
-                <input
-                    id="seller-tags"
-                    value={tags}
-                    onChange={(event) =>
-                        setTags(event.target.value)
-                    }
-                    placeholder="ceramics, handmade, pottery"
-                />
-                <p className="seller-listing-helper">
-                    Up to five comma-separated tags.
-                </p>
+                <input id="seller-tags" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="ceramics, handmade, pottery" />
+                <p className="seller-listing-helper">Up to five comma-separated tags.</p>
             </section>
 
             <section className="seller-listing-section">
@@ -558,69 +321,35 @@ export default function SellerListingForm({
                 <label htmlFor="seller-price">Item Price</label>
                 <div className="seller-listing-price-input">
                     <span>$</span>
-                    <input
-                        id="seller-price"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={price}
-                        onChange={(event) =>
-                            setPrice(event.target.value)
-                        }
-                        placeholder="0.00"
-                    />
+                    <input id="seller-price" type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="0.00" />
                 </div>
             </section>
 
             <section className="seller-listing-section">
                 <h3>Campus Pickup</h3>
-                <label htmlFor="seller-pickup">
-                    Preferred Meetup Location
-                </label>
+                <label htmlFor="seller-pickup">Preferred Meetup Location</label>
                 <input
                     id="seller-pickup"
                     value={pickupLocation}
-                    onChange={(event) =>
-                        setPickupLocation(event.target.value)
-                    }
+                    onChange={(event) => setPickupLocation(event.target.value)}
                     placeholder="e.g. Kennedy Library Entrance"
                     maxLength={150}
                 />
-                <p className="seller-listing-helper">
-                    Buyers can finalize meetup details through
-                    Messages.
-                </p>
+                <p className="seller-listing-helper">Buyers can finalize meetup details through Messages.</p>
             </section>
 
-            {error && (
-                <p
-                    className="seller-listing-error"
-                    role="alert">
-                    {error}
-                </p>
-            )}
+            {error && <p className="seller-listing-error" role="alert">{error}</p>}
 
             <div className="seller-listing-bottom-actions">
-                <button
-                    type="button"
-                    className="seller-listing-draft-button"
-                    disabled={processingPhotos || saving}
-                    onClick={() => handleSubmit("Draft")}>
+                <button type="button" className="seller-listing-draft-button" disabled={processingPhotos} onClick={() => handleSubmit("Draft")}>
                     Save as Draft
                 </button>
-                <button
-                    type="button"
-                    className="seller-listing-publish-button"
-                    disabled={processingPhotos || saving}
-                    onClick={() => handleSubmit("Active")}>
-                    {isEditing
-                        ? "Save & Publish"
-                        : "Post Listing"}
+                <button type="button" className="seller-listing-publish-button" disabled={processingPhotos} onClick={() => handleSubmit("Active")}>
+                    {isEditing ? "Save & Publish" : "Post Listing"}
                 </button>
             </div>
             <p className="seller-listing-demo-note">
-                Preview only: listing changes reset when the
-                page reloads.
+                Preview only: listing changes reset when the page reloads.
             </p>
         </div>
     );
