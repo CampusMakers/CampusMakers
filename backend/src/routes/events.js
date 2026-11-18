@@ -3,6 +3,7 @@ import { z } from "zod";
 import { many, one } from "../db/pool.js";
 import { badRequest, forbidden, notFound } from "../lib/httpError.js";
 import { id, idParam, pagination, timestamp } from "../lib/schemas.js";
+import { withLocationCoordinates } from "../lib/locationCoordinates.js";
 import { eventSelect } from "../lib/selects.js";
 import { Params, paginated, whereClause, withoutTotal } from "../lib/sql.js";
 import { requireAuth } from "../middleware/session.js";
@@ -15,7 +16,8 @@ const getEvent = async (eventId, viewerId) => {
     const select = eventSelect(params, viewerId);
     const event = await one(`${select} where e.id = ${params.add(eventId)}`, params.values);
     if (!event) throw notFound("Event not found");
-    return withoutTotal(event);
+    const [located] = await withLocationCoordinates([event]);
+    return withoutTotal(located);
 };
 
 const assertLocation = async (locationId, campusId) => {
@@ -47,8 +49,11 @@ router.get(
             when: z.enum(["upcoming", "past", "all"]).default("upcoming"),
             rsvp: z.enum(["going", "interested", "any"]).optional(),
             mine: z.enum(["hosting", "vending", "involved"]).optional(),
+            // Only events that overlap [from, to), e.g. one calendar month.
+            from: timestamp.optional(),
+            to: timestamp.optional(),
             ...pagination
-        })
+        }).refine((query) => !query.from || !query.to || new Date(query.to) > new Date(query.from), "to must be after from")
     }),
     async (req, res) => {
         const query = req.data.query;
@@ -60,6 +65,8 @@ router.get(
         if (query.campusId) conditions.push(`e.campus_id = ${params.add(query.campusId)}`);
         if (query.when === "upcoming") conditions.push("coalesce(e.ends_at, e.starts_at) >= now()");
         if (query.when === "past") conditions.push("coalesce(e.ends_at, e.starts_at) < now()");
+        if (query.from) conditions.push(`coalesce(e.ends_at, e.starts_at) >= ${params.add(query.from)}`);
+        if (query.to) conditions.push(`e.starts_at < ${params.add(query.to)}`);
         if (query.rsvp) {
             const viewer = params.add(req.user.id);
             const status = query.rsvp === "any" ? "" : `and r.status = ${params.add(query.rsvp)}`;
@@ -84,7 +91,7 @@ router.get(
              limit ${params.add(query.limit)} offset ${params.add(query.offset)}`,
             params.values
         );
-        res.json(paginated(rows, query));
+        res.json(paginated(await withLocationCoordinates(rows), query));
     }
 );
 

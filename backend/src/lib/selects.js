@@ -114,8 +114,14 @@ export const eventSelect = (params, viewerId) => {
         e.ends_at as "endsAt",
         e.campus_id as "campusId",
         case when loc.id is null then null
-            else json_build_object('id', loc.id, 'name', loc.name, 'address', loc.address) end as location,
-        case when hs.id is null then null else json_build_object('id', hs.id, 'name', hs.name) end as host,
+            else json_build_object(
+                'id', loc.id, 'name', loc.name, 'address', loc.address,
+                'city', loc.city, 'state', loc.state, 'zip', loc.zip,
+                'latitude', loc.latitude, 'longitude', loc.longitude,
+                'approximate', coalesce(loc.coordinates_source = 'approximate', false)
+            ) end as location,
+        case when hs.id is null then null else json_build_object('id', hs.id, 'name', hs.name, 'ownerId', hs.owner_id) end as host,
+        case when cu.id is null then null else ${userJson("cu")} end as creator,
         (select count(*) from event_rsvps r where r.event_id = e.id and r.status = 'going')::int as "goingCount",
         (select count(*) from event_rsvps r where r.event_id = e.id and r.status = 'interested')::int as "interestedCount",
         coalesce((
@@ -139,7 +145,8 @@ export const eventSelect = (params, viewerId) => {
         count(*) over ()::int as "totalCount"
     from events e
     left join locations loc on loc.id = e.location_id
-    left join stores hs on hs.id = e.host_store_id`;
+    left join stores hs on hs.id = e.host_store_id
+    left join users cu on cu.id = e.created_by`;
 };
 
 export const messageColumns = `

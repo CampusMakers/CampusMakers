@@ -144,7 +144,7 @@ test("seller verification API endpoints", async (t) => {
 
     // Mock database operations.
     t.mock.module("../db/pool.js", {
-        exports: {
+        namedExports: {
             many: async () => [],
             one: async () => null,
             transaction: async (work) => work(fakeClient)
@@ -153,7 +153,7 @@ test("seller verification API endpoints", async (t) => {
 
     // Mock authentication.
     t.mock.module("../middleware/session.js", {
-        exports: {
+        namedExports: {
             requireAuth: (req, res, next) => {
                 req.user = {
                     id: req.get("x-test-user") || "test-user"
@@ -165,21 +165,19 @@ test("seller verification API endpoints", async (t) => {
 
     // Use fictional configuration only.
     t.mock.module("../config.js", {
-        exports: {
-            default: {
-                clientOrigins: ["http://localhost:8787"],
-                sellers: { emailSuffix: ".edu" },
-                pagination: {
-                    maxSize: 100,
-                    defaultSize: 20
-                }
+        defaultExport: {
+            clientOrigins: ["http://localhost:8787"],
+            sellers: { emailSuffix: ".edu" },
+            pagination: {
+                maxSize: 100,
+                defaultSize: 20
             }
         }
     });
 
     // Mock Resend. Never send real emails.
     t.mock.module("../services/sellerVerificationEmail.js", {
-        exports: {
+        namedExports: {
             sendSellerVerificationEmail: async (email) => {
                 if (state.failDelivery) {
                     throw new Error(

@@ -6,6 +6,7 @@
   "scripts": {
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
+    "db:geocode": "node scripts/geocode-locations.js",
     "lint": "eslint ."
   },
   "keywords": [],
