@@ -513,3 +513,53 @@
     font-weight: 700;
     text-align: center;
 }
+
+/* API STATES */
+
+.calendar-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.calendar-error p {
+    margin: 0;
+}
+
+.calendar-retry {
+    padding: 8px 14px;
+    border: 1px solid #a36500;
+    border-radius: 9px;
+    background: #fff8eb;
+    color: #a36500;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.calendar-action-error {
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border: 1px solid #e6b8a4;
+    border-radius: 9px;
+    background: #fbe9e1;
+    color: #9a4a2a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.calendar-event-join:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.calendar-event-join[aria-pressed="true"] {
+    background: #fff8eb;
+    color: #a36500;
+}
+
+.calendar-event-join[aria-pressed="true"]:hover {
+    background: #faf2e3;
+}
