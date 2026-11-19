@@ -275,6 +275,16 @@ create table if not exists event_vendors (
     primary key (event_id, store_id)
 );
 
+-- Where a location's coordinates came from: 'provided' (entered by a user),
+-- 'geocoded' (matched by OpenStreetMap Nominatim) or 'approximate' (only the
+-- campus itself could be matched). geocoded_at records the last lookup so
+-- locations that cannot be matched are not looked up on every request.
+alter table locations add column if not exists coordinates_source text
+    check (coordinates_source in ('provided', 'geocoded', 'approximate'));
+alter table locations add column if not exists geocoded_at timestamptz;
+update locations set coordinates_source = 'provided'
+    where coordinates_source is null and latitude is not null and longitude is not null;
+
 create index if not exists sessions_user_id_idx on sessions (user_id);
 create index if not exists accounts_user_id_idx on accounts (user_id);
 create index if not exists verifications_identifier_idx on verifications (identifier);

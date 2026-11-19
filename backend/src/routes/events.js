@@ -3,6 +3,7 @@ import { z } from "zod";
 import { many, one } from "../db/pool.js";
 import { badRequest, forbidden, notFound } from "../lib/httpError.js";
 import { id, idParam, pagination, timestamp } from "../lib/schemas.js";
+import { withLocationCoordinates } from "../lib/locationCoordinates.js";
 import { eventSelect } from "../lib/selects.js";
 import { Params, paginated, whereClause, withoutTotal } from "../lib/sql.js";
 import { requireAuth } from "../middleware/session.js";
@@ -15,7 +16,8 @@ const getEvent = async (eventId, viewerId) => {
     const select = eventSelect(params, viewerId);
     const event = await one(`${select} where e.id = ${params.add(eventId)}`, params.values);
     if (!event) throw notFound("Event not found");
-    return withoutTotal(event);
+    const [located] = await withLocationCoordinates([event]);
+    return withoutTotal(located);
 };
 
 const assertLocation = async (locationId, campusId) => {
@@ -23,6 +25,18 @@ const assertLocation = async (locationId, campusId) => {
     const location = await one("select campus_id from locations where id = $1", [locationId]);
     if (!location) throw badRequest("Unknown location");
     if (location.campus_id !== campusId) throw badRequest("Location must be on the event's campus");
+};
+
+// Finds the campus location with this name, adding it if it is new, so events
+// created from free-text locations still point at a row in locations.
+const locationIdByName = async (name, campusId) => {
+    const location = await one(
+        `insert into locations (campus_id, name) values ($1, $2)
+         on conflict (campus_id, name) do update set name = excluded.name
+         returning id`,
+        [campusId, name]
+    );
+    return location.id;
 };
 
 const canManage = async (eventId, user) => {
@@ -47,8 +61,11 @@ router.get(
             when: z.enum(["upcoming", "past", "all"]).default("upcoming"),
             rsvp: z.enum(["going", "interested", "any"]).optional(),
             mine: z.enum(["hosting", "vending", "involved"]).optional(),
+            // Only events that overlap [from, to), e.g. one calendar month.
+            from: timestamp.optional(),
+            to: timestamp.optional(),
             ...pagination
-        })
+        }).refine((query) => !query.from || !query.to || new Date(query.to) > new Date(query.from), "to must be after from")
     }),
     async (req, res) => {
         const query = req.data.query;
@@ -60,6 +77,8 @@ router.get(
         if (query.campusId) conditions.push(`e.campus_id = ${params.add(query.campusId)}`);
         if (query.when === "upcoming") conditions.push("coalesce(e.ends_at, e.starts_at) >= now()");
         if (query.when === "past") conditions.push("coalesce(e.ends_at, e.starts_at) < now()");
+        if (query.from) conditions.push(`coalesce(e.ends_at, e.starts_at) >= ${params.add(query.from)}`);
+        if (query.to) conditions.push(`e.starts_at < ${params.add(query.to)}`);
         if (query.rsvp) {
             const viewer = params.add(req.user.id);
             const status = query.rsvp === "any" ? "" : `and r.status = ${params.add(query.rsvp)}`;
@@ -84,7 +103,7 @@ router.get(
              limit ${params.add(query.limit)} offset ${params.add(query.offset)}`,
             params.values
         );
-        res.json(paginated(rows, query));
+        res.json(paginated(await withLocationCoordinates(rows), query));
     }
 );
 
@@ -96,6 +115,7 @@ const eventBody = {
     title: z.string().trim().min(2).max(120),
     description: z.string().trim().max(4000).nullable().optional(),
     locationId: id.nullable().optional(),
+    locationName: z.string().trim().min(2).max(120).optional(),
     startsAt: timestamp,
     endsAt: timestamp.nullable().optional()
 };
@@ -115,6 +135,7 @@ router.post(
         if (!campusId) throw badRequest("Provide campusId");
         if (!store && req.user.role !== "admin") throw forbidden("Only sellers can create events");
         await assertLocation(body.locationId, campusId);
+        const locationId = body.locationId ?? (body.locationName ? await locationIdByName(body.locationName, campusId) : null);
 
         const created = await one(
             `insert into events (campus_id, location_id, created_by, host_store_id, title, description, starts_at, ends_at)
@@ -122,7 +143,7 @@ router.post(
              returning id`,
             [
                 campusId,
-                body.locationId ?? null,
+                locationId,
                 req.user.id,
                 body.hostAsStore && store ? store.id : null,
                 body.title,
@@ -145,6 +166,7 @@ router.patch(
                 title: eventBody.title.optional(),
                 description: eventBody.description,
                 locationId: eventBody.locationId,
+                locationName: eventBody.locationName,
                 startsAt: timestamp.optional(),
                 endsAt: eventBody.endsAt
             })
@@ -155,6 +177,9 @@ router.patch(
         const body = req.data.body;
         const event = await canManage(eventId, req.user);
         await assertLocation(body.locationId, event.campus_id);
+        if (!("locationId" in body) && body.locationName) {
+            body.locationId = await locationIdByName(body.locationName, event.campus_id);
+        }
 
         await one(
             `update events set

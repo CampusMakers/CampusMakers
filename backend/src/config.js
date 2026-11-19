@@ -55,6 +55,22 @@ const config = {
     pagination: {
         defaultSize: int("DEFAULT_PAGE_SIZE", 20),
         maxSize: int("MAX_PAGE_SIZE", 100)
+    },
+    // OpenStreetMap Nominatim, used to turn location names and addresses into
+    // map coordinates. The public server requires an identifying User-Agent
+    // and at most one request per second:
+    // https://operations.osmfoundation.org/policies/nominatim/
+    geocoder: {
+        enabled: process.env.GEOCODER_ENABLED !== "false",
+        url: (process.env.NOMINATIM_URL || "https://nominatim.openstreetmap.org").replace(/\/$/, ""),
+        userAgent: process.env.GEOCODER_USER_AGENT || "CampusMakers/1.0 (campus events map)",
+        email: process.env.GEOCODER_EMAIL || null,
+        minIntervalMs: int("GEOCODER_MIN_INTERVAL_MS", 1100),
+        timeoutMs: int("GEOCODER_TIMEOUT_MS", 5000),
+        // Longest a single API request may spend geocoding before answering.
+        requestBudgetMs: int("GEOCODER_REQUEST_BUDGET_MS", 6000),
+        // Wait this long before retrying a location that could not be matched.
+        retryAfterHours: int("GEOCODER_RETRY_HOURS", 24)
     }
 };
 

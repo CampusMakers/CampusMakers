@@ -227,8 +227,11 @@ function App() {
 
     // Shared marketplace listings for Home and Explore.
     const [publicListings, setPublicListings] = useState([]);
-    const [publicListingsLoading, setPublicListingsLoading] =
+    // Loading shows until the first request finishes; later visits keep the
+    // current listings on screen while they refresh.
+    const [publicListingsLoaded, setPublicListingsLoaded] =
         useState(false);
+    const publicListingsLoading = !publicListingsLoaded;
     const [publicListingsError, setPublicListingsError] =
         useState("");
 
@@ -240,7 +243,6 @@ function App() {
         }
 
         let cancelled = false;
-        setPublicListingsLoading(true);
 
         getPublicListings()
             .then((listings) => {
@@ -255,7 +257,7 @@ function App() {
                 );
             })
             .finally(() => {
-                if (!cancelled) setPublicListingsLoading(false);
+                if (!cancelled) setPublicListingsLoaded(true);
             });
 
         return () => {
@@ -855,14 +857,7 @@ function App() {
                 )}
                 {page === "Map" && <MapPage />}
                 {page === "Calendar" && (
-                    <CalendarPage
-                        events={realEvents}
-                        user={user}
-                        joinedEventIds={joinedEventIds}
-                        onJoinEvent={joinEvent}
-                        onLeaveEvent={leaveEvent}
-                        onOpenEvent={openEvent}
-                    />
+                    <CalendarPage user={user} />
                 )}
                 {page === "Profile" && !loading && (
                     <Profile

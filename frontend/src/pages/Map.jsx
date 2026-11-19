@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 
+import {
+    dateKey,
+    getEvent,
+    hashParam,
+    listEvents
+} from "../services/eventsApi";
 import "leaflet/dist/leaflet.css";
 import "./Map.css";
 
@@ -11,11 +17,11 @@ const FIT_OPTIONS = {
     paddingBottomRight: [150, 24],
     maxZoom: 17
 };
+// Events without an end time count as "happening now" for this long.
+const DEFAULT_EVENT_MS = 2 * 60 * 60 * 1000;
 
-function projectBounds(projects) {
-    return L.latLngBounds(
-        projects.map((project) => [project.lat, project.lng])
-    );
+function placeBounds(places) {
+    return L.latLngBounds(places.map((place) => [place.lat, place.lng]));
 }
 
 // Flat, light basemap from OpenFreeMap (OpenStreetMap data, no API key).
@@ -31,113 +37,45 @@ function hideBasemapLabels(glMap) {
     });
 }
 
-const TAGS = [
-    "Ceramics",
-    "Printmaking",
-    "Paper Arts",
-    "Design",
-    "Fabrication",
-    "Textiles",
-    "Craft",
-    "Market"
-];
-
-// Sample project markers. Replace with real data when the backend is connected.
-const sampleProjects = [
-    {
-        id: 1,
-        title: "Fall Artisan Market",
-        creator: "@campusmakers",
-        tag: "Market",
-        locationName: "Dexter Lawn",
-        lat: 35.30036,
-        lng: -120.66478,
-        date: "2026-10-24",
-        time: "11:00",
-        description:
-            "Handmade goods from student creators. Booths line the lawn from the library side."
-    },
-    {
-        id: 2,
-        title: "Zine Making Circle",
-        creator: "@campusnotes",
-        tag: "Paper Arts",
-        locationName: "Kennedy Library",
-        lat: 35.30188,
-        lng: -120.66392,
-        date: "2026-10-27",
-        time: "15:00",
-        description:
-            "Bring scraps, stamps and ideas. Paper, glue and staplers provided on the 2nd floor."
-    },
-    {
-        id: 3,
-        title: "Wheel Throwing Basics",
-        creator: "@slo_clay",
-        tag: "Ceramics",
-        locationName: "Art & Design Studio",
-        lat: 35.30098,
-        lng: -120.66262,
-        date: "2026-10-29",
-        time: "13:30",
-        description:
-            "Intro session on centering and pulling walls. Aprons recommended, clay included."
-    },
-    {
-        id: 4,
-        title: "Sticker Design Sprint",
-        creator: "@jules.illustrates",
-        tag: "Design",
-        locationName: "University Union Plaza",
-        lat: 35.29998,
-        lng: -120.65858,
-        date: "2026-11-02",
-        time: "12:00",
-        description:
-            "Sketch, vectorize and print a sticker sheet in one hour."
-    },
-    {
-        id: 5,
-        title: "Laser Cutter Office Hours",
-        creator: "@noah.builds",
-        tag: "Fabrication",
-        locationName: "Innovation Sandbox",
-        lat: 35.30152,
-        lng: -120.65792,
-        date: "2026-11-05",
-        time: "16:30",
-        description:
-            "Drop in with an SVG and cut it on the spot. Safety walkthrough at the start."
-    }
-];
-
-function todayISO() {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${now.getFullYear()}-${month}-${day}`;
+function formatDate(date) {
+    if (!date) return "Date to be announced";
+    return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+    });
 }
 
-function formatDate(iso) {
-    if (!iso) return "Date to be announced";
-    const [year, month, day] = iso.split("-").map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString(
-        "en-US",
-        {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric"
-        }
-    );
+function formatTime(date) {
+    if (!date) return "Time to be announced";
+    return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
 }
 
-function formatTime(value) {
-    if (!value) return "Time to be announced";
-    const [hours, minutes] = value.split(":").map(Number);
-    const period = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours % 12 || 12;
-    return `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
+function formatTimeRange(event) {
+    if (!event.startsAt) return formatTime(null);
+    if (!event.endsAt) return formatTime(event.startsAt);
+    const sameDay = dateKey(event.startsAt) === dateKey(event.endsAt);
+    const end = sameDay
+        ? formatTime(event.endsAt)
+        : `${event.endsAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric"
+          })}, ${formatTime(event.endsAt)}`;
+    return `${formatTime(event.startsAt)} – ${end}`;
+}
+
+function eventStatus(event, now = Date.now()) {
+    if (!event.startsAt) return "Upcoming";
+    const start = event.startsAt.getTime();
+    const end = event.endsAt?.getTime() ?? start + DEFAULT_EVENT_MS;
+    if (now >= end) return "Ended";
+    if (now >= start) return "Happening now";
+    return "Upcoming";
 }
 
 function formatCoordinates(lat, lng) {
@@ -156,15 +94,27 @@ function pinIcon(variant) {
     });
 }
 
-const emptyForm = () => ({
-    title: "",
-    creator: "@username",
-    locationName: "",
-    date: todayISO(),
-    time: "12:00",
-    tag: TAGS[0],
-    description: ""
-});
+// Events at the same location share one pin.
+function groupByPlace(events) {
+    const places = new Map();
+    events.forEach((event) => {
+        if (!event.hasCoordinates) return;
+        const key = event.locationId
+            ? `location-${event.locationId}`
+            : `${event.lat.toFixed(5)},${event.lng.toFixed(5)}`;
+        if (!places.has(key)) {
+            places.set(key, {
+                key,
+                name: event.locationName,
+                lat: event.lat,
+                lng: event.lng,
+                events: []
+            });
+        }
+        places.get(key).events.push(event);
+    });
+    return [...places.values()];
+}
 
 function DetailRow({ icon, label, children }) {
     return (
@@ -196,50 +146,111 @@ const icons = {
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 2" />
         </svg>
+    ),
+    people: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="9" cy="8" r="3.5" />
+            <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5" />
+        </svg>
     )
+};
+
+const selectedFromHash = () => {
+    const id = Number(hashParam("event"));
+    return Number.isInteger(id) && id > 0 ? id : null;
 };
 
 function MapPage() {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const layerRef = useRef(null);
-    const mapClickRef = useRef(() => {});
+    const fittedRef = useRef(false);
 
-    const [projects, setProjects] = useState(sampleProjects);
-    const [selectedId, setSelectedId] = useState(null);
-    const [placing, setPlacing] = useState(false);
-    const [draft, setDraft] = useState(null);
-    const [form, setForm] = useState(emptyForm);
+    // Upcoming events from the API.
+    const [reloadKey, setReloadKey] = useState(0);
+    const [result, setResult] = useState({
+        status: "loading",
+        events: [],
+        error: ""
+    });
+    // An event linked from elsewhere (e.g. #map?event=12) that is not in the upcoming list.
+    const [linkedEvent, setLinkedEvent] = useState(null);
+    const [selectedId, setSelectedId] = useState(selectedFromHash);
     const [copied, setCopied] = useState(false);
 
-    const selected = projects.find((project) => project.id === selectedId);
-
-    // Keep the latest click behavior available to the Leaflet listener.
     useEffect(() => {
-        mapClickRef.current = (latlng) => {
-            if (placing || draft) {
-                setDraft({ lat: latlng.lat, lng: latlng.lng });
-                setPlacing(false);
-                setSelectedId(null);
-            } else {
-                setSelectedId(null);
+        const controller = new AbortController();
+        listEvents({ when: "upcoming", signal: controller.signal })
+            .then((events) =>
+                setResult({ status: "ready", events, error: "" })
+            )
+            .catch((error) => {
+                if (controller.signal.aborted) return;
+                setResult({
+                    status: "error",
+                    events: [],
+                    error: error.message || "Events could not be loaded."
+                });
+            });
+        return () => controller.abort();
+    }, [reloadKey]);
+
+    // Follow links such as #map?event=12 while the page is open.
+    useEffect(() => {
+        const onHashChange = () => {
+            const id = selectedFromHash();
+            if (id) {
+                setCopied(false);
+                setSelectedId(id);
             }
         };
-    });
+        window.addEventListener("hashchange", onHashChange);
+        return () => window.removeEventListener("hashchange", onHashChange);
+    }, []);
+
+    const events = useMemo(() => {
+        const list = [...result.events];
+        if (linkedEvent && !list.some((event) => event.id === linkedEvent.id)) {
+            list.push(linkedEvent);
+        }
+        return list.sort(
+            (a, b) => (a.startsAt?.getTime() ?? 0) - (b.startsAt?.getTime() ?? 0)
+        );
+    }, [result.events, linkedEvent]);
+
+    const places = useMemo(() => groupByPlace(events), [events]);
+    const selected = events.find((event) => event.id === selectedId) || null;
+    const selectedPlace = selected
+        ? places.find((place) => place.events.includes(selected))
+        : null;
+    const unplacedCount = events.filter((event) => !event.hasCoordinates).length;
+
+    // Load a linked event that is not upcoming (e.g. already finished).
+    useEffect(() => {
+        if (result.status !== "ready" || !selectedId) return;
+        if (result.events.some((event) => event.id === selectedId)) return;
+        if (linkedEvent?.id === selectedId) return;
+        const controller = new AbortController();
+        getEvent(selectedId, { signal: controller.signal })
+            .then(setLinkedEvent)
+            .catch(() => {
+                if (!controller.signal.aborted) setSelectedId(null);
+            });
+        return () => controller.abort();
+    }, [result, selectedId, linkedEvent]);
 
     // Create the map once.
     useEffect(() => {
         const map = L.map(containerRef.current, {
             center: CAMPUS_CENTER,
             zoom: START_ZOOM,
-            minZoom: 14,
+            minZoom: 3,
             maxZoom: 19,
             zoomControl: false
         });
 
         map.attributionControl.setPrefix(false);
         L.control.zoom({ position: "topright" }).addTo(map);
-        map.fitBounds(projectBounds(sampleProjects), FIT_OPTIONS);
 
         // MapLibre is large, so it only loads when this page opens.
         let cancelled = false;
@@ -257,12 +268,10 @@ function MapPage() {
             glMap.on("style.load", () => hideBasemapLabels(glMap));
         });
         layerRef.current = L.layerGroup().addTo(map);
-        map.on("click", (event) => mapClickRef.current(event.latlng));
+        map.on("click", () => setSelectedId(null));
         mapRef.current = map;
 
-        const resizeObserver = new ResizeObserver(() =>
-            map.invalidateSize()
-        );
+        const resizeObserver = new ResizeObserver(() => map.invalidateSize());
         resizeObserver.observe(containerRef.current);
 
         return () => {
@@ -274,122 +283,85 @@ function MapPage() {
         };
     }, []);
 
-    // Draw project markers and the draft pin.
+    // Draw one pin per location.
     useEffect(() => {
         const layer = layerRef.current;
         if (!layer) return;
         layer.clearLayers();
 
-        projects.forEach((project) => {
-            const isSelected = project.id === selectedId;
-            const marker = L.marker([project.lat, project.lng], {
+        places.forEach((place) => {
+            const isSelected = place === selectedPlace;
+            const count = place.events.length;
+            const marker = L.marker([place.lat, place.lng], {
                 icon: pinIcon(isSelected ? "selected" : "default"),
-                title: project.title,
-                alt: `${project.title} at ${project.locationName}`,
+                title: count > 1 ? `${count} events at ${place.name}` : place.events[0].title,
+                alt: `${count > 1 ? `${count} events` : place.events[0].title} at ${place.name}`,
                 riseOnHover: true,
                 zIndexOffset: isSelected ? 1000 : 0
             });
 
-            marker.bindTooltip(project.locationName, {
+            marker.bindTooltip(count > 1 ? `${place.name} · ${count}` : place.name, {
                 permanent: true,
                 direction: "right",
                 className: "map-label"
             });
 
             marker.on("click", () => {
-                setDraft(null);
-                setPlacing(false);
                 setCopied(false);
-                setSelectedId(project.id);
+                const next =
+                    place.events.find((event) => eventStatus(event) !== "Ended") ||
+                    place.events[0];
+                setSelectedId(next.id);
             });
 
             layer.addLayer(marker);
         });
+    }, [places, selectedPlace]);
 
-        if (draft) {
-            L.marker([draft.lat, draft.lng], {
-                icon: pinIcon("draft"),
-                interactive: false,
-                zIndexOffset: 2000
-            }).addTo(layer);
+    // Frame all pins once the first results arrive.
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || fittedRef.current || result.status !== "ready") return;
+        fittedRef.current = true;
+        if (places.length && !selectedFromHash()) {
+            map.fitBounds(placeBounds(places), FIT_OPTIONS);
         }
-    }, [projects, selectedId, draft]);
+    }, [places, result.status]);
 
     // Keep the chosen pin visible above the bottom sheet.
     useEffect(() => {
         const map = mapRef.current;
-        const target = selected || draft;
-        if (!map || !target) return;
+        if (!map || !selectedPlace) return;
         const sheet = containerRef.current?.parentElement?.querySelector(".map-sheet");
         const sheetSpace = (sheet?.offsetHeight || map.getSize().y * 0.6) + 24;
-        map.panInside([target.lat, target.lng], {
+        if (map.getZoom() < 15) map.setView([selectedPlace.lat, selectedPlace.lng], 16);
+        map.panInside([selectedPlace.lat, selectedPlace.lng], {
             paddingTopLeft: [40, 60],
             paddingBottomRight: [40, sheetSpace]
         });
-    }, [selected, draft]);
+    }, [selectedPlace]);
 
-    // Escape closes whatever is open.
+    const closeDetails = () => {
+        setSelectedId(null);
+        // Drop ?event= so Back/refresh does not reopen it.
+        if (hashParam("event")) window.history.replaceState(null, "", "#map");
+    };
+
+    // Escape closes the details sheet.
     useEffect(() => {
         const onKeyDown = (event) => {
             if (event.key !== "Escape") return;
             setSelectedId(null);
-            setPlacing(false);
-            setDraft(null);
+            if (hashParam("event")) window.history.replaceState(null, "", "#map");
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
     }, []);
 
-    const startPlacing = () => {
-        if (placing || draft) {
-            setPlacing(false);
-            setDraft(null);
-            return;
-        }
-        setSelectedId(null);
-        setForm(emptyForm());
-        setPlacing(true);
-    };
-
-    const updateForm = (field) => (event) =>
-        setForm((current) => ({
-            ...current,
-            [field]: event.target.value
-        }));
-
-    const saveMarker = (event) => {
-        event.preventDefault();
-        if (!draft || !form.title.trim()) return;
-
-        const project = {
-            ...form,
-            id: Date.now(),
-            title: form.title.trim(),
-            creator: form.creator.trim() || "@username",
-            locationName: form.locationName.trim() || "Dropped pin",
-            description: form.description.trim(),
-            lat: draft.lat,
-            lng: draft.lng,
-            userCreated: true
-        };
-
-        setProjects((current) => [...current, project]);
-        setDraft(null);
-        setCopied(false);
-        setSelectedId(project.id);
-    };
-
-    const removeMarker = (id) => {
-        setProjects((current) =>
-            current.filter((project) => project.id !== id)
-        );
-        setSelectedId(null);
-    };
-
-    const copyCoordinates = async (project) => {
+    const copyCoordinates = async (event) => {
         try {
             await navigator.clipboard.writeText(
-                `${project.lat.toFixed(6)}, ${project.lng.toFixed(6)}`
+                `${event.lat.toFixed(6)}, ${event.lng.toFixed(6)}`
             );
             setCopied(true);
         } catch {
@@ -400,32 +372,67 @@ function MapPage() {
     const recenter = () => {
         const map = mapRef.current;
         if (!map) return;
-        if (projects.length) {
-            map.flyToBounds(projectBounds(projects), {
-                ...FIT_OPTIONS,
-                duration: 0.6
-            });
+        if (places.length) {
+            map.flyToBounds(placeBounds(places), { ...FIT_OPTIONS, duration: 0.6 });
         } else {
             map.flyTo(CAMPUS_CENTER, START_ZOOM, { duration: 0.6 });
         }
     };
 
+    const retry = () => {
+        setResult((current) => ({ ...current, status: "loading", error: "" }));
+        setReloadKey((key) => key + 1);
+    };
+
+    let hint = null;
+    if (result.status === "loading") {
+        hint = <div className="map-hint" role="status">Loading campus events…</div>;
+    } else if (result.status === "error") {
+        hint = (
+            <div className="map-hint map-hint-error" role="alert">
+                <span>Events could not be loaded. {result.error}</span>
+                <button type="button" className="map-hint-action" onClick={retry}>
+                    Retry
+                </button>
+            </div>
+        );
+    } else if (!selected && !places.length) {
+        hint = (
+            <div className="map-hint" role="status">
+                {unplacedCount
+                    ? `${unplacedCount} upcoming ${unplacedCount === 1 ? "event has" : "events have"} no map location yet.`
+                    : "No upcoming events yet. Check back soon."}
+            </div>
+        );
+    } else if (!selected && unplacedCount) {
+        hint = (
+            <div className="map-hint" role="status">
+                {unplacedCount} {unplacedCount === 1 ? "event isn't" : "events aren't"} on the map
+                because {unplacedCount === 1 ? "its" : "their"} location couldn't be found.
+            </div>
+        );
+    }
+
+    const others = selectedPlace
+        ? selectedPlace.events.filter((event) => event !== selected)
+        : [];
+
     return (
         <div className="map-page">
             {/* MAP */}
-            <div className={`map-frame${placing || draft ? " map-placing" : ""}`}>
+            <div className="map-frame">
                 <div
                     className="map-canvas"
                     ref={containerRef}
                     role="application"
-                    aria-label="Campus project map"
+                    aria-label="Campus events map"
                 />
 
                 <button
                     type="button"
                     className="map-recenter"
-                    aria-label="Show all markers"
-                    title="Show all markers"
+                    aria-label="Show all events"
+                    title="Show all events"
                     onClick={recenter}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <circle cx="12" cy="12" r="4" />
@@ -433,200 +440,114 @@ function MapPage() {
                     </svg>
                 </button>
 
-                {placing && (
-                    <div className="map-hint" role="status">
-                        Tap anywhere on the map to drop a pin
-                    </div>
-                )}
+                {hint}
 
-                {/* NEW MARKER FORM */}
-                {draft && (
-                    <form
-                        className="map-sheet"
-                        aria-label="New project marker"
-                        onSubmit={saveMarker}>
-                        <div className="map-sheet-header">
-                            <h4>New marker</h4>
-                            <button
-                                type="button"
-                                className="map-sheet-close"
-                                aria-label="Discard marker"
-                                onClick={() => setDraft(null)}>
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="map-sheet-body">
-                            <div className="map-coords">
-                                {icons.pin}
-                                <span>
-                                    {formatCoordinates(draft.lat, draft.lng)}
-                                </span>
-                            </div>
-                            <p className="map-sheet-note">
-                                Tap the map again to move the pin.
-                            </p>
-
-                            <label className="map-field">
-                                <span>Project title</span>
-                                <input
-                                    required
-                                    value={form.title}
-                                    onChange={updateForm("title")}
-                                    placeholder="e.g. Open Print Studio"
-                                    autoFocus
-                                />
-                            </label>
-
-                            <label className="map-field">
-                                <span>Location name</span>
-                                <input
-                                    value={form.locationName}
-                                    onChange={updateForm("locationName")}
-                                    placeholder="e.g. Dexter Lawn, north side"
-                                />
-                            </label>
-
-                            <div className="map-field-row">
-                                <label className="map-field">
-                                    <span>Date</span>
-                                    <input
-                                        type="date"
-                                        min={todayISO()}
-                                        value={form.date}
-                                        onChange={updateForm("date")}
-                                    />
-                                </label>
-
-                                <label className="map-field">
-                                    <span>Time</span>
-                                    <input
-                                        type="time"
-                                        value={form.time}
-                                        onChange={updateForm("time")}
-                                    />
-                                </label>
-                            </div>
-
-                            <div className="map-field-row">
-                                <label className="map-field">
-                                    <span>Category</span>
-                                    <select
-                                        value={form.tag}
-                                        onChange={updateForm("tag")}>
-                                        {TAGS.map((tag) => (
-                                            <option key={tag}>{tag}</option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="map-field">
-                                    <span>Host</span>
-                                    <input
-                                        value={form.creator}
-                                        onChange={updateForm("creator")}
-                                    />
-                                </label>
-                            </div>
-
-                            <label className="map-field">
-                                <span>Details</span>
-                                <textarea
-                                    rows="3"
-                                    value={form.description}
-                                    onChange={updateForm("description")}
-                                    placeholder="What should people know before they come?"
-                                />
-                            </label>
-
-                            <div className="map-actions">
-                                <button
-                                    type="button"
-                                    className="map-secondary"
-                                    onClick={() => setDraft(null)}>
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="map-primary"
-                                    disabled={!form.title.trim()}>
-                                    Save marker
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                )}
-
-                {/* MARKER DETAILS */}
-                {selected && !draft && (
+                {/* EVENT DETAILS */}
+                {selected && (
                     <section
                         className="map-sheet"
                         aria-label={`${selected.title} details`}>
                         <div className="map-sheet-header">
-                            <span className="map-tag">{selected.tag}</span>
+                            <span className="map-tag">{eventStatus(selected)}</span>
                             <button
                                 type="button"
                                 className="map-sheet-close"
                                 aria-label="Close details"
-                                onClick={() => setSelectedId(null)}>
+                                onClick={closeDetails}>
                                 ×
                             </button>
                         </div>
 
                         <div className="map-sheet-body">
-                            <h4 className="map-project-title">
-                                {selected.title}
-                            </h4>
-                            <p className="map-project-creator">
-                                Hosted by {selected.creator}
-                            </p>
+                            <h4 className="map-project-title">{selected.title}</h4>
+                            <p className="map-project-creator">Hosted by {selected.host}</p>
 
                             <div className="map-details">
-                                <DetailRow icon={icons.pin} label="Exact location">
+                                <DetailRow icon={icons.pin} label="Location">
                                     <strong>{selected.locationName}</strong>
-                                    <span className="map-detail-coords">
-                                        {formatCoordinates(selected.lat, selected.lng)}
-                                    </span>
+                                    {selected.address && (
+                                        <span className="map-detail-coords">{selected.address}</span>
+                                    )}
+                                    {selected.hasCoordinates && (
+                                        <span className="map-detail-coords">
+                                            {formatCoordinates(selected.lat, selected.lng)}
+                                        </span>
+                                    )}
+                                    {selected.approximate && (
+                                        <span className="map-detail-note">
+                                            Approximate: the exact spot couldn't be found on
+                                            OpenStreetMap, so the pin marks the campus.
+                                        </span>
+                                    )}
                                 </DetailRow>
 
                                 <DetailRow icon={icons.date} label="Date">
-                                    {formatDate(selected.date)}
+                                    {formatDate(selected.startsAt)}
                                 </DetailRow>
 
                                 <DetailRow icon={icons.time} label="Time">
-                                    {formatTime(selected.time)}
+                                    {formatTimeRange(selected)}
+                                </DetailRow>
+
+                                <DetailRow icon={icons.people} label="Attendance">
+                                    {selected.goingCount} going · {selected.interestedCount} interested
                                 </DetailRow>
                             </div>
 
                             {selected.description && (
-                                <p className="map-description">
-                                    {selected.description}
-                                </p>
+                                <p className="map-description">{selected.description}</p>
                             )}
 
-                            <div className="map-actions">
-                                <button
-                                    type="button"
-                                    className="map-secondary"
-                                    onClick={() => copyCoordinates(selected)}>
-                                    {copied ? "Copied!" : "Copy coordinates"}
-                                </button>
-                                <a
-                                    className="map-primary"
-                                    href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lng}`}
-                                    target="_blank"
-                                    rel="noreferrer">
-                                    Get directions
-                                </a>
-                            </div>
+                            {others.length > 0 && (
+                                <div className="map-more">
+                                    <span className="map-detail-label">Also at this location</span>
+                                    {others.map((event) => (
+                                        <button
+                                            type="button"
+                                            key={event.id}
+                                            className="map-more-item"
+                                            onClick={() => {
+                                                setCopied(false);
+                                                setSelectedId(event.id);
+                                            }}>
+                                            <strong>{event.title}</strong>
+                                            <span>
+                                                {event.startsAt
+                                                    ? `${event.startsAt.toLocaleDateString("en-US", {
+                                                          month: "short",
+                                                          day: "numeric"
+                                                      })} · ${formatTime(event.startsAt)}`
+                                                    : "Date to be announced"}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
-                            {selected.userCreated && (
-                                <button
-                                    type="button"
-                                    className="map-remove"
-                                    onClick={() => removeMarker(selected.id)}>
-                                    Remove this marker
-                                </button>
+                            {selected.hasCoordinates && (
+                                <div className="map-actions">
+                                    <button
+                                        type="button"
+                                        className="map-secondary"
+                                        onClick={() => copyCoordinates(selected)}>
+                                        {copied ? "Copied!" : "Copy coordinates"}
+                                    </button>
+                                    <a
+                                        className="map-primary"
+                                        href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lng}`}
+                                        target="_blank"
+                                        rel="noreferrer">
+                                        Get directions
+                                    </a>
+                                </div>
+                            )}
+
+                            {selected.startsAt && (
+                                <a
+                                    className="map-calendar-link"
+                                    href={`#calendar?date=${dateKey(selected.startsAt)}`}>
+                                    See this day in the calendar
+                                </a>
                             )}
                         </div>
                     </section>
