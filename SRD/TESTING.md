@@ -1,8 +1,5 @@
 # Campus Makers - Automated Testing (CSC 3100 TE 7)
 
-This document records the test levels, tools, commands, and evidence for **TE 7 - Implement Automated Testing**. The purpose is to verify meaningful behavior and prevent regressions, not simply to increase test counts.
-
-**Submission status (November 18, 2026):** Existing unit and API-route tests are documented below. The TDD evidence and two automated UI tests are **pending teammate completion**. Do not label this assignment complete until those sections are filled and the full test command passes on the current branch.
 
 ## 1. Tools and test levels
 
@@ -17,7 +14,7 @@ System/API tests may mock the database and email provider. They exercise multipl
 
 ## 2. Prerequisites and commands
 
-Run all commands from the **repository root** (`CampusMakers/`) unless stated otherwise.
+Run all commands from the **repository root** (`CampusMakers/`)
 
 1. Install **Node.js 24** and npm (Node 24 is used in the GitHub Actions workflow shown on `main`).
 2. Install dependencies:
@@ -87,7 +84,7 @@ Existing examples from the test run:
 
 Additional unit-test files include `sellerVerificationTokens.test.js`, `profilePhotos.test.js`, `profilePhotoBlob.test.js`, `sellerListingValidation.test.js`, and email-service tests with mocked provider calls. See the actual test files for assertions and setup.
 
-**Rubric mapping:** The examples above provide **at least four test cases across two separate units**. Verify they remain passing on the final submission commit.
+
 
 ## 4. System tests - Part III (minimum 2)
 
@@ -100,7 +97,6 @@ These tests exercise API request handling together with seller-verification rule
 
 Other scenarios include expired tokens, storing token **hashes** instead of raw tokens, and cleanup when email delivery fails. Newer route suites in the updated branch include `adminMembers.test.js` and `uploadPhotos.test.js`; their current behavior and results must be confirmed by running the full command.
 
-**Rubric mapping:** The route tests are API/integration-style tests rather than isolated function tests. Before submission, check that two selected tests each exercise **at least two meaningful functions or components** in a feature (for example, request middleware + endpoint logic + token validation). Document the selected assertions if the instructor wants stronger integration evidence. Mocking an external provider does not mean real email delivery was tested.
 
 ## 5. TDD - Part I (team to complete)
 
@@ -134,7 +130,6 @@ Suggested single story: *As a buyer, I want to discover and open a published Cam
 1. **Home discovery:** Open Home; verify a known published product card is visible; open it and verify its Product Detail title is displayed.
 2. **Explore discovery:** Open Explore; verify the same seeded product is available and can be opened; assert visible product details or a clear empty/error state as applicable.
 
-The UI-test owners may choose another meaningful story. Use predictable test fixtures or a test database, not live production data. These must be **automated** tests; a successful manual or Incognito walkthrough is not a substitute.
 
 ## 7. External services, environment, and test data
 
@@ -155,19 +150,3 @@ The UI-test owners may choose another meaningful story. Use predictable test fix
 | Automated UI tests | Pending teammate work. |
 | Live service integration | Not established by mocked tests. |
 
-Tests should be readable, independently named, deterministic, and based on meaningful behavior. Avoid ordering dependencies, hardcoded real credentials, and test data that depends on other people using a shared database. Add relevant success, boundary, and error/authorization cases instead of duplicating nearly identical assertions.
-
-### Final TE 7 completion checklist
-
-- [x] Identify existing unit tests for at least two units and four behaviors.
-- [x] Identify existing API/integration-style system-test candidates.
-- [ ] Run and pass the **complete** automated suite with the required Node flag.
-- [ ] Confirm at least two system tests cover multiple components and pass.
-- [ ] Record genuine TDD RED, GREEN, and REFACTOR evidence.
-- [ ] Implement and pass at least two automated UI tests covering a complete user story.
-- [ ] Confirm the root `npm test` script works after `npm ci`.
-- [ ] Ensure GitHub Actions actually runs the test script (not silently skips it).
-- [ ] Add a short README link and test-command summary.
-- [ ] Record final test counts, test environment, and any limitations.
-
-**Submission:** One teammate submits the GitHub repository URL in Canvas after the tests and documentation are committed.
