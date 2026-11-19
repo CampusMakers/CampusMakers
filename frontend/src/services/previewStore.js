@@ -1,5 +1,5 @@
 import { api } from "./api.js";
-import { loadPosts, savePost } from "./postsApi.js";
+import { deleteEvent, loadPosts, savePost } from "./postsApi.js";
 // Browser-only storage for the pre-authentication demo. Never contacts a server.
 import { explorePosts } from "../pages/Explore Page/exploreData.js";
 import { eventStatusAt } from "./eventStatus.js";
@@ -139,15 +139,32 @@ class Query {
                     this.action === "insert" ||
                     this.action === "update"
                 ) {
+                    const existing =
+                        this.action === "update"
+                            ? (await loadPosts()).find(
+                                  (row) =>
+                                      String(row.id) ===
+                                      String(this.equalities.id)
+                              )
+                            : null;
                     rows = [
                         await savePost(
-                            this.value,
+                            {
+                                event_id: existing?.event_id,
+                                ...this.value
+                            },
                             this.action === "update"
                                 ? this.equalities.id
                                 : null
                         )
                     ];
                 } else if (this.action === "delete") {
+                    const post = (await loadPosts()).find(
+                        (row) =>
+                            String(row.id) ===
+                            String(this.equalities.id)
+                    );
+                    await deleteEvent(post?.event_id);
                     await api(`/posts/${this.equalities.id}`, {
                         method: "DELETE"
                     });

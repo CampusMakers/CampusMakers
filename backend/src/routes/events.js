@@ -27,6 +27,18 @@ const assertLocation = async (locationId, campusId) => {
     if (location.campus_id !== campusId) throw badRequest("Location must be on the event's campus");
 };
 
+// Finds the campus location with this name, adding it if it is new, so events
+// created from free-text locations still point at a row in locations.
+const locationIdByName = async (name, campusId) => {
+    const location = await one(
+        `insert into locations (campus_id, name) values ($1, $2)
+         on conflict (campus_id, name) do update set name = excluded.name
+         returning id`,
+        [campusId, name]
+    );
+    return location.id;
+};
+
 const canManage = async (eventId, user) => {
     const event = await one(
         `select e.campus_id, e.created_by, hs.owner_id as host_owner_id
@@ -103,6 +115,7 @@ const eventBody = {
     title: z.string().trim().min(2).max(120),
     description: z.string().trim().max(4000).nullable().optional(),
     locationId: id.nullable().optional(),
+    locationName: z.string().trim().min(2).max(120).optional(),
     startsAt: timestamp,
     endsAt: timestamp.nullable().optional()
 };
@@ -122,6 +135,7 @@ router.post(
         if (!campusId) throw badRequest("Provide campusId");
         if (!store && req.user.role !== "admin") throw forbidden("Only sellers can create events");
         await assertLocation(body.locationId, campusId);
+        const locationId = body.locationId ?? (body.locationName ? await locationIdByName(body.locationName, campusId) : null);
 
         const created = await one(
             `insert into events (campus_id, location_id, created_by, host_store_id, title, description, starts_at, ends_at)
@@ -129,7 +143,7 @@ router.post(
              returning id`,
             [
                 campusId,
-                body.locationId ?? null,
+                locationId,
                 req.user.id,
                 body.hostAsStore && store ? store.id : null,
                 body.title,
@@ -152,6 +166,7 @@ router.patch(
                 title: eventBody.title.optional(),
                 description: eventBody.description,
                 locationId: eventBody.locationId,
+                locationName: eventBody.locationName,
                 startsAt: timestamp.optional(),
                 endsAt: eventBody.endsAt
             })
@@ -162,6 +177,9 @@ router.patch(
         const body = req.data.body;
         const event = await canManage(eventId, req.user);
         await assertLocation(body.locationId, event.campus_id);
+        if (!("locationId" in body) && body.locationName) {
+            body.locationId = await locationIdByName(body.locationName, event.campus_id);
+        }
 
         await one(
             `update events set
