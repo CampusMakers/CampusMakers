@@ -8,12 +8,56 @@ globalThis.localStorage = {
 };
 globalThis.window = new EventTarget();
 let posts = [];
+const events = new Map();
 let unavailable = false;
+
 globalThis.fetch = async (url, options = {}) => {
     if (unavailable) throw new Error("Server unavailable");
-    const id = Number(String(url).match(/posts\/(\d+)/)?.[1]);
-    let result;
+
+    const path = new URL(String(url), "http://localhost")
+        .pathname;
     const body = options.body ? JSON.parse(options.body) : null;
+
+    // Mock event API requests separately from posts.
+    if (/\/events(?:\/|$)/.test(path)) {
+        const eventId = Number(
+            path.match(/\/events\/(\d+)/)?.[1]
+        );
+        let result;
+
+        if (options.method === "POST") {
+            result = {
+                id: events.size + 1,
+                ...body
+            };
+            events.set(result.id, result);
+        } else if (options.method === "PATCH") {
+            result = events.get(eventId);
+
+            if (!result) {
+                return Response.json(
+                    { error: "Event not found" },
+                    { status: 404 }
+                );
+            }
+
+            Object.assign(result, body);
+        } else if (options.method === "DELETE") {
+            events.delete(eventId);
+            return new Response(null, { status: 204 });
+        } else {
+            result = eventId
+                ? events.get(eventId)
+                : [...events.values()];
+        }
+
+        return Response.json({ data: result });
+    }
+
+    // Existing post API behavior.
+    const id = Number(path.match(/\/posts\/(\d+)/)?.[1]);
+    let result;
+
     if (options.method === "POST") {
         result = {
             id: posts.length + 1,
@@ -24,19 +68,33 @@ globalThis.fetch = async (url, options = {}) => {
             moderationStatus: "pending",
             ...body
         };
+
         posts.push(result);
     } else if (options.method === "PATCH") {
         result = posts.find((p) => p.id === id);
+
+        if (!result) {
+            return Response.json(
+                { error: "Post not found" },
+                { status: 404 }
+            );
+        }
+
         Object.assign(result, body);
     } else if (options.method === "DELETE") {
         posts = posts.filter((p) => p.id !== id);
         return new Response(null, { status: 204 });
-    } else result = posts;
+    } else {
+        result = posts;
+    }
+
     return Response.json({ data: result });
 };
+
 test.beforeEach(() => {
     memory.clear();
     posts = [];
+    events.clear();
     unavailable = false;
 });
 test("published posts survive reads, editing and string-id deletion", async () => {
@@ -75,12 +133,10 @@ test("follow lists resolve profile names and count saved relationships", async (
     const person = (
         await previewStore.from("messaging_profiles").select()
     ).data[1];
-    await previewStore
-        .from("maker_follows")
-        .insert({
-            follower_id: "preview-user",
-            followee_id: person.id
-        });
+    await previewStore.from("maker_follows").insert({
+        follower_id: "preview-user",
+        followee_id: person.id
+    });
     const result = await previewStore
         .from("maker_follows")
         .select()
@@ -93,16 +149,14 @@ test("follow lists resolve profile names and count saved relationships", async (
 });
 test("ratings replace the previous rating instead of adding duplicate votes", async () => {
     for (const rating of [2, 5])
-        await previewStore
-            .from("maker_product_ratings")
-            .upsert(
-                {
-                    product_id: "listing-1",
-                    user_id: "preview-user",
-                    rating
-                },
-                { onConflict: "product_id,user_id" }
-            );
+        await previewStore.from("maker_product_ratings").upsert(
+            {
+                product_id: "listing-1",
+                user_id: "preview-user",
+                rating
+            },
+            { onConflict: "product_id,user_id" }
+        );
     const result = await previewStore
         .rpc("maker_product_rating_summary", {
             p_product_id: "listing-1"
@@ -123,13 +177,11 @@ test("settings finds comments for owned posts and deletion removes replies", asy
             content: "Hello"
         })
         .single();
-    await previewStore
-        .from("maker_post_comments")
-        .insert({
-            post_id: 7,
-            parent_id: root.id,
-            content: "Reply"
-        });
+    await previewStore.from("maker_post_comments").insert({
+        post_id: 7,
+        parent_id: root.id,
+        content: "Reply"
+    });
     assert.equal(
         (
             await previewStore
