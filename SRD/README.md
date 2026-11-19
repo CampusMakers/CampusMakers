@@ -159,6 +159,27 @@
 
 9.  **<u>AI Usage & Disclosure (Mandatory)</u>**
 
+
+## Automated Testing
+
+Our project includes automated unit and API-level system tests
+using Node.js's built-in test runner and Supertest.
+
+### Running Tests
+
+1. Install dependencies:
+   npm ci
+
+2. Run all automated tests:
+   npm test
+
+Tests are also executed through our GitHub Actions workflow
+when code is pushed or a pull request is opened.
+
+For testing levels, test cases, setup, limitations, and
+TDD/UI testing evidence, see [TESTING.md](TESTING.md).
+
+
 -   <u>**Model(s) Used:**</u>
 
 -   **<u>prompts used during coding:</u>**
