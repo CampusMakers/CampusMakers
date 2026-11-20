@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../auth.js";
-import { many, one } from "../db/pool.js";
+import { many, one, transaction } from "../db/pool.js";
 import { badRequest, notFound } from "../lib/httpError.js";
 import { id, username } from "../lib/schemas.js";
 import { requireAuth } from "../middleware/session.js";
@@ -167,6 +167,52 @@ router.patch(
         });
     }
 );
+
+router.delete("/me", requireAuth, async (req, res) => {
+        const userId = req.user.id;
+        const account = await one(
+            "select email from users where id = $1",
+            [userId]
+        );
+        if (!account) throw notFound("User not found");
+
+        await transaction(async (client) => {
+            await client.query(
+                `update orders set status = 'cancelled', updated_at = now()
+                 where status in ('pending', 'scheduled', 'ready')
+                 and (buyer_id = $1
+                      or store_id in (select id from stores where owner_id = $1))`,
+                [userId]
+            );
+
+            await client.query("delete from sessions where user_id = $1", [userId]);
+            await client.query("delete from accounts where user_id = $1", [userId]);
+            await client.query("delete from verifications where identifier = $1", [
+                account.email
+            ]);
+
+            await client.query(
+                "delete from follows where follower_id = $1 or followee_id = $1",
+                [userId]
+            );
+            await client.query(
+                "delete from messages where sender_id = $1 or receiver_id = $1",
+                [userId]
+            );
+            await client.query("delete from post_likes where user_id = $1", [userId]);
+            await client.query("delete from post_comments where author_id = $1", [userId]);
+            await client.query("delete from posts where author_id = $1", [userId]);
+            await client.query("delete from saved_listings where user_id = $1", [userId]);
+            await client.query("delete from listing_ratings where user_id = $1", [userId]);
+            await client.query("delete from listing_likes where user_id = $1", [userId]);
+            await client.query("delete from listing_comments where author_id = $1", [userId]);
+            await client.query("delete from event_rsvps where user_id = $1", [userId]);
+            await client.query("delete from stores where owner_id = $1", [userId]);
+            await client.query("delete from users where id = $1", [userId]);
+        });
+
+        res.status(204).end();
+});
 
 router.get(
     "/:username",
