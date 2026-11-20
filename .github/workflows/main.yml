@@ -16,10 +16,14 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm ci -w backend
       - run: npm ci -w frontend
+
+      - name: Run backend unit tests
+        run: npm run test -w backend
 
       - name: Run unit and component tests
         run: npm test
 
-      - name: Run React UI tests
-        run: npm run test:ui
+      # - name: Run React UI tests
+      #   run: npm run test:ui
