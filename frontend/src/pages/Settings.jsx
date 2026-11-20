@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import "./Settings.css";
 import { previewStore } from "../services/previewStore";
 import { signOut } from "../services/authApi";
+import { api } from "../services/api";
 
 const sections = [
     {
@@ -92,6 +93,9 @@ function Settings({ onBack, profile, email, user }) {
 
     const [logoutError, setLogoutError] = useState("");
     const [logoutBusy, setLogoutBusy] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState("");
+    const [deleteBusy, setDeleteBusy] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const refresh = useCallback(async () => {
         if (!previewStore || !viewerId) {
@@ -325,6 +329,37 @@ function Settings({ onBack, profile, email, user }) {
             setLogoutBusy(false);
         }
         window.location.hash = "login";
+    }
+
+    const accountUsername =
+        profile?.username || user?.username || "";
+    const deleteMatches =
+        Boolean(accountUsername) &&
+        deleteConfirm.trim().replace(/^@/, "").toLowerCase() ===
+            accountUsername.toLowerCase();
+
+    async function deleteAccount(event) {
+        event.preventDefault();
+        if (!deleteMatches || deleteBusy) return;
+        setDeleteError("");
+        setDeleteBusy(true);
+        try {
+            await api("/users/me", { method: "DELETE" });
+        } catch (error) {
+            setDeleteError(
+                error.message || "Could not delete your account."
+            );
+            setDeleteBusy(false);
+            return;
+        }
+        // Sessions are gone server-side; clear the local token too.
+        try {
+            await signOut();
+        } catch {
+            // Token is cleared in signOut's finally block.
+        }
+        window.location.hash = "login";
+        window.location.reload();
     }
 
     const sellerRoots = sellerComments.filter(
@@ -1227,12 +1262,67 @@ function Settings({ onBack, profile, email, user }) {
                             </p>
 
                             <p className="settings-warning">
-                                Demo only: no account will be
-                                deleted. Secure account deletion
-                                requires backend integration and
-                                will be added in a future
-                                sprint.
+                                This permanently deletes your
+                                account, store, listings, posts,
+                                comments, messages, and follows.
+                                Open orders will be cancelled.
+                                This cannot be undone.
                             </p>
+
+                            <form
+                                className="settings-form"
+                                onSubmit={deleteAccount}>
+                                <label
+                                    className="settings-field"
+                                    htmlFor="settings-delete-confirm">
+                                    Type{" "}
+                                    <code
+                                        style={{
+                                            userSelect: "all",
+                                            fontWeight: 700
+                                        }}>
+                                        {accountUsername}
+                                    </code>{" "}
+                                    to confirm
+                                </label>
+
+                                <input
+                                    id="settings-delete-confirm"
+                                    className="settings-input"
+                                    value={deleteConfirm}
+                                    autoComplete="off"
+                                    autoCapitalize="off"
+                                    spellCheck={false}
+                                    onChange={(event) =>
+                                        setDeleteConfirm(
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder={
+                                        accountUsername
+                                    }
+                                />
+
+                                <button
+                                    type="submit"
+                                    className="settings-action settings-action-danger"
+                                    disabled={
+                                        !deleteMatches ||
+                                        deleteBusy
+                                    }>
+                                    {deleteBusy
+                                        ? "Deleting…"
+                                        : "Permanently Delete Account"}
+                                </button>
+                            </form>
+
+                            {deleteError && (
+                                <p
+                                    role="alert"
+                                    className="settings-form-error">
+                                    {deleteError}
+                                </p>
+                            )}
                         </>
                     )}
                 </section>
