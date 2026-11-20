@@ -243,33 +243,34 @@ see or do. The assignment requires **at least two automated UI
 tests covering at least one complete user story**. Manual
 browser checks do not replace this requirement.
 
-**Status: Pending — select the framework and implement the
-tests.**
+**Status: Complete — two React Testing Library tests pass for the
+Home and Explore discovery-to-detail paths.**
 
 | Item                | Team evidence                                                 |
 | ------------------- | ------------------------------------------------------------- |
-| Owner(s)            | [Teammate names]                                              |
-| Selected framework  | [Playwright, Cypress, or another appropriate UI testing tool] |
-| Test files          | [Paths]                                                       |
-| Run command         | [Working command]                                             |
-| Application startup | [Command and local URL]                                       |
-| Seed or mock setup  | [Fixtures and setup instructions]                             |
-| Cleanup             | [How test data is removed or reset]                           |
+| Owner(s)            | Not specified |
+| Selected framework  | React Testing Library, `user-event`, jsdom, Node.js test runner, and Vite's JSX loader |
+| Test files          | `frontend/tests/listingDiscovery.ui.test.js` |
+| Run command         | `npm run test:ui` from the repository root |
+| Application startup | None; tests render the React `App` in jsdom |
+| Seed or mock setup  | Each test seeds `Campus Test Mug` as a published listing in the browser-local `maker_posts` preview store; no account or credentials |
+| Cleanup             | React tree unmounted and jsdom local storage cleared after each test; no server records created |
 
-### Proposed user story
+### User story covered
 
 > As a buyer, I want to discover and open a published Campus
 > Makers listing so I can inspect a product.
 
 | Test                  | User actions                                                             | Visible assertions                                                                                              |
 | --------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| 1 — Home discovery    | Open Home, locate a known seeded published product, and select its card. | The product card is visible, and selecting it opens Product Detail with the expected product title and details. |
-| 2 — Explore discovery | Open Explore, locate the same seeded published product, and select it.   | The product appears in Explore, and selecting it opens the matching product details.                            |
+| 1 — Home discovery    | Open Home, locate `Campus Test Mug`, and click its card. | The card is visible; Product Detail shows its title, description, Ceramics category, $28.00 price, and Back to Home button. |
+| 2 — Explore discovery | Open Explore, filter to Products, locate the same listing, and click its card. | The card is visible; Product Detail shows the same title, description, category, price, and Back to Explore button. |
 
-These are proposed tests, not completed evidence. Both should
-complete the discovery-to-detail flow. Empty and error states
-may be tested separately. Assert visible behavior rather than
-internal component state.
+Both tests render the real React `App`, simulate clicks, and assert
+visible DOM content. The listing is seeded into the frontend's
+browser-local preview store, so both pages read the same published
+preview record. These tests cover the current UI flow; they do not
+verify a live backend, browser layout, or image loading.
 
 ## Test Tools
 
@@ -278,7 +279,7 @@ internal component state.
 | TDD | Node.js test runner, React server rendering, Vite | Complete: Explore event-status badges; see Part I. |
 | Unit          | Node.js `node:test` and `node:assert`                           | Existing tests for isolated functions and services.                         |
 | System        | Node.js test runner, Supertest, and dependency mocks            | Candidate API-route tests combining request handling and feature logic.     |
-| UI            | Pending team selection                                          | At least two automated tests completing a user story through the interface. |
+| UI            | React Testing Library, `user-event`, jsdom, Node.js, Vite | Two automated Home/Explore discovery-to-detail tests; see Part IV. |
 
 ## Installing Dependencies and Running Tests
 
@@ -294,6 +295,7 @@ Run the commands below from the repository root,
 
     ```bash
     npm ci
+    npm ci --prefix frontend
     ```
 
 3. Complete any environment and fixture setup described in the
@@ -313,57 +315,49 @@ call `t.mock.module`, including
 `backend/src/lib/storage.test.js`. The team's previous unflagged
 run failed with `TypeError: t.mock.module is not a function`.
 
-### Required `npm test` script
+### Current `npm test` script
 
-Merge the following `test` entry into the root `package.json`
-scripts object, preserving existing scripts:
+The root `package.json` currently runs the checked-in frontend
+service and Explore component tests:
 
 ```json
 {
     "scripts": {
-        "test": "node --experimental-test-module-mocks --test frontend/src/services/*.test.js backend/src/lib/*.test.js backend/src/services/*.test.js backend/src/routes/*.test.js"
+        "test": "node --test frontend/src/services/*.test.js frontend/tests/exploreEventStatus.test.js"
     }
 }
 ```
 
-After configuring and verifying the script, run:
+Run the script with:
 
 ```bash
 npm test
 ```
 
-**Pending:** Run this command on the updated `development`
-branch, resolve setup failures with the test owners, and record
-the results. Do not exclude required tests merely to obtain a
-passing run. If workspace-specific commands are needed, document
-each workspace's command here.
+On November 20, this command passed 17 tests. The backend route
+tests described in Part III are not included in the current root
+script; the proposed combined command above remains unverified on
+this branch.
 
 ### UI test command
 
-**Pending:** Add the actual UI command, required browser
-installation, application startup, and fixture setup after
-selecting the framework. Either include UI tests in `npm test`
-or document and configure a separate command, such as
-`npm run test:ui`, and include it in CI. That example command is
-not confirmed to exist yet.
+Install frontend dependencies, then run the dedicated UI suite:
+
+```bash
+npm ci --prefix frontend
+npm run test:ui
+```
+
+No browser download or app startup is required. The tests load the
+real JSX through Vite, render into jsdom, and seed a listing into
+local storage. The root `npm test` script runs service and component tests;
+`npm run test:ui` runs the two complete-story UI tests. CI runs both.
 
 ### Continuous integration
 
-The previously inspected `.github/workflows/main.yml` on `main`
-used Node 24, `npm ci`, and `npm run test --if-present`. The
-`--if-present` option allows that step to succeed when no test
-script exists.
-
-After confirming the current workflow and adding a working root
-test script, use:
-
-```yaml
-- name: Run automated tests
-  run: npm test
-```
-
-Add any separately configured UI test command and browser
-installation steps as needed.
+The current `.github/workflows/main.yml` uses Node 24, installs root
+and frontend dependencies, then runs `npm test` and
+`npm run test:ui` as separate steps.
 
 ## External Services, Environment, and Test Data
 
@@ -382,9 +376,11 @@ installation steps as needed.
   requires a dedicated test database or bucket. Do not let
   automated tests create unwanted records in the shared
   production-labeled Supabase project or write to its R2 bucket.
-- **UI fixtures:** Provide a known published listing and any
-  required test accounts. Document setup, application startup,
-  and cleanup so another teammate can reproduce the tests.
+- **UI fixtures:** Each test seeds `Campus Test Mug` in the
+  browser-local `maker_posts` preview store. No account is required.
+  Each test starts from a fresh hash route and clears local storage
+  after rendering. This preview fixture does not establish backend
+  publication behavior.
 - **Email delivery:** The existing notes report that Resend
   lacks a verified sending domain, so real delivery to arbitrary
   university addresses is not fully verified. Manual Supabase
@@ -401,7 +397,7 @@ installation steps as needed.
 | TDD cycle | Complete: Explore event badges; Red 1 passed/3 failed, Green 4 passed, Refactor 17 passed. |
 | Required unit tests                                        | **Pending:** Confirm four distinct tests across at least two units in the current branch.                       |
 | Required system tests                                      | **Pending:** Confirm two tests and the functions/methods they exercise together.                                |
-| Automated UI tests                                         | **Pending:** Implement and run two tests covering the complete user story.                                      |
+| Automated UI tests                                         | November 20: `npm run test:ui` — 2 passed, 0 failed, 0 skipped; Home and Explore discovery-to-detail paths. |
 | Live external-service integration                          | Not established by mocked tests.                                                                                |
 
 Future coverage could include real-service integration in a

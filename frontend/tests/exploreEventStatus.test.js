@@ -3,11 +3,12 @@ import { test, before, after } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
+import { fileURLToPath } from 'node:url';
 
 let server;
 let PostCard;
 before(async () => {
-    server = await createServer({ root: new URL('..', import.meta.url).pathname, server: { middlewareMode: true, ws: false }, appType: 'custom', optimizeDeps: { noDiscovery: true, include: [] } });
+    server = await createServer({ root: fileURLToPath(new URL('..', import.meta.url)), server: { middlewareMode: true, ws: false }, appType: 'custom', optimizeDeps: { noDiscovery: true, include: [] } });
     ({ PostCard } = await server.ssrLoadModule('/src/pages/Explore Page/Explore.jsx'));
 });
 after(async () => { await server?.close(); });
