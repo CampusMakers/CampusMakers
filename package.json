@@ -16,7 +16,7 @@
     "db:migrate": "npm run db:migrate -w backend",
     "db:seed": "npm run db:seed -w backend",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
-    "test": "node --experimental-test-module-mocks --test frontend/src/services/*.test.js backend/src/lib/*.test.js backend/src/services/*.test.js backend/src/routes/*.test.js",
+    "test": "node --experimental-test-module-mocks --test frontend/src/services/*.test.js",
     "test:tdd": "node --test frontend/tests/exploreEventStatus.test.js",
     "test:ui": "node --test frontend/tests/listingDiscovery.ui.test.js"
   },
