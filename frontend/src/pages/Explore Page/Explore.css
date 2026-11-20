@@ -1429,3 +1429,21 @@
     color: #69533d;
     font-size: 12px;
 }
+
+/* Status text keeps event states distinguishable without relying on color. */
+.event-card-bar { flex-wrap: wrap; }
+.event-status-badge,
+.event-card-bar > .event-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: normal;
+}
+.event-status-upcoming,
+.event-card-bar > .event-status-upcoming { background: #dbeafe; color: #1e3a8a; }
+.event-status-current,
+.event-card-bar > .event-status-current { background: #dcfce7; color: #14532d; }
+.event-status-completed,
+.event-card-bar > .event-status-completed { background: #e5e7eb; color: #374151; }

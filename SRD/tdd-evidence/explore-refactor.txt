@@ -1,0 +1,29 @@
+
+> CampusMakers@0.1.0 test
+> node --test frontend/src/services/*.test.js frontend/tests/*.test.js
+
+✔ scheduled times use the creator's zone and omit seconds (10.286667ms)
+✔ the zone abbreviation follows daylight saving time (0.1945ms)
+✔ legacy records identify the viewer-zone fallback (0.142458ms)
+✔ automatic event status changes at the start and end boundaries (0.84425ms)
+✔ manual status stays as selected and finished status stays finished (0.060166ms)
+✔ published posts survive reads, editing and string-id deletion (1.429ms)
+✔ follow lists resolve profile names and count saved relationships (0.304375ms)
+✔ ratings replace the previous rating instead of adding duplicate votes (0.537708ms)
+✔ settings finds comments for owned posts and deletion removes replies (0.203166ms)
+✔ ending an event requires confirmation and prevents later edits (0.175167ms)
+✔ storage failures are reported rather than claiming a successful publish (0.143667ms)
+✔ quantity choices respect the seller limit and available stock (0.334125ms)
+✔ suggestions exclude the current product, posts and duplicate listings (0.352917ms)
+✔ Explore event card visibly identifies Upcoming events (68.207042ms)
+✔ Explore event card visibly identifies In Progress events (0.257583ms)
+✔ Explore event card visibly identifies Completed events (0.139792ms)
+✔ ordinary Explore posts do not display an event status badge (0.29125ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 274.98025
