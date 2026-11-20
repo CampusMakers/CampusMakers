@@ -16,8 +16,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm ci -w backend
-      - run: npm ci -w frontend
 
       - name: Run backend unit tests
         run: npm run test -w backend
