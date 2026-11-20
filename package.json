@@ -9,7 +9,9 @@
     "packages/*"
   ],
   "scripts": {
-    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
+    "test": "node --test frontend/src/services/*.test.js frontend/tests/*.test.js",
+    "test:tdd": "node --test frontend/tests/exploreEventStatus.test.js"
   },
   "devDependencies": {
     "prettier": "^3.9.7"

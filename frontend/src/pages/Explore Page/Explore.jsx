@@ -13,6 +13,8 @@ import EventManager from "../EventManager";
 import PostComments from "../PostComments";
 import { formatScheduledTime } from "../../services/dateTime";
 
+import { eventStatusAt } from "../../services/eventStatus";
+
 const mentionPattern = /(^|\s)(@[a-z0-9._-]+)/gi;
 
 function MentionText({ children, onOpenSeller }) {
@@ -421,6 +423,19 @@ function TwoColumnPostGrid({
     );
 }
 
+function EventStatusBadge({ post }) {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+    const status = eventStatusAt(post, now);
+    const state = status === "Event Ended" ? "completed" : status === "In Progress" ? "current" : "upcoming";
+    return <span className={`event-status-badge event-status-${state}`} aria-live="polite">
+        {status === "Event Ended" ? "Completed" : status}
+    </span>;
+}
+
 export function PostCard({ post, onOpenPost, onOpenSeller }) {
     const isListing = post.type === "listing";
     const isEvent = Boolean(post.is_event);
@@ -453,6 +468,7 @@ export function PostCard({ post, onOpenPost, onOpenSeller }) {
                 ) : isEvent ? (
                     <div className="event-card-bar">
                         <span>EVENT</span>
+                        <EventStatusBadge post={post} />
                         <strong>
                             {post.event_title || "Event"}
                         </strong>
@@ -992,6 +1008,7 @@ export function PostDetail({
                 {post.is_event && (
                     <div className="event-details-heading event-details-banner">
                         <h2>{post.event_title}</h2>
+                        <EventStatusBadge post={post} />
                         <p>
                             {post.event_location} ·{" "}
                             {formatScheduledTime(

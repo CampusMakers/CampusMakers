@@ -1,0 +1,12 @@
+✔ Explore event card visibly identifies Upcoming events (66.392459ms)
+✔ Explore event card visibly identifies In Progress events (0.264917ms)
+✔ Explore event card visibly identifies Completed events (0.137125ms)
+✔ ordinary Explore posts do not display an event status badge (0.314125ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 249.24875
